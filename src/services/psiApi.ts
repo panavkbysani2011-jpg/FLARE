@@ -1,6 +1,9 @@
 import { PsiRun, SimulationRequest, SimulationResponse } from '../types/psi';
 import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
-import { runLocalPhysicsSimulation } from '../utils/physicsEngine';
+import {
+  AssistantArchiveContext,
+  runLocalPhysicsSimulation,
+} from '../utils/physicsEngine';
 import {
   ImportValidationResult,
   validateAndNormalizeDataset,
@@ -9,11 +12,13 @@ import {
 /**
  * Centralized API adapter for PSI Data Manager.
  * When VITE_API_BASE_URL is configured, routes requests to `${VITE_API_BASE_URL}/api/analyze`.
- * When empty, executes the local deterministic physics engine and citation builder seamlessly.
+ * When empty, executes the local deterministic physics engine and citation builder seamlessly
+ * across loaded PSI CSV runs, literature chunks, and historical/spin-off case files.
  */
 export async function analyzeCombustionState(
   request: SimulationRequest,
-  catalog: PsiRun[] = BASELINE_PSI_RUNS
+  catalog: PsiRun[] = BASELINE_PSI_RUNS,
+  archiveContext?: AssistantArchiveContext
 ): Promise<SimulationResponse> {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
 
@@ -39,7 +44,11 @@ export async function analyzeCombustionState(
       });
       if (response.ok) {
         const remoteData = (await response.json()) as Partial<SimulationResponse>;
-        const localFallback = runLocalPhysicsSimulation(request, catalog);
+        const localFallback = runLocalPhysicsSimulation(
+          request,
+          catalog,
+          archiveContext
+        );
         return {
           ...localFallback,
           ...remoteData,
@@ -54,7 +63,7 @@ export async function analyzeCombustionState(
     await new Promise((resolve) => setTimeout(resolve, 140));
   }
 
-  return runLocalPhysicsSimulation(request, catalog);
+  return runLocalPhysicsSimulation(request, catalog, archiveContext);
 }
 
 export function processCustomDatasetUpload(

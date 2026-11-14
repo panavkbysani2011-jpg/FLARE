@@ -3,7 +3,11 @@ import {
   AssistantMessage,
   EnvironmentPreset,
   EnvironmentPresetId,
+  LiteratureChunk,
+  LiteratureCorpusStats,
+  PsiInvestigationRecord,
   PsiRun,
+  ResearchersGuideTopic,
   SimulationResponse,
   SyncChangelogEntry,
   ThemeMode,
@@ -16,16 +20,20 @@ import {
   INITIAL_SYNC_CHANGELOG,
   SIMULATED_NEW_SYNC_ENTRY,
 } from './data/baselineRuns';
+import { MISSION_AND_SPINOFF_CASES } from './data/missionAndSpinoffCases';
+import { loadPsiArchiveData } from './services/dataLoader';
 import { runLocalPhysicsSimulation } from './utils/physicsEngine';
 import { analyzeCombustionState } from './services/psiApi';
+import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
 import { LeftSidebar } from './components/LeftSidebar';
 import { VisualizationStage } from './components/VisualizationStage';
 import { CatalogView } from './components/CatalogView';
+import { ExperimentRunsView } from './components/ExperimentRunsView';
 import { RunComparator } from './components/RunComparator';
 import { ImportSyncView } from './components/ImportSyncView';
+import { PsiInvestigationDetailView } from './components/PsiInvestigationDetailView';
 import { RightAssistantPanel } from './components/RightAssistantPanel';
-import { RunInspectorDrawer } from './components/RunInspectorDrawer';
 
 export default function App() {
   // 1. Theme State ('normal' default #F3F4F6, 'light' #FFFFFF, 'dark' #09090B)
@@ -40,11 +48,23 @@ export default function App() {
     }
   }, [theme]);
 
-  // 2. Active Workspace View ('overview' default)
+  // 2. Active Workspace View ('overview' default) + Back-navigation origin
   const [activeView, setActiveView] = useState<WorkspaceView>('overview');
+  const [previousView, setPreviousView] =
+    useState<WorkspaceView>('investigations');
 
-  // 3. Catalog & Selected Runs (19 baseline PSI investigations, 1,645 runs)
+  // 3. Catalog, Real Loaded Archive & Selected Runs
   const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>(BASELINE_PSI_RUNS);
+  const [investigations, setInvestigations] = useState<
+    PsiInvestigationRecord[]
+  >([]);
+  const [guideTopics, setGuideTopics] = useState<ResearchersGuideTopic[]>([]);
+  const [literatureChunks, setLiteratureChunks] = useState<LiteratureChunk[]>(
+    []
+  );
+  const [corpusStats, setCorpusStats] =
+    useState<LiteratureCorpusStats | null>(null);
+  const [isArchiveLoading, setIsArchiveLoading] = useState<boolean>(true);
   const [selectedRunIds, setSelectedRunIds] = useState<string[]>([
     'psi-99',
     'psi-25',
@@ -52,7 +72,7 @@ export default function App() {
   ]);
   const [highlightedRunId, setHighlightedRunId] = useState<string | null>(null);
 
-  // 4. Shared Brushing & Linking + Inspector Drawer State
+  // 4. Shared Brushing & Linking + Full-Page Investigation Detail State
   const [hoveredRunId, setHoveredRunId] = useState<string | null>(null);
   const [hoveredMaterialId, setHoveredMaterialId] = useState<string | null>(
     null
@@ -80,10 +100,38 @@ export default function App() {
   );
   const [hasSimulatedNewSync, setHasSimulatedNewSync] = useState(false);
   const [hasUnreadSync, setHasUnreadSync] = useState(true);
-  const [investigationCount, setInvestigationCount] = useState(
-    BASELINE_PSI_RUNS.length
-  );
-  const [totalRunsCount, setTotalRunsCount] = useState(1645);
+  const [investigationCount, setInvestigationCount] = useState(18);
+  const [totalRunsCount, setTotalRunsCount] = useState(BASELINE_PSI_RUNS.length);
+
+  // Load real sanitized PSI investigations, 1,611+ CSV runs, and ISS Researcher's Guide chunks at runtime
+  useEffect(() => {
+    let active = true;
+    loadPsiArchiveData()
+      .then((loaded) => {
+        if (!active) return;
+        if (loaded.runs.length > 0) {
+          setCatalogRuns((prev) => {
+            const customRuns = prev.filter((r) => r.isCustom);
+            return [...customRuns, ...loaded.runs];
+          });
+          setTotalRunsCount(loaded.runs.length);
+        }
+        setInvestigations(loaded.investigations);
+        setInvestigationCount(loaded.investigations.length);
+        setGuideTopics(loaded.researchersGuideTopics);
+        setLiteratureChunks(loaded.literatureChunks);
+        setCorpusStats(loaded.corpusStats);
+      })
+      .catch((err) => {
+        console.warn('PSI runtime archive fetch fallback active:', err);
+      })
+      .finally(() => {
+        if (active) setIsArchiveLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Support ⌘K / Ctrl+K shortcut for AI Research Assistant
   useEffect(() => {
@@ -125,10 +173,19 @@ export default function App() {
     ];
   });
 
-  // Recalculate simulation whenever sliders or catalog change
+  const archiveContext = useMemo(
+    () => ({
+      literatureChunks,
+      investigations,
+      missionCases: MISSION_AND_SPINOFF_CASES,
+    }),
+    [literatureChunks, investigations]
+  );
+
+  // Recalculate simulation whenever sliders, catalog, or archive change
   useEffect(() => {
     let cancelled = false;
-    analyzeCombustionState(sliders, catalogRuns).then((res) => {
+    analyzeCombustionState(sliders, catalogRuns, archiveContext).then((res) => {
       if (!cancelled) {
         setSimulation(res);
       }
@@ -136,7 +193,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [sliders, catalogRuns]);
+  }, [sliders, catalogRuns, archiveContext]);
 
   const selectedRuns = useMemo(
     () =>
@@ -148,14 +205,26 @@ export default function App() {
 
   const inspectedRun = useMemo(() => {
     if (!inspectedRunId) return null;
+    const q = inspectedRunId.toLowerCase();
     return (
-      catalogRuns.find(
-        (r) =>
-          r.id === inspectedRunId ||
-          r.psiId.toLowerCase().includes(inspectedRunId.toLowerCase())
-      ) ?? null
+      catalogRuns.find((r) => r.id.toLowerCase() === q) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase() === q) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase().startsWith(q)) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase().includes(q)) ??
+      null
     );
   }, [inspectedRunId, catalogRuns]);
+
+  const inspectedInvestigationRecord = useMemo(() => {
+    if (!inspectedRun) return null;
+    const cid = getCanonicalPsiId(inspectedRun);
+    const normalizedId =
+      cid === 'PSI-22' ? 'PSI-20' : cid === 'PSI-101' ? 'PSI-102' : cid;
+    return (
+      investigations.find((inv) => inv.psiId.toUpperCase() === normalizedId) ??
+      null
+    );
+  }, [inspectedRun, investigations]);
 
   // Handlers
   const handleSelectPreset = (preset: EnvironmentPreset) => {
@@ -204,31 +273,57 @@ export default function App() {
   const handleApplyRunToSliders = (run: PsiRun) => {
     setActivePresetId(null);
     setSliders({
-      O2_pct: run.O2_pct,
-      P_psi: run.P_psi,
-      Flow_ms: run.Flow_ms,
-      g_eff: run.g_eff,
-      Thickness_mm: run.Thickness_mm,
+      O2_pct: Math.min(100.0, Math.max(14.0, run.O2_pct)),
+      P_psi: Math.min(20.0, Math.max(4.3, run.P_psi)),
+      Flow_ms: Math.min(0.5, Math.max(0.0, run.Flow_ms)),
+      g_eff: Math.min(1.0, Math.max(0.0, run.g_eff)),
+      Thickness_mm: Math.min(10.0, Math.max(0.2, run.Thickness_mm)),
     });
     setHighlightedRunId(run.id);
     setActiveView('overview');
   };
 
+  const handleSimulateEnvironment = (env: {
+    O2_pct: number;
+    P_psi: number;
+    Flow_ms: number;
+    g_eff: number;
+    Thickness_mm: number;
+  }) => {
+    setActivePresetId(null);
+    setSliders({
+      O2_pct: env.O2_pct,
+      P_psi: env.P_psi,
+      Flow_ms: env.Flow_ms,
+      g_eff: env.g_eff,
+      Thickness_mm: env.Thickness_mm,
+    });
+    setActiveView('overview');
+  };
+
+  const navigateToInvestigationDetail = (run: PsiRun) => {
+    if (activeView !== 'investigation-detail') {
+      setPreviousView(activeView);
+    }
+    setInspectedRunId(run.id);
+    setHighlightedRunId(run.id);
+    setActiveView('investigation-detail');
+  };
+
   const handleOpenInspector = (psiIdOrRunId: string) => {
-    const matched = catalogRuns.find(
-      (r) =>
-        r.id === psiIdOrRunId ||
-        r.psiId.toLowerCase().includes(psiIdOrRunId.toLowerCase())
-    );
+    const q = psiIdOrRunId.trim().toLowerCase();
+    const matched =
+      catalogRuns.find((r) => r.id.toLowerCase() === q) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase() === q) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase().startsWith(q)) ??
+      catalogRuns.find((r) => r.psiId.toLowerCase().includes(q));
     if (matched) {
-      setInspectedRunId(matched.id);
-      setHighlightedRunId(matched.id);
+      navigateToInvestigationDetail(matched);
     }
   };
 
   const handleQuickJumpRun = (run: PsiRun) => {
-    setHighlightedRunId(run.id);
-    setInspectedRunId(run.id);
+    navigateToInvestigationDetail(run);
   };
 
   const handleUpdateSlidersFromMap = (O2_pct: number, Flow_ms: number) => {
@@ -294,7 +389,8 @@ export default function App() {
         question: promptText,
         selectedRunIds,
       },
-      catalogRuns
+      catalogRuns,
+      archiveContext
     );
     setIsThinking(false);
 
@@ -340,6 +436,22 @@ export default function App() {
     }
   };
 
+  const detailBackTarget: WorkspaceView =
+    previousView === 'experiment-runs' ||
+    previousView === 'comparator' ||
+    previousView === 'import-sync'
+      ? previousView
+      : 'investigations';
+
+  const detailBackLabel =
+    detailBackTarget === 'experiment-runs'
+      ? 'Experiment Runs'
+      : detailBackTarget === 'comparator'
+      ? 'Run Comparator'
+      : detailBackTarget === 'import-sync'
+      ? 'Data Import & Sync'
+      : 'Data Archive';
+
   const canvasClass =
     theme === 'dark'
       ? 'bg-[#09090B] text-[#FAFAFA]'
@@ -351,7 +463,7 @@ export default function App() {
     <div
       className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-150 ${canvasClass}`}
     >
-      {/* Left Navigation Rail (232px Fixed Width) */}
+      {/* Left Grouped Navigation Rail (240px Fixed Width) */}
       <LeftSidebar
         theme={theme}
         activeView={activeView}
@@ -375,6 +487,7 @@ export default function App() {
           theme={theme}
           onThemeChange={setTheme}
           activeView={activeView}
+          inspectedRun={inspectedRun}
           isAssistantOpen={isAssistantOpen}
           onToggleAssistant={() => setIsAssistantOpen((prev) => !prev)}
           onExportBrief={handleExportBrief}
@@ -394,24 +507,13 @@ export default function App() {
               onUpdateSlidersFromMap={handleUpdateSlidersFromMap}
               simulation={simulation}
               selectedRuns={selectedRuns}
+              catalogRuns={catalogRuns}
+              onLoadDefaultComparisonSet={handleLoadDefaultComparisonSet}
               hoveredRunId={hoveredRunId}
               onHoverRun={setHoveredRunId}
               hoveredMaterialId={hoveredMaterialId}
               onHoverMaterial={setHoveredMaterialId}
               onInspectRun={handleOpenInspector}
-            />
-          )}
-
-          {activeView === 'catalog' && (
-            <CatalogView
-              theme={theme}
-              runs={catalogRuns}
-              selectedRunIds={selectedRunIds}
-              highlightedRunId={highlightedRunId}
-              onToggleRun={handleToggleRun}
-              onApplyRunToSliders={handleApplyRunToSliders}
-              onInspectRun={handleOpenInspector}
-              onGoToComparator={() => setActiveView('comparator')}
             />
           )}
 
@@ -425,7 +527,44 @@ export default function App() {
               onRemoveRun={handleToggleRun}
               onApplyRunToSliders={handleApplyRunToSliders}
               onLoadDefaultComparisonSet={handleLoadDefaultComparisonSet}
-              onGoToCatalog={() => setActiveView('catalog')}
+              onGoToCatalog={() => setActiveView('experiment-runs')}
+              onOpenWorkbenchTechnique={(mode) => {
+                setVizMode(mode);
+                setActiveView('overview');
+              }}
+            />
+          )}
+
+          {activeView === 'investigations' && (
+            <CatalogView
+              theme={theme}
+              runs={catalogRuns}
+              investigations={investigations}
+              guideTopics={guideTopics}
+              literatureChunks={literatureChunks}
+              corpusStats={corpusStats}
+              missionCases={MISSION_AND_SPINOFF_CASES}
+              isArchiveLoading={isArchiveLoading}
+              selectedRunIds={selectedRunIds}
+              highlightedRunId={highlightedRunId}
+              onToggleRun={handleToggleRun}
+              onApplyRunToSliders={handleApplyRunToSliders}
+              onSimulateEnvironment={handleSimulateEnvironment}
+              onInspectRun={handleOpenInspector}
+              onGoToComparator={() => setActiveView('comparator')}
+            />
+          )}
+
+          {activeView === 'experiment-runs' && (
+            <ExperimentRunsView
+              theme={theme}
+              runs={catalogRuns}
+              selectedRunIds={selectedRunIds}
+              highlightedRunId={highlightedRunId}
+              onToggleRun={handleToggleRun}
+              onApplyRunToSliders={handleApplyRunToSliders}
+              onInspectRun={handleOpenInspector}
+              onGoToComparator={() => setActiveView('comparator')}
             />
           )}
 
@@ -441,20 +580,28 @@ export default function App() {
               }}
             />
           )}
+
+          {activeView === 'investigation-detail' && (
+            <PsiInvestigationDetailView
+              run={inspectedRun}
+              investigationRecord={inspectedInvestigationRecord}
+              allRuns={catalogRuns}
+              literatureChunks={literatureChunks}
+              selectedRunIds={selectedRunIds}
+              theme={theme}
+              backLabel={detailBackLabel}
+              isSelectedForComparison={
+                inspectedRun ? selectedRunIds.includes(inspectedRun.id) : false
+              }
+              selectedRunsCount={selectedRuns.length}
+              onBack={() => setActiveView(detailBackTarget)}
+              onToggleComparison={handleToggleRun}
+              onLoadIntoSimulator={handleApplyRunToSliders}
+              onSelectRun={(runId) => handleOpenInspector(runId)}
+            />
+          )}
         </main>
       </div>
-
-      {/* Clickable Run Detail Inspector Slide-Over Drawer */}
-      <RunInspectorDrawer
-        run={inspectedRun}
-        onClose={() => setInspectedRunId(null)}
-        theme={theme}
-        isSelectedForComparison={
-          inspectedRun ? selectedRunIds.includes(inspectedRun.id) : false
-        }
-        onToggleComparison={handleToggleRun}
-        onLoadIntoSimulator={handleApplyRunToSliders}
-      />
 
       {/* Slide-Over AI Research Assistant Drawer (380px width) */}
       <RightAssistantPanel

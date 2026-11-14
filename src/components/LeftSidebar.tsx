@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Activity,
+  BookOpen,
   Database,
   GitCompare,
   RefreshCw,
@@ -22,30 +23,55 @@ interface LeftSidebarProps {
   onQuickJumpRun: (run: PsiRun) => void;
 }
 
-const NAV_ITEMS: Array<{
-  id: WorkspaceView;
-  label: string;
-  icon: React.FC<{ className?: string }>;
-}> = [
+interface NavGroup {
+  section: string;
+  items: Array<{
+    id: Exclude<WorkspaceView, 'investigation-detail'>;
+    label: string;
+    icon: React.FC<{ className?: string }>;
+  }>;
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    id: 'overview',
-    label: 'Overview & Simulator',
-    icon: Activity,
+    section: 'ANALYSIS WORKSPACE',
+    items: [
+      {
+        id: 'overview',
+        label: 'Simulation Workbench',
+        icon: Activity,
+      },
+      {
+        id: 'comparator',
+        label: 'Run Comparator',
+        icon: GitCompare,
+      },
+    ],
   },
   {
-    id: 'catalog',
-    label: 'Experiment Catalog',
-    icon: Database,
+    section: 'ARCHIVE & DOCUMENTATION',
+    items: [
+      {
+        id: 'investigations',
+        label: 'Data Archive',
+        icon: BookOpen,
+      },
+      {
+        id: 'experiment-runs',
+        label: 'Experiment Runs',
+        icon: Database,
+      },
+    ],
   },
   {
-    id: 'comparator',
-    label: 'Run Comparator',
-    icon: GitCompare,
-  },
-  {
-    id: 'import-sync',
-    label: 'Data Import & Sync',
-    icon: RefreshCw,
+    section: 'DATA PIPELINE',
+    items: [
+      {
+        id: 'import-sync',
+        label: 'Data Import & Sync',
+        icon: RefreshCw,
+      },
+    ],
   },
 ];
 
@@ -79,18 +105,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               r.investigationTitle
                 .toLowerCase()
                 .includes(quickFind.toLowerCase()) ||
-              r.facility.toLowerCase().includes(quickFind.toLowerCase())
+              r.facility.toLowerCase().includes(quickFind.toLowerCase()) ||
+              r.runCode.toLowerCase().includes(quickFind.toLowerCase())
           )
           .slice(0, 6)
       : [];
 
   return (
     <aside
-      className={`w-full lg:w-[232px] shrink-0 lg:sticky lg:top-0 lg:h-screen border-b lg:border-b-0 lg:border-r flex flex-col justify-between select-none transition-colors duration-150 ${railSurface}`}
+      className={`w-full lg:w-[240px] shrink-0 lg:sticky lg:top-0 lg:h-screen border-b lg:border-b-0 lg:border-r flex flex-col justify-between select-none transition-colors duration-150 ${railSurface}`}
       aria-label="Primary Workspace Navigation"
     >
-      {/* Top: Brand Header + Quick Filter/Command Input */}
-      <div className="p-3.5 space-y-3">
+      {/* Top: Brand Header + Quick Filter + Grouped Navigation Rail */}
+      <div className="p-3.5 space-y-3 overflow-y-auto">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2.5 min-w-0">
             <div
@@ -115,9 +142,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             type="text"
             value={quickFind}
             onChange={(e) => setQuickFind(e.target.value)}
-            placeholder="Find run or parameter..."
-            aria-label="Find run or parameter"
-            className={`w-full pl-8 pr-2.5 py-1.5 text-xs rounded-[4px] border transition-colors focus:outline-none ${
+            placeholder="Find PSI ID, run, fuel..."
+            aria-label="Find PSI investigation or run"
+            className={`w-full pl-8 pr-2.5 py-1.5 text-xs font-sans rounded-[4px] border transition-colors focus:outline-none ${
               isDark
                 ? 'bg-[#18181B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
                 : 'bg-white border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
@@ -147,10 +174,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 >
                   <div className="min-w-0">
                     <div className="font-mono font-semibold text-[11px] truncate">
-                      {run.psiId}
+                      {run.psiId} · {run.runCode}
                     </div>
-                    <div className="text-[10px] text-zinc-500 truncate">
-                      {run.material} · {run.O2_pct.toFixed(0)}% O₂
+                    <div className="text-[10px] font-sans text-zinc-500 truncate">
+                      {run.material} ·{' '}
+                      <span className="font-mono tabular-nums">
+                        {run.O2_pct.toFixed(0)}%
+                      </span>{' '}
+                      O₂
                     </div>
                   </div>
                   <ArrowUpRight className="w-3 h-3 text-zinc-400 shrink-0" />
@@ -160,72 +191,98 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           )}
         </div>
 
-        {/* Navigation Links */}
-        <nav className="space-y-1 pt-0.5" aria-label="Workspace Views">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onSelectView(item.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
-                  isActive
-                    ? isDark
-                      ? 'bg-[#FAFAFA] text-[#09090B] font-semibold'
-                      : 'bg-[#18181B] text-[#FFFFFF] font-semibold'
-                    : isDark
-                    ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
-                    : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60'
-                }`}
-              >
-                <span className="flex items-center gap-2.5 truncate">
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </span>
+        {/* Structured Grouped Navigation Rail */}
+        <nav className="space-y-4 pt-1" aria-label="Workspace Views">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.section} className="space-y-1">
+              <div className="px-2.5 pb-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                {group.section}
+              </div>
 
-                {item.id === 'catalog' && (
-                  <span
-                    className={`font-mono text-[10px] tabular-nums ${
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive =
+                  activeView === item.id ||
+                  (activeView === 'investigation-detail' &&
+                    item.id === 'investigations');
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelectView(item.id)}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
                       isActive
                         ? isDark
-                          ? 'text-zinc-700'
-                          : 'text-zinc-300'
-                        : 'text-zinc-400'
+                          ? 'bg-[#FAFAFA] text-[#09090B] font-semibold'
+                          : 'bg-[#18181B] text-[#FFFFFF] font-semibold'
+                        : isDark
+                        ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
+                        : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60'
                     }`}
                   >
-                    {investigationCount}
-                  </span>
-                )}
+                    <span className="flex items-center gap-2.5 truncate">
+                      <Icon className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </span>
 
-                {item.id === 'comparator' && (
-                  <span
-                    className={`font-mono text-[10px] tabular-nums ${
-                      isActive
-                        ? isDark
-                          ? 'text-zinc-700'
-                          : 'text-zinc-300'
-                        : 'text-zinc-400'
-                    }`}
-                  >
-                    {selectedRunsCount}/4
-                  </span>
-                )}
+                    {item.id === 'investigations' && (
+                      <span
+                        className={`font-mono text-[10px] tabular-nums ${
+                          isActive
+                            ? isDark
+                              ? 'text-zinc-700'
+                              : 'text-zinc-300'
+                            : 'text-zinc-400'
+                        }`}
+                      >
+                        {investigationCount}
+                      </span>
+                    )}
 
-                {item.id === 'import-sync' && hasUnreadSync && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981] shrink-0"
-                    aria-label="New sync data available"
-                  />
-                )}
-              </button>
-            );
-          })}
+                    {item.id === 'experiment-runs' && (
+                      <span
+                        className={`font-mono text-[10px] tabular-nums ${
+                          isActive
+                            ? isDark
+                              ? 'text-zinc-700'
+                              : 'text-zinc-300'
+                            : 'text-zinc-400'
+                        }`}
+                      >
+                        {runs.length.toLocaleString()}
+                      </span>
+                    )}
+
+                    {item.id === 'comparator' && (
+                      <span
+                        className={`font-mono text-[10px] tabular-nums ${
+                          isActive
+                            ? isDark
+                              ? 'text-zinc-700'
+                              : 'text-zinc-300'
+                            : 'text-zinc-400'
+                        }`}
+                      >
+                        {selectedRunsCount}/4
+                      </span>
+                    )}
+
+                    {item.id === 'import-sync' && hasUnreadSync && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981] shrink-0"
+                        aria-label="New sync data available"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 
-      {/* Bottom Footer: Quiet Inline Metadata Only (No duplicate AI button) */}
+      {/* Bottom Footer: Quiet Inline Metadata */}
       <div
         className={`px-4 py-3 border-t ${
           isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
@@ -237,8 +294,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             aria-hidden="true"
           />
           <span>
-            {investigationCount} PSI Investigations •{' '}
-            {totalRunsCount.toLocaleString()} Runs • Synced
+            {investigationCount} PSI · {totalRunsCount.toLocaleString()} Runs ·
+            Synced
           </span>
         </div>
       </div>

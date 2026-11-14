@@ -1,0 +1,389 @@
+{
+  "generatedAt": "2026-11-14T11:46:05.629Z",
+  "rawSizeBytes": 16496536,
+  "rawSizeMB": 15.73,
+  "totalRawChunks": 16640,
+  "totalSourceDocuments": 113,
+  "compactChunkCount": 979,
+  "guideChunkCount": 190,
+  "chunksByPsiId": {
+    "PSI-20": 4656,
+    "PSI-22": 4330,
+    "PSI-25": 616,
+    "PSI-26": 193,
+    "PSI-39": 298,
+    "PSI-68": 641,
+    "PSI-69": 567,
+    "PSI-98": 49,
+    "PSI-99": 47,
+    "PSI-100": 51,
+    "PSI-101": 1013,
+    "PSI-102": 2005,
+    "PSI-107": 741,
+    "PSI-115": 98,
+    "PSI-117": 636,
+    "PSI-159": 699
+  },
+  "topDocuments": [
+    {
+      "source_file": "PSI-102_Engineering Documents_SAME Verification Plan and Engineering Requirements Document (VPRED)_January 2007.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 675,
+      "max_page": 107
+    },
+    {
+      "source_file": "PSI-117_Reports_Dissertation_Combustion Behavior Of Sub-Millimeter Sized Oxygenated And N-Alka.pdf",
+      "psi_id": "PSI-117",
+      "chunk_count": 636,
+      "max_page": 227
+    },
+    {
+      "source_file": "PSI-20_Reports_Final_20220201.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 634,
+      "max_page": 181
+    },
+    {
+      "source_file": "PSI-25_Reports_BASS-II Summary Report.pdf",
+      "psi_id": "PSI-25",
+      "chunk_count": 590,
+      "max_page": 141
+    },
+    {
+      "source_file": "PSI-20_Reports_Dissertation-PD-revised_.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 512,
+      "max_page": 171
+    },
+    {
+      "source_file": "PSI-22_Reports_E-FIELD Flames Final Report.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 478,
+      "max_page": 109
+    },
+    {
+      "source_file": "PSI-20_Engineering Documents_ACME_Software_Interface_Design.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 473,
+      "max_page": 144
+    },
+    {
+      "source_file": "PSI-22_Reference Data_ACME-DOC-010_D Software Interface Design Description1.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 473,
+      "max_page": 144
+    },
+    {
+      "source_file": "PSI-22_Reference Data_ACME-DOC-010_D.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 473,
+      "max_page": 144
+    },
+    {
+      "source_file": "PSI-20_Engineering Documents_ACME_Engineering Requirements Doc Rev K.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 444,
+      "max_page": 124
+    },
+    {
+      "source_file": "PSI-22_Engineering Documents_ACME - Engineering Requirements Doc Rev K.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 444,
+      "max_page": 124
+    },
+    {
+      "source_file": "PSI-20_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 413,
+      "max_page": 110
+    },
+    {
+      "source_file": "PSI-22_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 413,
+      "max_page": 110
+    },
+    {
+      "source_file": "PSI-159_Reports_FinalRpt_ACME.CFI-G.pdf",
+      "psi_id": "PSI-159",
+      "chunk_count": 364,
+      "max_page": 93
+    },
+    {
+      "source_file": "PSI-20_Science Documents_ACME CDR Presentation Package.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 347,
+      "max_page": 240
+    },
+    {
+      "source_file": "PSI-22_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 335,
+      "max_page": 102
+    },
+    {
+      "source_file": "PSI-159_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+      "psi_id": "PSI-159",
+      "chunk_count": 335,
+      "max_page": 102
+    },
+    {
+      "source_file": "PSI-69_Engineering Documents_FLEX_EIRD_v4.pdf",
+      "psi_id": "PSI-69",
+      "chunk_count": 333,
+      "max_page": 81
+    },
+    {
+      "source_file": "PSI-101_Reports_SAME-R_Final Report.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 325,
+      "max_page": 89
+    },
+    {
+      "source_file": "PSI-20_Engineering Documents_ACME_engineering_20210328.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 319,
+      "max_page": 95
+    },
+    {
+      "source_file": "PSI-22_Engineering Documents_ACME_engineering_20210328.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 319,
+      "max_page": 95
+    },
+    {
+      "source_file": "PSI-102_Reports_SAME_Final Science Report.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 313,
+      "max_page": 68
+    },
+    {
+      "source_file": "PSI-107_Engineering Documents_SPICE_Phase III Flight Safety Data Package.pdf",
+      "psi_id": "PSI-107",
+      "chunk_count": 305,
+      "max_page": 120
+    },
+    {
+      "source_file": "PSI-101_Engineering Documents_SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 276,
+      "max_page": 72
+    },
+    {
+      "source_file": "PSI-102_Engineering Documents_SAME_EIRD.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 276,
+      "max_page": 72
+    },
+    {
+      "source_file": "SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 276,
+      "max_page": 72
+    },
+    {
+      "source_file": "PSI-20_Science Documents_BRE_SRD_201306.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 258,
+      "max_page": 63
+    },
+    {
+      "source_file": "PSI-68_Science Documents_FLEX-2 SRD Final _ No Hypertext .pdf",
+      "psi_id": "PSI-68",
+      "chunk_count": 257,
+      "max_page": 68
+    },
+    {
+      "source_file": "PSI-68_Science Documents_FLEX-2 SRD Final.pdf",
+      "psi_id": "PSI-68",
+      "chunk_count": 257,
+      "max_page": 68
+    },
+    {
+      "source_file": "PSI-22_Science Documents_E-FIELD_Flames_SRD_20100402.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 250,
+      "max_page": 55
+    },
+    {
+      "source_file": "PSI-39_Science Documents_SRD_CFI.pdf",
+      "psi_id": "PSI-39",
+      "chunk_count": 223,
+      "max_page": 54
+    },
+    {
+      "source_file": "PSI-107_Reports_SMOKE POINTS OF MICROGRAVITY AND  NORMAL GRAVITY COFLOW DIFFUSION  FLAMES_DotsonThesis.pdf",
+      "psi_id": "PSI-107",
+      "chunk_count": 223,
+      "max_page": 92
+    },
+    {
+      "source_file": "PSI-20_Science Documents_ISS_Researchers_Guide_-_Combustion_In_Reduced_Gravity.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 190,
+      "max_page": 56
+    },
+    {
+      "source_file": "PSI-22_Science Documents_ISS Researchers Guide - Combustion In Reduced Gravity.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 190,
+      "max_page": 56
+    },
+    {
+      "source_file": "PSI-20_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 175,
+      "max_page": 45
+    },
+    {
+      "source_file": "PSI-22_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 175,
+      "max_page": 45
+    },
+    {
+      "source_file": "PSI-22_Science Documents_E-FIELD Flames data interpretation document.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 168,
+      "max_page": 39
+    },
+    {
+      "source_file": "PSI-22_Science Documents_E-FIELD_Flames_procedure_20200723.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 156,
+      "max_page": 43
+    },
+    {
+      "source_file": "PSI-20_Science Documents_BRE_data_interpretation_20220804.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 148,
+      "max_page": 33
+    },
+    {
+      "source_file": "PSI-20_Engineering Documents_BRE_procedure_20210520.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 143,
+      "max_page": 40
+    },
+    {
+      "source_file": "PSI-20_Science Documents_FLEX A Decisive Step Forward in NASAs Combustion Research Program.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 143,
+      "max_page": 43
+    },
+    {
+      "source_file": "PSI-68_Engineering Documents_FLEX-2 Engineering Requirments Document.pdf",
+      "psi_id": "PSI-68",
+      "chunk_count": 127,
+      "max_page": 37
+    },
+    {
+      "source_file": "PSI-69_Engineering Documents_FLEX Engineering Requirements Document.pdf",
+      "psi_id": "PSI-69",
+      "chunk_count": 127,
+      "max_page": 37
+    },
+    {
+      "source_file": "PSI-20_Science Documents_BRE_SRD_201208.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 121,
+      "max_page": 27
+    },
+    {
+      "source_file": "PSI-101_Reference Data_SAME_Software Requirement Document_004 Rev D.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 107,
+      "max_page": 29
+    },
+    {
+      "source_file": "PSI-102_Reference Data_SAME_Software Req Document.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 107,
+      "max_page": 29
+    },
+    {
+      "source_file": "PSI-107_Reports_SPICE_FinalReport.pdf",
+      "psi_id": "PSI-107",
+      "chunk_count": 99,
+      "max_page": 28
+    },
+    {
+      "source_file": "PSI-101_Science Documents_SAME_Operations Manual_007.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 98,
+      "max_page": 33
+    },
+    {
+      "source_file": "PSI-102_Science Documents_SAME_Operations Manual_007.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 98,
+      "max_page": 33
+    },
+    {
+      "source_file": "PSI-115_Reports_NNX17AF08A_FinalReport.pdf",
+      "psi_id": "PSI-115",
+      "chunk_count": 94,
+      "max_page": 25
+    },
+    {
+      "source_file": "PSI-20_Science Documents_BRE_science_concept_RDR_201306.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 93,
+      "max_page": 80
+    },
+    {
+      "source_file": "PSI-26_Engineering Documents_BASS_SysAcceptanceReview.1.pdf",
+      "psi_id": "PSI-26",
+      "chunk_count": 79,
+      "max_page": 58
+    },
+    {
+      "source_file": "PSI-101_Reference Data_SAME_Software Description Document_003 Rev A.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 79,
+      "max_page": 23
+    },
+    {
+      "source_file": "PSI-102_Reference Data_SAME_Software Description Document.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 79,
+      "max_page": 23
+    },
+    {
+      "source_file": "PSI-20_Science Documents_BRE_science_concept_SCR_201208.pdf",
+      "psi_id": "PSI-20",
+      "chunk_count": 77,
+      "max_page": 72
+    },
+    {
+      "source_file": "PSI-69_Engineering Documents_FLEX Overall Ext File-2.pdf",
+      "psi_id": "PSI-69",
+      "chunk_count": 72,
+      "max_page": 30
+    },
+    {
+      "source_file": "PSI-101_Science Documents_SAME_Baseline Concept Description Document_001 Rev A.pdf",
+      "psi_id": "PSI-101",
+      "chunk_count": 69,
+      "max_page": 15
+    },
+    {
+      "source_file": "PSI-102_Science Documents_SAME_Baseline Concept Description Doc.pdf",
+      "psi_id": "PSI-102",
+      "chunk_count": 69,
+      "max_page": 15
+    },
+    {
+      "source_file": "PSI-22_Reports_2019 - E-FIELD Flames 30-Day Operation Accomplishments Report for ISS Increments 57 and 58 20190601.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 67,
+      "max_page": 16
+    },
+    {
+      "source_file": "PSI-22_Engineering Documents_E-FIELD_Flames_RDR_201005.pdf",
+      "psi_id": "PSI-22",
+      "chunk_count": 66,
+      "max_page": 50
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import {
   HazardOutcome,
+  LiteratureChunk,
   MaterialCandidate,
+  MissionSpinoffCase,
+  PsiInvestigationRecord,
   PsiRun,
   SimulationRequest,
   SimulationResponse,
@@ -8,6 +11,13 @@ import {
   VizMode,
 } from '../types/psi';
 import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
+import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
+
+export interface AssistantArchiveContext {
+  literatureChunks?: LiteratureChunk[];
+  investigations?: PsiInvestigationRecord[];
+  missionCases?: MissionSpinoffCase[];
+}
 
 /**
  * Deterministic microgravity combustion physics engine.
@@ -308,10 +318,100 @@ export function generateMaterialRankings(params: {
   });
 }
 
+function findRelevantLiteratureExcerpts(
+  question: string,
+  chunks: LiteratureChunk[] = [],
+  limit = 2
+): LiteratureChunk[] {
+  if (!chunks.length) return [];
+  const tokens = question
+    .toLowerCase()
+    .split(/[^a-z0-9-]+/)
+    .filter((t) => t.length >= 3);
+  if (!tokens.length) return [];
+
+  return chunks
+    .map((c) => {
+      const txt = c.text.toLowerCase();
+      const src = c.source_file.toLowerCase();
+      const psi = c.psi_id.toLowerCase();
+      let score = 0;
+      for (const tok of tokens) {
+        if (psi.includes(tok)) score += 6;
+        if (src.includes(tok)) score += 3;
+        if (txt.includes(tok)) score += 2;
+      }
+      if (score > 0 && src.includes('researchers_guide')) score += 1.5;
+      return { c, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((x) => x.c);
+}
+
+function findRelevantMissionCases(
+  question: string,
+  cases: MissionSpinoffCase[] = MISSION_AND_SPINOFF_CASES
+): MissionSpinoffCase[] {
+  const qLower = question.toLowerCase();
+  const matched = cases.filter((item) => {
+    const tokens = [
+      item.title,
+      item.code,
+      item.missionOrDomain,
+      item.category,
+      ...item.relatedPsiIds,
+    ]
+      .join(' ')
+      .toLowerCase();
+    if (qLower.includes('apollo 13') && item.id === 'case-apollo-13') return true;
+    if (qLower.includes('apollo 1') && item.id === 'case-apollo-1') return true;
+    if (qLower.includes('apollo') && item.id.includes('apollo')) return true;
+    if (qLower.includes('mir') && item.id === 'case-mir-fire') return true;
+    if (
+      (qLower.includes('spinoff') ||
+        qLower.includes('spin-off') ||
+        qLower.includes('firefighter') ||
+        qLower.includes('scba') ||
+        qLower.includes('tank')) &&
+      item.id === 'case-spinoff-scba'
+    )
+      return true;
+    if (
+      (qLower.includes('detector') ||
+        qLower.includes('smoke') ||
+        qLower.includes('shuttle')) &&
+      item.id === 'case-spinoff-smoke-detector'
+    )
+      return true;
+    if (
+      (qLower.includes('attire') ||
+        qLower.includes('suit') ||
+        qLower.includes('nomex') ||
+        qLower.includes('pbi') ||
+        qLower.includes('clothing')) &&
+      item.id === 'case-spinoff-fire-attire'
+    )
+      return true;
+    if (
+      (qLower.includes('sciencecast') || qLower.includes('glenn')) &&
+      (item.id === 'case-sciencecasts-iss' || item.id === 'case-glenn-combustion')
+    )
+      return true;
+    return tokens
+      .split(/\W+/)
+      .some((w) => w.length >= 4 && qLower.includes(w));
+  });
+
+  return matched.slice(0, 2);
+}
+
 export function buildAssistantReply(
   question: string,
   sim: Omit<SimulationResponse, 'assistantReply'>,
-  req: SimulationRequest
+  req: SimulationRequest,
+  archiveContext?: AssistantArchiveContext
 ): {
   steps: string[];
   citations: string[];
@@ -333,50 +433,124 @@ export function buildAssistantReply(
   const topMatch = sim.nearestRuns[0]?.run.psiId || 'PSI-99 SAFFIRE-II';
   const secondMatch = sim.nearestRuns[1]?.run.psiId || 'PSI-25 BASS-II';
 
+  const matchedCases = findRelevantMissionCases(
+    question,
+    archiveContext?.missionCases ?? MISSION_AND_SPINOFF_CASES
+  );
+  const matchedChunks = findRelevantLiteratureExcerpts(
+    question,
+    archiveContext?.literatureChunks ?? [],
+    2
+  );
+  const matchedPsiFromQuery = (archiveContext?.investigations ?? []).find(
+    (inv) => qLower.includes(inv.psiId.toLowerCase()) || (inv.acronym && qLower.includes(inv.acronym.toLowerCase()))
+  );
+
+  // Build dynamic citations from runs, matched cases, and chunks
+  const citationSet = new Set<string>();
+  sim.nearestRuns.slice(0, 2).forEach((r) => {
+    const id = r.run.psiId.split(' ')[0].toUpperCase();
+    if (id.startsWith('PSI-')) citationSet.add(id);
+  });
+  matchedCases.forEach((c) => c.relatedPsiIds.slice(0, 2).forEach((id) => citationSet.add(id)));
+  matchedChunks.forEach((ch) => {
+    if (ch.psi_id) citationSet.add(ch.psi_id.toUpperCase());
+  });
+  if (matchedPsiFromQuery) citationSet.add(matchedPsiFromQuery.psiId);
+
+  const chunkSnippetStep =
+    matchedChunks.length > 0
+      ? `Literature Grounding (${matchedChunks[0].psi_id}, p.${matchedChunks[0].page_number}): "${matchedChunks[0].text
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 190)}..."`
+      : null;
+
+  // Historical Incident or Spin-off Specific Response
+  if (matchedCases.length > 0 && !qLower.includes('material safety comparison')) {
+    const primaryCase = matchedCases[0];
+    const caseSteps = [
+      `${primaryCase.title} (${primaryCase.atmosphereLabel}): ${primaryCase.summary}`,
+      `Key Engineering Lesson: ${primaryCase.lessonsLearned[0]}`,
+      matchedCases[1]
+        ? `Cross-Case Comparison (${matchedCases[1].code}): ${matchedCases[1].lessonsLearned[0]}`
+        : `Active Simulator Correlation: At ${req.O2_pct.toFixed(1)}% O2 and ${req.P_psi.toFixed(1)} psi (${req.g_eff.toFixed(3)}g), model predicts ${sim.flameSpread_mms.toFixed(2)} mm/s spread (${sim.hazardStatus}).`,
+    ];
+    if (chunkSnippetStep) caseSteps.push(chunkSnippetStep);
+    return {
+      steps: caseSteps,
+      citations: Array.from(citationSet).slice(0, 5),
+      suggestedVizMode,
+    };
+  }
+
+  // Specific PSI Investigation inquiry
+  if (matchedPsiFromQuery) {
+    const steps = [
+      `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) — ${matchedPsiFromQuery.title}: Conducted in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} calibrated experimental runs in CSV.`,
+      `Science Objective: ${matchedPsiFromQuery.objective.slice(0, 210)}${matchedPsiFromQuery.objective.length > 210 ? '...' : ''}`,
+      `Parameter Envelope: ${matchedPsiFromQuery.o2Range[0].toFixed(1)}–${matchedPsiFromQuery.o2Range[1].toFixed(1)}% O2, ${matchedPsiFromQuery.pressureRange[0].toFixed(1)}–${matchedPsiFromQuery.pressureRange[1].toFixed(1)} psi, ${matchedPsiFromQuery.flowRange[0].toFixed(2)}–${matchedPsiFromQuery.flowRange[1].toFixed(2)} m/s airflow.`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
+    return {
+      steps,
+      citations: [matchedPsiFromQuery.psiId, ...Array.from(citationSet)].slice(0, 4),
+      suggestedVizMode,
+    };
+  }
+
   if (qLower.includes('material')) {
     const safest = [...sim.materialRankings].sort((a, b) => a.flameSpread_mms - b.flameSpread_mms)[0];
     const riskiest = [...sim.materialRankings].sort((a, b) => b.flameSpread_mms - a.flameSpread_mms)[0];
+    const steps = [
+      `Switched view to Material Safety Comparison for ${req.O2_pct.toFixed(1)}% O2 at ${req.P_psi.toFixed(1)} psi and ${req.Flow_ms.toFixed(2)} m/s airflow.`,
+      `${riskiest.name} exhibits the highest flame spread rate (${riskiest.flameSpread_mms.toFixed(2)} mm/s) because its Limiting Oxygen Index (${riskiest.limitingO2_pct}% O2) is exceeded, matching ${topMatch}.`,
+      `PTFE Wire Jacket resists open flame propagation (${sim.materialRankings.find((m) => m.name.includes('PTFE'))?.flameSpread_mms.toFixed(2)} mm/s) but triggers high fractal soot aggregation and CO yield under low flow (PSI-102 / SAME).`,
+      `Engineering recommendation: Substitute ${safest.name} (spread ${safest.flameSpread_mms.toFixed(2)} mm/s, LOI ${safest.limitingO2_pct}% O2 — also proven in fire attire spin-offs) or increase thickness above ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (PSI-159).`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
-      steps: [
-        `Switched view to Material Safety Comparison for ${req.O2_pct.toFixed(1)}% O2 at ${req.P_psi.toFixed(1)} psi and ${req.Flow_ms.toFixed(2)} m/s airflow.`,
-        `${riskiest.name} exhibits the highest flame spread rate (${riskiest.flameSpread_mms.toFixed(2)} mm/s) because its Limiting Oxygen Index (${riskiest.limitingO2_pct}% O2) is exceeded, matching ${topMatch}.`,
-        `PTFE Wire Jacket resists open flame propagation (${sim.materialRankings.find((m) => m.name.includes('PTFE'))?.flameSpread_mms.toFixed(2)} mm/s) but triggers high fractal soot aggregation and CO yield under low flow, as documented in PSI-101 SAME-R.`,
-        `Engineering recommendation: Substitute ${safest.name} (spread ${safest.flameSpread_mms.toFixed(2)} mm/s, LOI ${safest.limitingO2_pct}% O2) or increase solid substrate thickness above ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (see PSI-159).`,
-      ],
-      citations: ['PSI-99', 'PSI-101', 'PSI-106', 'PSI-159'],
+      steps,
+      citations: Array.from(new Set(['PSI-99', 'PSI-102', 'PSI-106', 'PSI-159', ...citationSet])).slice(0, 5),
       suggestedVizMode: 'material-safety',
     };
   }
 
   if (qLower.includes('compare')) {
+    const steps = [
+      `Normalized active cabin simulation (${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s) across all parallel telemetry axes.`,
+      `Nearest CSV archive match is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 94}% parameter similarity) followed by ${secondMatch}.`,
+      `At ${req.Thickness_mm.toFixed(1)} mm thickness, predicted flame spread is ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s, whereas increasing thickness to >=${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm provides conductive heat-sink quenching (PSI-159).`,
+      `Low-velocity ventilation (${req.Flow_ms.toFixed(2)} m/s) in reduced gravity (${req.g_eff.toFixed(3)}g) sustains boundary-layer oxidizer transport without convective blow-off (PSI-25 BASS-II).`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
-      steps: [
-        `Normalized active cabin simulation (${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s) across all 5 parallel telemetry axes.`,
-        `Nearest archive match is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 94}% parameter similarity) followed by ${secondMatch}.`,
-        `At ${req.Thickness_mm.toFixed(1)} mm thickness, predicted flame spread is ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s, whereas increasing thickness to ≥${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm provides conductive heat-sink quenching (PSI-159).`,
-        `Low-velocity ventilation (${req.Flow_ms.toFixed(2)} m/s) in reduced gravity (${req.g_eff.toFixed(3)}g) sustains boundary-layer oxidizer transport without convective blow-off, confirming PSI-25 BASS-II findings.`,
-      ],
-      citations: ['PSI-99', 'PSI-25', 'PSI-68', 'PSI-159'],
+      steps,
+      citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-68', 'PSI-159', ...citationSet])).slice(0, 5),
       suggestedVizMode: 'multi-variable',
     };
   }
 
-  // Default step-by-step cabin risk breakdown
+  // Default step-by-step cabin risk breakdown (plus literature grounding if available)
+  const defaultSteps = [
+    `Atmosphere Assessment: At ${req.O2_pct.toFixed(1)}% O2 and ${req.P_psi.toFixed(1)} psi (${req.g_eff.toFixed(3)}g), the cabin operates in the ${sim.hazardStatus} regime with a predicted spread speed of ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s.`,
+    `Microgravity Airflow Effect: Current duct velocity (${req.Flow_ms.toFixed(2)} m/s) sits near the 0.05–0.20 m/s microgravity oxygen-replenishment band documented in PSI-99 and PSI-25, matching ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% similarity).`,
+    `10-Second Growth & Cool-Flame Check: Unmitigated combustion projects a ${sim.forecast10s.radius_mm.toFixed(1)} mm flame radius and +${sim.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin pressure rise over 10s; monitor 550K–800K non-luminous cool flames (PSI-69 FLEX, PSI-68 FLEX-2).`,
+    `Mitigation Threshold: Current ${req.Thickness_mm.toFixed(1)} mm material ${sim.safeMaterialCheck.passed ? 'PASSES' : 'FAILS'} the ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm conductive quenching threshold verified in PSI-159.`,
+  ];
+  if (chunkSnippetStep) defaultSteps.push(chunkSnippetStep);
+
   return {
-    steps: [
-      `Atmosphere Assessment: At ${req.O2_pct.toFixed(1)}% O2 and ${req.P_psi.toFixed(1)} psi (${req.g_eff.toFixed(3)}g), the cabin operates in the ${sim.hazardStatus} regime with a predicted spread speed of ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s.`,
-      `Microgravity Airflow Effect: Current duct velocity (${req.Flow_ms.toFixed(2)} m/s) sits inside the 0.05–0.20 m/s microgravity oxygen-replenishment band identified in PSI-99 and PSI-25, feeding fresh oxidizer to the flame leading edge.`,
-      `10-Second Growth & Cool-Flame Check: Unmitigated combustion projects a ${sim.forecast10s.radius_mm.toFixed(1)} mm flame radius and +${sim.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin pressure rise over 10s; if hot flame quenches radiatively, monitor 550K–800K non-luminous cool-flame oxidation (PSI-69, PSI-68).`,
-      `Mitigation Threshold: Current ${req.Thickness_mm.toFixed(1)} mm material ${sim.safeMaterialCheck.passed ? 'PASSES' : 'FAILS'} the ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm conductive quenching threshold verified in PSI-159.`,
-    ],
-    citations: ['PSI-99', 'PSI-25', 'PSI-69', 'PSI-68', 'PSI-159'],
+    steps: defaultSteps,
+    citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-69', 'PSI-68', 'PSI-159', ...citationSet])).slice(0, 5),
     suggestedVizMode,
   };
 }
 
 export function runLocalPhysicsSimulation(
   req: SimulationRequest,
-  catalog: PsiRun[] = BASELINE_PSI_RUNS
+  catalog: PsiRun[] = BASELINE_PSI_RUNS,
+  archiveContext?: AssistantArchiveContext
 ): SimulationResponse {
   const core = computeFlameSpreadVelocity({
     O2_pct: req.O2_pct,
@@ -406,7 +580,7 @@ export function runLocalPhysicsSimulation(
     baseSpread_mms: core.flameSpread_mms,
   });
 
-  const headlineTakeaway: Record<VizMode, string> = {
+  const headlineTakeaway: SimulationResponse['headlineTakeaway'] = {
     'safety-map':
       req.Flow_ms >= 0.05 && req.Flow_ms <= 0.22 && req.O2_pct >= 24
         ? `At ${req.O2_pct.toFixed(1)}% O2 and ${req.Flow_ms.toFixed(2)} m/s airflow (${req.g_eff.toFixed(3)}g), gentle cabin ventilation feeds oxygen to the flame front faster than heat radiates away (${core.flameSpread_mms.toFixed(2)} mm/s).`
@@ -439,7 +613,12 @@ export function runLocalPhysicsSimulation(
   if (req.question) {
     return {
       ...baseResponse,
-      assistantReply: buildAssistantReply(req.question, baseResponse, req),
+      assistantReply: buildAssistantReply(
+        req.question,
+        baseResponse,
+        req,
+        archiveContext
+      ),
     };
   }
 

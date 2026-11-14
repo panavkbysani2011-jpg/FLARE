@@ -1,26 +1,37 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
-  Crosshair,
-  Activity,
-  ShieldCheck,
-  SlidersHorizontal,
   Info,
   RotateCcw,
   ArrowUpDown,
+  Search,
+  Layers,
+  X,
+  Lock,
+  Check,
 } from 'lucide-react';
 import {
+  DatasetScope,
   EnvironmentPreset,
   EnvironmentPresetId,
   MaterialCandidate,
   PsiRun,
   SimulationResponse,
   ThemeMode,
+  VizFamilyId,
   VizMode,
 } from '../types/psi';
 import { ENVIRONMENT_PRESETS } from '../data/baselineRuns';
 import { computeFlameSpreadVelocity } from '../utils/physicsEngine';
+import {
+  VIZ_FAMILIES,
+  buildDatasetContext,
+  evaluateAllTechniques,
+  filterTechniques,
+  getTechniqueHeadline,
+} from '../utils/vizRegistry';
+import { VizTechniqueRenderer } from './VizTechniqueRenderer';
 
 interface VisualizationStageProps {
   theme: ThemeMode;
@@ -43,6 +54,8 @@ interface VisualizationStageProps {
   onUpdateSlidersFromMap: (O2_pct: number, Flow_ms: number) => void;
   simulation: SimulationResponse;
   selectedRuns: PsiRun[];
+  catalogRuns: PsiRun[];
+  onLoadDefaultComparisonSet?: () => void;
   hoveredRunId: string | null;
   onHoverRun: (runId: string | null) => void;
   hoveredMaterialId: string | null;
@@ -56,33 +69,6 @@ interface GlassTooltipState {
   metrics: Array<{ label: string; value: string }>;
   status?: string;
 }
-
-const VIZ_TABS: Array<{
-  id: VizMode;
-  label: string;
-  icon: React.FC<{ className?: string }>;
-}> = [
-  {
-    id: 'safety-map',
-    label: 'Oxygen vs. Airflow Safety Map',
-    icon: Crosshair,
-  },
-  {
-    id: 'multi-variable',
-    label: 'Multi-Variable Comparison Chart',
-    icon: SlidersHorizontal,
-  },
-  {
-    id: 'material-safety',
-    label: 'Material Safety Comparison',
-    icon: ShieldCheck,
-  },
-  {
-    id: 'sensor-timeline',
-    label: 'Temperature & Sensor Timeline',
-    icon: Activity,
-  },
-];
 
 const RUN_STROKE_COLORS = ['#10B981', '#F59E0B', '#A855F7', '#EC4899'];
 
@@ -104,6 +90,8 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
   onUpdateSlidersFromMap,
   simulation,
   selectedRuns,
+  catalogRuns,
+  onLoadDefaultComparisonSet,
   hoveredRunId,
   onHoverRun,
   hoveredMaterialId,
@@ -111,6 +99,13 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
   onInspectRun,
 }) => {
   const [showEquations, setShowEquations] = useState(false);
+  const [isTechDropdownOpen, setIsTechDropdownOpen] = useState(false);
+  const [datasetScope, setDatasetScope] = useState<DatasetScope>('selected-sim');
+  const [techSearch, setTechSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'recommended' | 'available' | 'unavailable'
+  >('all');
+  const [familyFilter, setFamilyFilter] = useState<VizFamilyId | 'all'>('all');
   const [hoveredTimelineIdx, setHoveredTimelineIdx] = useState<number | null>(
     null
   );
@@ -118,6 +113,102 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
   const [matSortKey, setMatSortKey] =
     useState<MaterialSortKey>('flameSpread_mms');
   const [matSortAsc, setMatSortAsc] = useState<boolean>(false);
+
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!isTechDropdownOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsTechDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsTechDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    const focusTimer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 20);
+
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isTechDropdownOpen]);
+
+  const datasetContext = useMemo(
+    () =>
+      buildDatasetContext(datasetScope, selectedRuns, catalogRuns, simulation),
+    [datasetScope, selectedRuns, catalogRuns, simulation]
+  );
+
+  const evaluatedTechniques = useMemo(
+    () => evaluateAllTechniques(datasetContext),
+    [datasetContext]
+  );
+
+  const techniqueCounts = useMemo(() => {
+    let recommended = 0;
+    let available = 0;
+    let unavailable = 0;
+    for (const item of evaluatedTechniques) {
+      if (item.compatibility.status === 'recommended') {
+        recommended++;
+        available++;
+      } else if (item.compatibility.status === 'available') {
+        available++;
+      } else {
+        unavailable++;
+      }
+    }
+    return {
+      all: evaluatedTechniques.length,
+      recommended,
+      available,
+      unavailable,
+    };
+  }, [evaluatedTechniques]);
+
+  const filteredTechniques = useMemo(
+    () =>
+      filterTechniques(evaluatedTechniques, {
+        searchQuery: techSearch,
+        statusFilter,
+        familyFilter,
+      }),
+    [evaluatedTechniques, techSearch, statusFilter, familyFilter]
+  );
+
+  const activeTechnique = useMemo(
+    () => evaluatedTechniques.find((t) => t.definition.id === vizMode),
+    [evaluatedTechniques, vizMode]
+  );
+
+  const isActiveUnavailable =
+    activeTechnique?.compatibility.status === 'unavailable';
+
+  const activeHeadline = useMemo(
+    () =>
+      getTechniqueHeadline(
+        vizMode,
+        simulation,
+        sliders,
+        datasetContext.activeRuns
+      ),
+    [vizMode, simulation, sliders, datasetContext.activeRuns]
+  );
 
   const isDark = theme === 'dark';
 
@@ -143,7 +234,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
       label: 'O2 %',
       fullLabel: 'Oxygen Concentration',
       min: 14.0,
-      max: 85.0,
+      max: 100.0,
       step: 0.5,
       value: sliders.O2_pct,
       formatted: `${sliders.O2_pct.toFixed(1)}%`,
@@ -153,7 +244,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
       label: 'Pressure psi',
       fullLabel: 'Cabin Pressure',
       min: 4.3,
-      max: 14.7,
+      max: 20.0,
       step: 0.1,
       value: sliders.P_psi,
       formatted: `${sliders.P_psi.toFixed(1)} psi`,
@@ -207,7 +298,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
     for (let r = 0; r < rows; r++) {
       const flow = Number((0.5 * (1 - r / (rows - 1))).toFixed(3));
       for (let c = 0; c < cols; c++) {
-        const o2 = Number((14 + (c / (cols - 1)) * (85 - 14)).toFixed(1));
+        const o2 = Number((14 + (c / (cols - 1)) * (100 - 14)).toFixed(1));
         const res = computeFlameSpreadVelocity({
           O2_pct: o2,
           P_psi: sliders.P_psi,
@@ -387,7 +478,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
 
       {/* 2. Unified Vercel-Style Connected 4-KPI Strip + Dynamic Visualization Stage */}
       <section
-        className={`border rounded-[6px] overflow-hidden transition-colors duration-150 ${cardSurface}`}
+        className={`border rounded-[6px] transition-colors duration-150 ${cardSurface}`}
       >
         {/* Top Connected 4-Cell KPI Metric Strip (26px Tabular Numerals + Clickable PSI ID Badge) */}
         <div
@@ -489,43 +580,347 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
           </div>
         </div>
 
-        {/* Visualization Mode Tabs + Headline-First Banner */}
+        {/* Compact Single-Row Visualization Bar + Headline Takeaway */}
         <div className={`px-4 py-2.5 border-b ${dividerBorder} space-y-2`}>
-          <div
-            className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-1 p-1 rounded-[5px] border ${
-              isDark
-                ? 'bg-[#09090B] border-[#27272A]'
-                : 'bg-zinc-100 border-[#E4E4E7]'
-            }`}
-            role="tablist"
-            aria-label="Visualization Mode Selector"
-          >
-            {VIZ_TABS.map((tab) => {
-              const Icon = tab.icon;
-              const active = vizMode === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => onChangeVizMode(tab.id)}
-                  className={`inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-sans rounded-[4px] transition-colors duration-150 whitespace-nowrap cursor-pointer ${
-                    active ? activeMonochrome : inactiveMonochrome
+          <div className="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2">
+            {/* Left: Searchable Visualization Technique Dropdown */}
+            <div className="relative min-w-0 max-w-full" ref={dropdownRef}>
+              <button
+                type="button"
+                aria-expanded={isTechDropdownOpen}
+                aria-haspopup="listbox"
+                onClick={() => setIsTechDropdownOpen((prev) => !prev)}
+                className={`inline-flex items-center justify-between gap-2.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors max-w-full cursor-pointer ${
+                  isTechDropdownOpen
+                    ? isDark
+                      ? 'bg-[#18181B] border-zinc-400 text-[#FAFAFA]'
+                      : 'bg-zinc-100 border-zinc-500 text-[#18181B]'
+                    : isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-100 hover:border-zinc-500'
+                    : 'bg-white border-[#E4E4E7] text-zinc-900 hover:border-zinc-400'
+                }`}
+              >
+                <span className="inline-flex items-center gap-2 min-w-0">
+                  <Layers className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-[1px] shrink-0 ${
+                      activeTechnique?.compatibility.status === 'unavailable'
+                        ? 'bg-[#F59E0B]'
+                        : activeTechnique?.compatibility.status === 'recommended'
+                        ? 'bg-[#10B981]'
+                        : 'bg-zinc-400'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">
+                    View: {activeTechnique?.definition.name ?? vizMode}
+                  </span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 shrink-0">
+                  <span className="hidden sm:inline font-mono text-[10px] font-normal text-zinc-500 tabular-nums">
+                    ({techniqueCounts.all})
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-150 ${
+                      isTechDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </span>
+              </button>
+
+              {/* Floating Searchable Popover Dropdown */}
+              {isTechDropdownOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Visualization Technique Selector"
+                  className={`absolute left-0 top-full mt-1.5 w-[min(92vw,700px)] max-h-96 overflow-y-auto z-40 rounded-[5px] border shadow-xl ${
+                    isDark
+                      ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
+                      : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+                  {/* Sticky Search Bar + Compact Category Tabs */}
+                  <div
+                    className={`sticky top-0 z-10 p-2.5 border-b space-y-2 ${
+                      isDark
+                        ? 'bg-[#121215] border-[#27272A]'
+                        : 'bg-[#FFFFFF] border-[#E4E4E7]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1 min-w-0">
+                        <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          ref={searchInputRef}
+                          type="text"
+                          value={techSearch}
+                          onChange={(e) => setTechSearch(e.target.value)}
+                          placeholder="Search 23 techniques by name, category, or keyword..."
+                          aria-label="Search visualization techniques"
+                          className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                            isDark
+                              ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
+                              : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                          }`}
+                        />
+                        {techSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setTechSearch('')}
+                            aria-label="Clear visualization search"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <select
+                        value={familyFilter}
+                        onChange={(e) =>
+                          setFamilyFilter(
+                            e.target.value as VizFamilyId | 'all'
+                          )
+                        }
+                        aria-label="Filter by analytical family"
+                        className={`px-2 py-1.5 text-[11px] font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
+                          isDark
+                            ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
+                            : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
+                        }`}
+                      >
+                        <option value="all">All Categories</option>
+                        {VIZ_FAMILIES.map((fam) => (
+                          <option key={fam.id} value={fam.id}>
+                            {fam.shortLabel}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Compact Category Status Filter Tabs */}
+                    <div
+                      className="flex flex-wrap items-center gap-1"
+                      role="group"
+                      aria-label="Filter techniques by compatibility status"
+                    >
+                      {(
+                        [
+                          {
+                            id: 'all',
+                            label: `All (${techniqueCounts.all})`,
+                            dot: null,
+                          },
+                          {
+                            id: 'recommended',
+                            label: `Recommended (${techniqueCounts.recommended})`,
+                            dot: 'bg-[#10B981]',
+                          },
+                          {
+                            id: 'available',
+                            label: `Available (${techniqueCounts.available})`,
+                            dot: 'bg-zinc-400',
+                          },
+                          {
+                            id: 'unavailable',
+                            label: `Unavailable (${techniqueCounts.unavailable})`,
+                            dot: 'bg-[#F59E0B]',
+                          },
+                        ] as const
+                      ).map((st) => {
+                        const active = statusFilter === st.id;
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setStatusFilter(st.id)}
+                            className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                              active
+                                ? isDark
+                                  ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold'
+                                  : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold'
+                                : isDark
+                                ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800'
+                                : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                            }`}
+                          >
+                            {st.dot && (
+                              <span
+                                className={`w-1.5 h-1.5 rounded-[1px] ${st.dot}`}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span>{st.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Single-Line Selectable Rows */}
+                  <div
+                    className={`p-1.5 divide-y ${
+                      isDark ? 'divide-[#27272A]/60' : 'divide-[#E4E4E7]/70'
+                    }`}
+                  >
+                    {filteredTechniques.length === 0 ? (
+                      <div className="py-5 px-3 text-center text-xs font-sans text-zinc-500 dark:text-zinc-400">
+                        No visualization techniques match "{techSearch}" with
+                        current filters.
+                      </div>
+                    ) : (
+                      filteredTechniques.map(({ definition, compatibility }) => {
+                        const isSelected = vizMode === definition.id;
+                        const isUnavailable =
+                          compatibility.status === 'unavailable';
+                        const isRecommended =
+                          compatibility.status === 'recommended';
+                        const unavailableReason =
+                          compatibility.missingRequirement ??
+                          compatibility.reason.replace(/^Unavailable:\s*/i, '');
+
+                        return (
+                          <button
+                            key={definition.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            disabled={isUnavailable}
+                            title={compatibility.reason}
+                            onClick={() => {
+                              onChangeVizMode(definition.id);
+                              setIsTechDropdownOpen(false);
+                            }}
+                            className={`w-full px-2.5 py-2 flex items-center justify-between gap-3 text-left text-xs rounded-[3px] transition-colors ${
+                              isUnavailable
+                                ? 'opacity-55 cursor-not-allowed text-zinc-400 dark:text-zinc-500'
+                                : isSelected
+                                ? isDark
+                                  ? 'bg-[#FAFAFA] text-[#09090B] cursor-pointer'
+                                  : 'bg-[#18181B] text-[#FFFFFF] cursor-pointer'
+                                : isDark
+                                ? 'hover:bg-zinc-800/80 text-zinc-100 cursor-pointer'
+                                : 'hover:bg-zinc-100 text-zinc-900 cursor-pointer'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isSelected ? (
+                                <Check className="w-3.5 h-3.5 shrink-0" />
+                              ) : (
+                                <span
+                                  className="w-3.5 shrink-0"
+                                  aria-hidden="true"
+                                />
+                              )}
+                              <span className="font-sans font-semibold truncate">
+                                {definition.name}
+                              </span>
+                              <span
+                                className={`text-[11px] font-sans shrink-0 whitespace-nowrap ${
+                                  isSelected
+                                    ? isDark
+                                      ? 'text-zinc-700'
+                                      : 'text-zinc-300'
+                                    : 'text-zinc-500 dark:text-zinc-400'
+                                }`}
+                              >
+                                · {definition.familyLabel}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`inline-flex items-center gap-1.5 text-[11px] font-mono shrink-0 whitespace-nowrap ${
+                                isUnavailable
+                                  ? 'text-[#F59E0B]'
+                                  : isRecommended
+                                  ? isSelected
+                                    ? isDark
+                                      ? 'text-[#059669] font-semibold'
+                                      : 'text-[#34D399] font-semibold'
+                                    : 'text-[#10B981] font-semibold'
+                                  : isSelected
+                                  ? isDark
+                                    ? 'text-zinc-700'
+                                    : 'text-zinc-300'
+                                  : 'text-zinc-500 dark:text-zinc-400'
+                              }`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-[1px] ${
+                                  isUnavailable
+                                    ? 'bg-[#F59E0B]'
+                                    : isRecommended
+                                    ? 'bg-[#10B981]'
+                                    : 'bg-zinc-400'
+                                }`}
+                                aria-hidden="true"
+                              />
+                              <span>
+                                {isUnavailable
+                                  ? `Unavailable: ${unavailableReason}`
+                                  : isRecommended
+                                  ? 'Recommended'
+                                  : 'Available'}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Compact Segmented Dataset Scope Selector */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className={`flex flex-wrap items-center p-0.5 rounded-[5px] border ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A]'
+                    : 'bg-zinc-100 border-[#E4E4E7]'
+                }`}
+                role="group"
+                aria-label="Active Dataset Scope"
+              >
+                {(
+                  [
+                    {
+                      id: 'selected-sim',
+                      label: `Selected Runs + Sim (${selectedRuns.length})`,
+                    },
+                    {
+                      id: 'full-archive',
+                      label: `Full PSI Archive (${catalogRuns.length})`,
+                    },
+                    { id: 'single-focus', label: 'Single Run Focus' },
+                    { id: 'static-runs', label: 'Static Archive Table' },
+                  ] as Array<{ id: DatasetScope; label: string }>
+                ).map((scopeOpt) => {
+                  const active = datasetScope === scopeOpt.id;
+                  return (
+                    <button
+                      key={scopeOpt.id}
+                      type="button"
+                      onClick={() => setDatasetScope(scopeOpt.id)}
+                      className={`px-2 py-1 text-[11px] font-sans rounded-[4px] transition-colors whitespace-nowrap cursor-pointer ${
+                        active ? activeMonochrome : inactiveMonochrome
+                      }`}
+                    >
+                      {scopeOpt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
+          {/* Headline-First Physics Takeaway + Governing Equations Toggle */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Info className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
               <p className="text-xs font-sans font-medium text-zinc-700 dark:text-zinc-200 leading-snug">
-                {simulation.headlineTakeaway[vizMode]}
+                {activeHeadline}
               </p>
             </div>
 
@@ -651,8 +1046,85 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
             </div>
           )}
 
+          {/* UNAVAILABLE TECHNIQUE GUARD STATE (When active scope lacks required structure) */}
+          {isActiveUnavailable && activeTechnique && (
+            <div
+              className={`p-6 rounded-[5px] border border-dashed text-center space-y-3 ${
+                isDark
+                  ? 'bg-[#09090B]/70 border-[#27272A]'
+                  : 'bg-zinc-50 border-zinc-300'
+              }`}
+            >
+              <div className="inline-flex items-center gap-2 text-xs font-sans font-semibold text-[#F59E0B]">
+                <Lock className="w-4 h-4" />
+                <span>
+                  {activeTechnique.definition.name} is Unavailable for Current
+                  Dataset Scope
+                </span>
+              </div>
+              <p className="text-xs font-sans text-zinc-600 dark:text-zinc-300 max-w-xl mx-auto">
+                {activeTechnique.compatibility.reason}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                {datasetScope !== 'full-archive' && (
+                  <button
+                    type="button"
+                    onClick={() => setDatasetScope('full-archive')}
+                    className={`px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] cursor-pointer ${
+                      isDark
+                        ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                        : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                    }`}
+                  >
+                    Switch to Full PSI Archive ({catalogRuns.length} runs)
+                  </button>
+                )}
+                {datasetScope === 'static-runs' && (
+                  <button
+                    type="button"
+                    onClick={() => setDatasetScope('selected-sim')}
+                    className={`px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] cursor-pointer ${
+                      isDark
+                        ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                        : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                    }`}
+                  >
+                    Enable Live Simulator & Sensor Stream
+                  </button>
+                )}
+                {onLoadDefaultComparisonSet && selectedRuns.length < 4 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLoadDefaultComparisonSet();
+                      setDatasetScope('selected-sim');
+                    }}
+                    className={`px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border cursor-pointer ${
+                      isDark
+                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
+                        : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                    }`}
+                  >
+                    Load 4 Comparison Runs
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onChangeVizMode('safety-map')}
+                  className={`px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border cursor-pointer ${
+                    isDark
+                      ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
+                      : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                  }`}
+                >
+                  Return to Recommended Safety Map
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* VIEW 1: OXYGEN VS. AIRFLOW SAFETY MAP */}
-          {vizMode === 'safety-map' && (
+          {!isActiveUnavailable && vizMode === 'safety-map' && (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="font-sans text-zinc-500 dark:text-zinc-400">
@@ -745,70 +1217,86 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                     );
                   })()}
 
-                  {/* Plotted Selected PSI Runs (Clickable to open Run Detail Inspector) */}
-                  {selectedRuns.map((run) => {
-                    const cx =
-                      68 +
-                      Math.max(0, Math.min(1, (run.O2_pct - 14) / (85 - 14))) *
-                        822;
-                    const cy =
-                      12 +
-                      Math.max(0, Math.min(1, 1 - run.Flow_ms / 0.5)) * 258;
-                    const isDimmed =
-                      hoveredRunId !== null && hoveredRunId !== run.id;
+                  {/* Plotted Active PSI Runs (Clickable to open Run Detail Inspector) */}
+                  {(() => {
+                    const seenPsi = new Set<string>();
+                    const plottedRuns =
+                      datasetContext.activeRuns.length > 20
+                        ? datasetContext.activeRuns.filter((r) => {
+                            const key = r.psiId.split(' ')[0];
+                            if (seenPsi.has(key)) return false;
+                            seenPsi.add(key);
+                            return true;
+                          }).slice(0, 18)
+                        : datasetContext.activeRuns;
 
-                    return (
-                      <g
-                        key={run.id}
-                        className={`cursor-pointer transition-opacity duration-200 ${
-                          isDimmed ? 'opacity-30' : 'opacity-100'
-                        }`}
-                        onMouseEnter={() => {
-                          onHoverRun(run.id);
-                          setTooltip({
-                            title: run.psiId,
-                            subtitle: `${run.material} · ${run.facility}`,
-                            metrics: [
-                              {
-                                label: 'O₂',
-                                value: `${run.O2_pct.toFixed(1)}%`,
-                              },
-                              {
-                                label: 'Flow',
-                                value: `${run.Flow_ms.toFixed(2)} m/s`,
-                              },
-                              {
-                                label: 'Spread',
-                                value: `${run.flameSpread_mms.toFixed(2)} mm/s`,
-                              },
-                            ],
-                            status: run.outcome,
-                          });
-                        }}
-                        onClick={() => onInspectRun(run.id)}
-                      >
-                        <rect
-                          x={cx - 5}
-                          y={cy - 5}
-                          width={10}
-                          height={10}
-                          fill={isDark ? '#18181B' : '#FFFFFF'}
-                          stroke={isDark ? '#FAFAFA' : '#18181B'}
-                          strokeWidth={2}
-                        />
-                        <text
-                          x={cx + 8}
-                          y={cy + 3.5}
-                          fill={isDark ? '#FAFAFA' : '#18181B'}
-                          fontSize="10.5"
-                          fontFamily="JetBrains Mono, monospace"
-                          fontWeight="700"
+                    return plottedRuns.map((run) => {
+                      const cx =
+                        68 +
+                        Math.max(
+                          0,
+                          Math.min(1, (run.O2_pct - 14) / (100 - 14))
+                        ) *
+                          822;
+                      const cy =
+                        12 +
+                        Math.max(0, Math.min(1, 1 - run.Flow_ms / 0.5)) * 258;
+                      const isDimmed =
+                        hoveredRunId !== null && hoveredRunId !== run.id;
+
+                      return (
+                        <g
+                          key={run.id}
+                          className={`cursor-pointer transition-opacity duration-200 ${
+                            isDimmed ? 'opacity-30' : 'opacity-100'
+                          }`}
+                          onMouseEnter={() => {
+                            onHoverRun(run.id);
+                            setTooltip({
+                              title: run.psiId,
+                              subtitle: `${run.material} · ${run.facility}`,
+                              metrics: [
+                                {
+                                  label: 'O₂',
+                                  value: `${run.O2_pct.toFixed(1)}%`,
+                                },
+                                {
+                                  label: 'Flow',
+                                  value: `${run.Flow_ms.toFixed(2)} m/s`,
+                                },
+                                {
+                                  label: 'Spread',
+                                  value: `${run.flameSpread_mms.toFixed(2)} mm/s`,
+                                },
+                              ],
+                              status: run.outcome,
+                            });
+                          }}
+                          onClick={() => onInspectRun(run.id)}
                         >
-                          {run.psiId.split(' ')[0]}
-                        </text>
-                      </g>
-                    );
-                  })}
+                          <rect
+                            x={cx - 5}
+                            y={cy - 5}
+                            width={10}
+                            height={10}
+                            fill={isDark ? '#18181B' : '#FFFFFF'}
+                            stroke={isDark ? '#FAFAFA' : '#18181B'}
+                            strokeWidth={2}
+                          />
+                          <text
+                            x={cx + 8}
+                            y={cy + 3.5}
+                            fill={isDark ? '#FAFAFA' : '#18181B'}
+                            fontSize="10.5"
+                            fontFamily="JetBrains Mono, monospace"
+                            fontWeight="700"
+                          >
+                            {run.psiId.split(' ')[0]}
+                          </text>
+                        </g>
+                      );
+                    });
+                  })()}
 
                   {/* Active Slider Crosshair Marker (Fluid CSS transitions) */}
                   {(() => {
@@ -816,7 +1304,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                       68 +
                       Math.max(
                         0,
-                        Math.min(1, (sliders.O2_pct - 14) / (85 - 14))
+                        Math.min(1, (sliders.O2_pct - 14) / (100 - 14))
                       ) *
                         822;
                     const cy =
@@ -899,8 +1387,8 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                     strokeWidth={1}
                   />
 
-                  {[14, 21, 34, 50, 68, 85].map((o2Tick) => {
-                    const x = 68 + ((o2Tick - 14) / (85 - 14)) * 822;
+                  {[14, 21, 34, 50, 75, 100].map((o2Tick) => {
+                    const x = 68 + ((o2Tick - 14) / (100 - 14)) * 822;
                     return (
                       <g key={o2Tick}>
                         <line
@@ -978,7 +1466,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
           )}
 
           {/* VIEW 2: MULTI-VARIABLE COMPARISON CHART */}
-          {vizMode === 'multi-variable' && (
+          {!isActiveUnavailable && vizMode === 'multi-variable' && (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <span className="font-sans text-zinc-500 dark:text-zinc-400">
@@ -990,7 +1478,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                     <span className="w-4 h-0 border-t-2 border-dashed border-[#EF4444]" />
                     <span>Active Simulator State</span>
                   </span>
-                  {selectedRuns.map((run, idx) => {
+                  {datasetContext.activeRuns.slice(0, 8).map((run, idx) => {
                     const isDimmed =
                       hoveredRunId !== null && hoveredRunId !== run.id;
                     return (
@@ -1027,8 +1515,8 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                 >
                   {(() => {
                     const axes = [
-                      { label: 'O₂ %', min: 14, max: 85, unit: '%' },
-                      { label: 'Pressure psi', min: 4.3, max: 14.7, unit: 'psi' },
+                      { label: 'O₂ %', min: 14, max: 100, unit: '%' },
+                      { label: 'Pressure psi', min: 4.3, max: 20.0, unit: 'psi' },
                       { label: 'Airflow m/s', min: 0.0, max: 0.5, unit: 'm/s' },
                       { label: 'Peak Temp K', min: 500, max: 1850, unit: 'K' },
                       {
@@ -1132,7 +1620,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
                         })}
 
                         {/* Historical PSI Runs */}
-                        {selectedRuns.map((run, idx) => {
+                        {datasetContext.activeRuns.slice(0, 8).map((run, idx) => {
                           const vals = [
                             run.O2_pct,
                             run.P_psi,
@@ -1263,7 +1751,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
           )}
 
           {/* VIEW 3: MATERIAL SAFETY COMPARISON (DUAL-LAYER COMPARATIVE MATERIAL MATRIX — NO RADAR CHART) */}
-          {vizMode === 'material-safety' && (
+          {!isActiveUnavailable && vizMode === 'material-safety' && (
             <div className="space-y-4">
               {/* Top Layer: 4 Small-Multiple Horizontal Bullet Charts (4-Column Grid) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -1551,7 +2039,7 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
           )}
 
           {/* VIEW 4: TEMPERATURE & SENSOR TIMELINE */}
-          {vizMode === 'sensor-timeline' && (
+          {!isActiveUnavailable && vizMode === 'sensor-timeline' && (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex flex-wrap items-center gap-4 text-[11px] font-sans font-medium">
@@ -1850,6 +2338,28 @@ export const VisualizationStage: React.FC<VisualizationStageProps> = ({
               </div>
             </div>
           )}
+
+          {/* EXTENDED CATALOG VISUALIZATION TECHNIQUES (19 ADDITIONAL TECHNIQUES) */}
+          {!isActiveUnavailable &&
+            vizMode !== 'safety-map' &&
+            vizMode !== 'multi-variable' &&
+            vizMode !== 'material-safety' &&
+            vizMode !== 'sensor-timeline' && (
+              <VizTechniqueRenderer
+                theme={theme}
+                vizMode={vizMode}
+                sliders={sliders}
+                simulation={simulation}
+                activeRuns={datasetContext.activeRuns}
+                hoveredRunId={hoveredRunId}
+                onHoverRun={onHoverRun}
+                hoveredMaterialId={hoveredMaterialId}
+                onHoverMaterial={onHoverMaterial}
+                onInspectRun={onInspectRun}
+                onChangeSlider={onChangeSlider}
+                caveatNote={activeTechnique?.definition.caveatNote}
+              />
+            )}
         </div>
       </section>
     </div>

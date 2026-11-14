@@ -1,0 +1,2389 @@
+{
+  "metadata": {
+    "generator": "NASA PSI Unified Archive & Data Compiler",
+    "total_investigations": 20,
+    "total_root_pdfs": 1
+  },
+  "investigations": {
+    "PSI-20": {
+      "psi_id": "PSI-20",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-20_Experimental table_ACME BRE.csv",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Experimental table_ACME BRE.csv",
+          "row_count": 18,
+          "columns": [
+            "Year",
+            "Month",
+            "Date",
+            "Burner Size (mm)",
+            "Fuel Bottle",
+            "Oxygen Conc (percent)",
+            "Flames Ignited",
+            "Notes"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-20_Engineering Documents_ACME_Engineering Requirements Doc Rev K.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_ACME_Engineering Requirements Doc Rev K.pdf",
+          "file_size": 1843589,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_ACME_engineering_20210328.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_ACME_engineering_20210328.pdf",
+          "file_size": 6843254,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_ACME_Software_Interface_Design.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_ACME_Software_Interface_Design.pdf",
+          "file_size": 2151284,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_BRE_procedure_20210520.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_BRE_procedure_20210520.pdf",
+          "file_size": 776857,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_s1101mfa0100_C.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_s1101mfa0100_C.pdf",
+          "file_size": 16100676,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_s1101mfa1800_B.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_s1101mfa1800_B.pdf",
+          "file_size": 171658,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_S1101MFB0001_-ACME_Drawing_Tree.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_S1101MFB0001_-ACME_Drawing_Tree.pdf",
+          "file_size": 129741,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Engineering Documents_S1101MFS0004_rev_A.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Engineering Documents_S1101MFS0004_rev_A.pdf",
+          "file_size": 308670,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Reports_Dissertation-PD-revised_.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Reports_Dissertation-PD-revised_.pdf",
+          "file_size": 12433641,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Reports_Final_20220201.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Reports_Final_20220201.pdf",
+          "file_size": 5957884,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME CDR Presentation Package.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME CDR Presentation Package.pdf",
+          "file_size": 13232481,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_fact_sheet_20180519.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_fact_sheet_20180519.pdf",
+          "file_size": 437766,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_fact_sheet_20180820.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_fact_sheet_20180820.pdf",
+          "file_size": 1132230,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_Integrated_Science_Requirements_Definition_Review_20100505.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_Integrated_Science_Requirements_Definition_Review_20100505.pdf",
+          "file_size": 3119886,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+          "file_size": 1878639,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_non-imaging_data_file_description.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_non-imaging_data_file_description.pdf",
+          "file_size": 377001,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+          "file_size": 300262,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_BRE_data_interpretation_20220804.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_BRE_data_interpretation_20220804.pdf",
+          "file_size": 731305,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_BRE_science_concept_RDR_201306.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_BRE_science_concept_RDR_201306.pdf",
+          "file_size": 6096986,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_BRE_science_concept_SCR_201208.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_BRE_science_concept_SCR_201208.pdf",
+          "file_size": 2780782,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_BRE_SRD_201208.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_BRE_SRD_201208.pdf",
+          "file_size": 1799909,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_BRE_SRD_201306.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_BRE_SRD_201306.pdf",
+          "file_size": 11494240,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_FLEX A Decisive Step Forward in NASAs Combustion Research Program.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_FLEX A Decisive Step Forward in NASAs Combustion Research Program.pdf",
+          "file_size": 3693275,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_ISS_Researchers_Guide_-_Combustion_In_Reduced_Gravity.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_ISS_Researchers_Guide_-_Combustion_In_Reduced_Gravity.pdf",
+          "file_size": 1532064,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_PS-01548_ACME_info_sheet.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_PS-01548_ACME_info_sheet.pdf",
+          "file_size": 874049,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_PS-02788_ACME_info_sheet.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_PS-02788_ACME_info_sheet.pdf",
+          "file_size": 4839732,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_PS-03055_ACME_info_sheet.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_PS-03055_ACME_info_sheet.pdf",
+          "file_size": 3782346,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_PS-03403_ACME_on_the_ISS.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_PS-03403_ACME_on_the_ISS.pdf",
+          "file_size": 9090639,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-20_Science Documents_PS_00538__Unlocking_Mysteries.pdf",
+          "file_path": "./raw_downloads/PSI-20/PSI-20_Science Documents_PS_00538__Unlocking_Mysteries.pdf",
+          "file_size": 2658200,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-20/i_Investigation.txt",
+          "file_size": 14769,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-20.txt",
+          "file_path": "./extracted_psi/PSI-20/s_PSI-20.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 29,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-22": {
+      "psi_id": "PSI-22",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-22_Experimental table_ACME E-FIELD Flames.csv",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Experimental table_ACME E-FIELD Flames.csv",
+          "row_count": 32,
+          "columns": [
+            "Test Type",
+            "Test Day",
+            "Year",
+            "Month",
+            "Date",
+            "Mesh Polarity",
+            "Fuel Bottle",
+            "Fuel Conc",
+            "Flames Ignited",
+            "Notes"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-22_Engineering Documents_ACME - Engineering Requirements Doc Rev K.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_ACME - Engineering Requirements Doc Rev K.pdf",
+          "file_size": 2104955,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_ACME CLD burner hot wire anemometry measurements.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_ACME CLD burner hot wire anemometry measurements.pdf",
+          "file_size": 2431305,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+          "file_size": 7496324,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_ACME_engineering_20210328.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_ACME_engineering_20210328.pdf",
+          "file_size": 6843254,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_E-FIELD_Flames_RDR_201005.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_E-FIELD_Flames_RDR_201005.pdf",
+          "file_size": 6951302,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_s1101mfa0100_C - ACME Chamber Insert Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_s1101mfa0100_C - ACME Chamber Insert Assembly.pdf",
+          "file_size": 16100676,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_s1101mfa1800_B - Altered Cold Plate Drawing.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_s1101mfa1800_B - Altered Cold Plate Drawing.pdf",
+          "file_size": 167484,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Engineering Documents_S1101MFB0001_-ACME_Drawing_Tree.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Engineering Documents_S1101MFB0001_-ACME_Drawing_Tree.pdf",
+          "file_size": 129741,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reference Data_ACME-DOC-010_D Software Interface Design Description1.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reference Data_ACME-DOC-010_D Software Interface Design Description1.pdf",
+          "file_size": 1700304,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reference Data_ACME-DOC-010_D.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reference Data_ACME-DOC-010_D.pdf",
+          "file_size": 2151284,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_2018 - E-FIELD Flames 30-day Operation Accomplishments Report for ISS Increments 55 and 56 20181115.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_2018 - E-FIELD Flames 30-day Operation Accomplishments Report for ISS Increments 55 and 56 20181115.pdf",
+          "file_size": 793069,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_2019 - E-FIELD Flames 30-Day Operation Accomplishments Report for ISS Increments 57 and 58 20190601.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_2019 - E-FIELD Flames 30-Day Operation Accomplishments Report for ISS Increments 57 and 58 20190601.pdf",
+          "file_size": 660479,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_ACME fact sheet 20180519.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_ACME fact sheet 20180519.pdf",
+          "file_size": 437766,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_ACME fact sheet 20180820.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_ACME fact sheet 20180820.pdf",
+          "file_size": 1132230,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_E-FIELD Flames Final Report.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_E-FIELD Flames Final Report.pdf",
+          "file_size": 3529827,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_PS-01548 ACME info sheet.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_PS-01548 ACME info sheet.pdf",
+          "file_size": 874049,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_PS-02788 ACME info sheet.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_PS-02788 ACME info sheet.pdf",
+          "file_size": 4839732,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_PS-03055 ACME info sheet.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_PS-03055 ACME info sheet.pdf",
+          "file_size": 3782346,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Reports_PS_00538  Unlocking Mysteries.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Reports_PS_00538  Unlocking Mysteries.pdf",
+          "file_size": 2658200,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ACME E-FIELD Flames DoD.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ACME E-FIELD Flames DoD.pdf",
+          "file_size": 168744,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ACME non-imaging data file description.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ACME non-imaging data file description.pdf",
+          "file_size": 377001,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ACME_Integrated_Science_Requirements_Definition_Review_20100505.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ACME_Integrated_Science_Requirements_Definition_Review_20100505.pdf",
+          "file_size": 3119886,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ACME_Integrated_Science_Requirements_RevB.pdf",
+          "file_size": 1878639,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ACME_Science_Operation_Requirements_revA_20111018.pdf",
+          "file_size": 300262,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_E-FIELD Flames data interpretation document.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_E-FIELD Flames data interpretation document.pdf",
+          "file_size": 909422,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_E-FIELD Flames SCR 200802.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_E-FIELD Flames SCR 200802.pdf",
+          "file_size": 2965401,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_E-FIELD_Flames_benefits_20200518.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_E-FIELD_Flames_benefits_20200518.pdf",
+          "file_size": 144248,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_E-FIELD_Flames_procedure_20200723.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_E-FIELD_Flames_procedure_20200723.pdf",
+          "file_size": 747718,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_E-FIELD_Flames_SRD_20100402.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_E-FIELD_Flames_SRD_20100402.pdf",
+          "file_size": 9895960,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Science Documents_ISS Researchers Guide - Combustion In Reduced Gravity.pdf",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Science Documents_ISS Researchers Guide - Combustion In Reduced Gravity.pdf",
+          "file_size": 1532064,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [
+        {
+          "file_name": "PSI-22_Representative Image(s)_ACME logo.png",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Representative Image(s)_ACME logo.png",
+          "file_size": 127968,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Representative Image(s)_E-Field flames blue 2.jpg",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Representative Image(s)_E-Field flames blue 2.jpg",
+          "file_size": 162135,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Representative Image(s)_E-Field Flames blue.jpg",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Representative Image(s)_E-Field Flames blue.jpg",
+          "file_size": 18339,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-22_Representative Image(s)_E-Field Flames.jpg",
+          "file_path": "./raw_downloads/PSI-22/PSI-22_Representative Image(s)_E-Field Flames.jpg",
+          "file_size": 42645,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "metadata_files": [],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 30,
+        "images": 4,
+        "metadata": 0
+      }
+    },
+    "PSI-25": {
+      "psi_id": "PSI-25",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-25_Experimental table_BASS-II.csv",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Experimental table_BASS-II.csv",
+          "row_count": 129,
+          "columns": [
+            "PI",
+            "Test #",
+            "Date",
+            "GMT",
+            "Sample #",
+            "Fuel Sample Material",
+            "Flow restrictor",
+            "Fan display",
+            "Air display",
+            "Radiometer gain   (1000   250   50   10)",
+            "Total Frames Shot",
+            "Calibrated  initial O2 % by vol",
+            "Calibrated final O2 % by vol",
+            "Initial CO2 % by vol",
+            "Final CO2 % by vol",
+            "Initial CO (ppm)",
+            "Final CO (ppm)"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-25_Reference Data_Fan calibration data.xlsx",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Reference Data_Fan calibration data.xlsx",
+          "row_count": 33,
+          "columns": [
+            "Fan Calibration data",
+            "",
+            "",
+            "Note:  Data is organized by number of restrictors used.  Not all restrictors were comonly used, so often the fan calibration only includes the restrictors of interest for that day. Some days we ran out of time before the fan cal could be complete.   There are additional flow values that were used during testing when the fan is on at a fixed voltage for at least a few minutes.   Note that the fan turns off at a finite voltage (above 3.8 volts), so it is recommended to not use the 3.8 volts zero flow value.",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-25_Science Documents_BASS-II_Test.Matrices.xlsx",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Science Documents_BASS-II_Test.Matrices.xlsx",
+          "row_count": 4,
+          "columns": [
+            "Actual Date  (for Video Display Date, add 1 for Leap Year)",
+            "GMT 2014-",
+            "Test no.",
+            "Sample no.",
+            "Material",
+            "Flow restrictor",
+            "Fan display",
+            "Air display",
+            "Radiometer gain   (1000, 250, 50, 10)",
+            "total frames shot",
+            "calibrated  initial O2 % by vol",
+            "calibrated final O2 % by vol",
+            "Initial CO2 % by vol",
+            "Final CO2 % by vol",
+            "Initial CO (ppm)",
+            "Final CO (ppm)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-25_Reports_BASS-II Summary Report.pdf",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Reports_BASS-II Summary Report.pdf",
+          "file_size": 48972416,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-25_Science Documents_BASS-II_SRD.pdf",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Science Documents_BASS-II_SRD.pdf",
+          "file_size": 1108340,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [
+        {
+          "file_name": "PSI-25_Representative Image(s)_BASS-II_flame testing.jpg",
+          "file_path": "./raw_downloads/PSI-25/PSI-25_Representative Image(s)_BASS-II_flame testing.jpg",
+          "file_size": 37525,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-25/i_Investigation.txt",
+          "file_size": 13147,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-25.txt",
+          "file_path": "./extracted_psi/PSI-25/s_PSI-25.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 3,
+        "pdfs": 2,
+        "images": 1,
+        "metadata": 2
+      }
+    },
+    "PSI-26": {
+      "psi_id": "PSI-26",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-26_Experimental table_BASS.csv",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Experimental table_BASS.csv",
+          "row_count": 122,
+          "columns": [
+            "Date",
+            "GMT",
+            "As Run Test #",
+            "Test #",
+            "Sample #",
+            "Fuel Sample Material"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Science Documents_As Run_Test Matrix.xlsx",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Science Documents_As Run_Test Matrix.xlsx",
+          "row_count": 132,
+          "columns": [
+            "BASS   Test  Matrix as Run",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Science Documents_Planned_Test Matrix.xlsx",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Science Documents_Planned_Test Matrix.xlsx",
+          "row_count": 62,
+          "columns": [
+            "",
+            "Video Screen Time = GMT + 1 day + 5 min + 10 sec;   cfe1mpv; cfeOct2004     msgpayload; !Monday1     HOPS\\spicall0; Nasaspi2011!      tlorik; $Tlpc2345678 (code: LATL)",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-26_Engineering Documents_60054MAFH000_C.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_60054MAFH000_C.pdf",
+          "file_size": 562119,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_BASS_SysAcceptanceReview.1.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_BASS_SysAcceptanceReview.1.pdf",
+          "file_size": 2892502,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_BASS_SysAcceptanceReview.2.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_BASS_SysAcceptanceReview.2.pdf",
+          "file_size": 1804490,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Blk.PMMA.Rod.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Blk.PMMA.Rod.pdf",
+          "file_size": 78284,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Flat.Sample.Frame_1cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Flat.Sample.Frame_1cm.pdf",
+          "file_size": 586727,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Flat.Sample.Frame_2cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Flat.Sample.Frame_2cm.pdf",
+          "file_size": 586059,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Blk.Rod.Sample.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Blk.Rod.Sample.pdf",
+          "file_size": 65282,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Flat.Fuel.Sample2mm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Flat.Fuel.Sample2mm.pdf",
+          "file_size": 52408,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Flat.Fuel.Sample_2cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Flat.Fuel.Sample_2cm.pdf",
+          "file_size": 129048,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Flat.Samples_2cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Flat.Samples_2cm.pdf",
+          "file_size": 58392,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Flat_1cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Flat_1cm.pdf",
+          "file_size": 1108850,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.SampleAssembly.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.SampleAssembly.pdf",
+          "file_size": 65227,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_PMMA.Spherical.Section.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_PMMA.Spherical.Section.pdf",
+          "file_size": 595300,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Sibal.Flat.Fuel.Sample_2cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Sibal.Flat.Fuel.Sample_2cm.pdf",
+          "file_size": 55267,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Sibal.Flat.Sample.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Sibal.Flat.Sample.pdf",
+          "file_size": 121535,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Solid.Fuel.Sample_2cmSphere.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Solid.Fuel.Sample_2cmSphere.pdf",
+          "file_size": 54006,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_SolidFuelFrame.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_SolidFuelFrame.pdf",
+          "file_size": 97640,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_Spherical.Sample_2cm.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_Spherical.Sample_2cm.pdf",
+          "file_size": 78407,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_SPICE Housing.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_SPICE Housing.pdf",
+          "file_size": 192768,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Drawing_SPICE_FanHousing.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Drawing_SPICE_FanHousing.pdf",
+          "file_size": 133889,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_Short Nozzle MFA10771.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_Short Nozzle MFA10771.pdf",
+          "file_size": 52766,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_SLICE_SysReqDesignReview.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_SLICE_SysReqDesignReview.pdf",
+          "file_size": 1429180,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Engineering Documents_SPICE-front-window.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Engineering Documents_SPICE-front-window.pdf",
+          "file_size": 148197,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Science Documents_DLD_BASS.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Science Documents_DLD_BASS.pdf",
+          "file_size": 69653,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-26_Science Documents_SRD_BASS.pdf",
+          "file_path": "./raw_downloads/PSI-26/PSI-26_Science Documents_SRD_BASS.pdf",
+          "file_size": 884257,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-26/i_Investigation.txt",
+          "file_size": 11355,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-26.txt",
+          "file_path": "./extracted_psi/PSI-26/s_PSI-26.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 3,
+        "pdfs": 25,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-39": {
+      "psi_id": "PSI-39",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-39_Experimental table_CFI.csv",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Experimental table_CFI.csv",
+          "row_count": 87,
+          "columns": [
+            "Flex Number",
+            "Test Date",
+            "Local Time",
+            "CIR",
+            "Pressure",
+            "Oxygen",
+            "Nitrogen",
+            "Helium",
+            "Fiber",
+            "Fuel"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-39_Science Documents_CFI_DataSummary_Spreadsheet_Jan2021.xlsx",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Science Documents_CFI_DataSummary_Spreadsheet_Jan2021.xlsx",
+          "row_count": 227,
+          "columns": [
+            "Flex Number",
+            "Ignition Power ( W )",
+            "Ignition Time ( ms )",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-39_Engineering Documents_CFI Operational Requirements and Protocols.pdf",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Engineering Documents_CFI Operational Requirements and Protocols.pdf",
+          "file_size": 115496,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-39_Reports_CFI Science Final Report.pdf",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Reports_CFI Science Final Report.pdf",
+          "file_size": 811459,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-39_Science Documents_CFI_SCR.pdf",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Science Documents_CFI_SCR.pdf",
+          "file_size": 3630234,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-39_Science Documents_SRD_CFI.pdf",
+          "file_path": "./raw_downloads/PSI-39/PSI-39_Science Documents_SRD_CFI.pdf",
+          "file_size": 12260561,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-39/i_Investigation.txt",
+          "file_size": 9945,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-39.txt",
+          "file_path": "./extracted_psi/PSI-39/s_PSI-39.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 2,
+        "pdfs": 4,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-60": {
+      "psi_id": "PSI-60",
+      "status": "[FLAG: METADATA ONLY - RE-EXPORT NEEDED]",
+      "spreadsheets": [],
+      "pdfs": [],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-60/i_Investigation.txt",
+          "file_size": 7451,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-60.txt",
+          "file_path": "./extracted_psi/PSI-60/s_PSI-60.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 0,
+        "pdfs": 0,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-62": {
+      "psi_id": "PSI-62",
+      "status": "[FLAG: METADATA ONLY - RE-EXPORT NEEDED]",
+      "spreadsheets": [],
+      "pdfs": [],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-62/i_Investigation.txt",
+          "file_size": 9402,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-62.txt",
+          "file_path": "./extracted_psi/PSI-62/s_PSI-62.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 0,
+        "pdfs": 0,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-68": {
+      "psi_id": "PSI-68",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-68_Experimental table_Flex2.csv",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Experimental table_Flex2.csv",
+          "row_count": 8,
+          "columns": [
+            "Sample (Fuel Type)",
+            "Initial Droplet Diameter (mm)",
+            "Ambient Gas Mixture",
+            "Oxygen Mole Fraction",
+            "Ambient Pressure (atm)",
+            "Ambient Temperature (C)",
+            "Flow Velocity (cm/s)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-68_Engineering Documents_67212MFAN11000-4 FLEX-2 Package Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_67212MFAN11000-4 FLEX-2 Package Assembly.pdf",
+          "file_size": 794087,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Engineering Documents_67235MFAC13500 FLEX-2 Fuel Reservoir Sub-Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_67235MFAC13500 FLEX-2 Fuel Reservoir Sub-Assembly.pdf",
+          "file_size": 1011191,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Engineering Documents_67235MFAC17143-2 FLEX-2 Fiber Arm Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_67235MFAC17143-2 FLEX-2 Fiber Arm Assembly.pdf",
+          "file_size": 146094,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Engineering Documents_67235MFAC17146 FLEX-2 Replaceable Fiber Arm Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_67235MFAC17146 FLEX-2 Replaceable Fiber Arm Assembly.pdf",
+          "file_size": 462821,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Engineering Documents_67235MFDC17150 FLEX-2 Fiber Cover.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_67235MFDC17150 FLEX-2 Fiber Cover.pdf",
+          "file_size": 219359,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Engineering Documents_FLEX-2 Engineering Requirments Document.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Engineering Documents_FLEX-2 Engineering Requirments Document.pdf",
+          "file_size": 237411,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Science Documents_FLEX-2 SRD Final _ No Hypertext .pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Science Documents_FLEX-2 SRD Final _ No Hypertext .pdf",
+          "file_size": 673636,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-68_Science Documents_FLEX-2 SRD Final.pdf",
+          "file_path": "./raw_downloads/PSI-68/PSI-68_Science Documents_FLEX-2 SRD Final.pdf",
+          "file_size": 1001814,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-68/i_Investigation.txt",
+          "file_size": 23823,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-68.txt",
+          "file_path": "./extracted_psi/PSI-68/s_PSI-68.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 8,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-69": {
+      "psi_id": "PSI-69",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-69_Experimental table_FLEX.csv",
+          "file_path": "./raw_downloads/PSI-69/PSI-69_Experimental table_FLEX.csv",
+          "row_count": 274,
+          "columns": [
+            "FLEX Test #",
+            "FLEX Identifier",
+            "Test Date",
+            "Test GMT",
+            "Fuel",
+            "Ambient pressure; mmHg",
+            "O initial ambient composition; mole fraction",
+            "N initial ambient composition; mole fraction",
+            "CO initial ambient composition; mole fraction",
+            "He initial ambient composition; mole fraction",
+            "Droplet initial diameter; mm",
+            "Visible flame extinction diameter; mm",
+            "Burning rate; mm",
+            "Burn time; s",
+            "Test end"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-69_Engineering Documents_FLEX Engineering Requirements Document.pdf",
+          "file_path": "./raw_downloads/PSI-69/PSI-69_Engineering Documents_FLEX Engineering Requirements Document.pdf",
+          "file_size": 237373,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-69_Engineering Documents_FLEX Overall Ext File-2.pdf",
+          "file_path": "./raw_downloads/PSI-69/PSI-69_Engineering Documents_FLEX Overall Ext File-2.pdf",
+          "file_size": 2267043,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-69_Engineering Documents_FLEX_EIRD_v4.pdf",
+          "file_path": "./raw_downloads/PSI-69/PSI-69_Engineering Documents_FLEX_EIRD_v4.pdf",
+          "file_size": 3240704,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-69_Science Documents_FLEX_Test_Plan.pdf",
+          "file_path": "./raw_downloads/PSI-69/PSI-69_Science Documents_FLEX_Test_Plan.pdf",
+          "file_size": 185799,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-69/i_Investigation.txt",
+          "file_size": 24488,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-69.txt",
+          "file_path": "./extracted_psi/PSI-69/s_PSI-69.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 4,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-98": {
+      "psi_id": "PSI-98",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-98_Experimental table_SAFFIRE-1.csv",
+          "file_path": "./raw_downloads/PSI-98/PSI-98_Experimental table_SAFFIRE-1.csv",
+          "row_count": 4,
+          "columns": [
+            "Sample Number",
+            "Material",
+            "Sample Thickness (cm)",
+            "Sample Length (cm)",
+            "Sample Width (cm)",
+            "Air Flow (cm/s)",
+            "Percent O2",
+            "Ignition Power (W)",
+            "Ignition Time (s)",
+            "Burn Time (s)",
+            "Flow Direction",
+            "Camera 1",
+            "Camera 2"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-98_Science Documents_SAFFIRE-1_MergeResult-jpeg_Update_Final_v2.xlsx",
+          "file_path": "./raw_downloads/PSI-98/PSI-98_Science Documents_SAFFIRE-1_MergeResult-jpeg_Update_Final_v2.xlsx",
+          "row_count": 1619,
+          "columns": [
+            "Timestamp",
+            "Time delta",
+            "Jpeg File ID (hex)",
+            "Jpeg File ID (decimal)",
+            "Jpeg File Name",
+            "Post FV Received",
+            "Post FV Rec'd Corrupt",
+            "Jpeg File size (bytes)",
+            "Zip File ID (hex)",
+            "Zip File ID (decimal)",
+            "Zip File Name",
+            "Zips Received",
+            "Zip File size (bytes)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-98_Engineering Documents_SAFFIRE-I Operations.pdf",
+          "file_path": "./raw_downloads/PSI-98/PSI-98_Engineering Documents_SAFFIRE-I Operations.pdf",
+          "file_size": 13957,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-98_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_path": "./raw_downloads/PSI-98/PSI-98_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_size": 186259,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-98_Science Documents_SAFFIRE-I Image Directory Nomenclature.pdf",
+          "file_path": "./raw_downloads/PSI-98/PSI-98_Science Documents_SAFFIRE-I Image Directory Nomenclature.pdf",
+          "file_size": 262860,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-98/i_Investigation.txt",
+          "file_size": 9739,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-98.txt",
+          "file_path": "./extracted_psi/PSI-98/s_PSI-98.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 2,
+        "pdfs": 3,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-99": {
+      "psi_id": "PSI-99",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-99_Experimental table_SAFFIRE-2.csv",
+          "file_path": "./raw_downloads/PSI-99/PSI-99_Experimental table_SAFFIRE-2.csv",
+          "row_count": 15,
+          "columns": [
+            "Sample Number",
+            "Material",
+            "Samle Thickness",
+            "Sample Length",
+            "Sample Width (cm)",
+            "Air Flow (cm/s)",
+            "Percent O2 (Note 1)",
+            "Ignition Power (W)",
+            "Ignition Time (s)",
+            "Burn Time (s)",
+            "Flow Direction",
+            "?-g Burn Length",
+            "?-g Spread Length",
+            "1-g Burn Length",
+            "1-g Spread Rate",
+            "Camera 1",
+            "Camera 2"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-99_Science Documents_SAFFIRE-II_MergeResult-jpeg_v5_Final.xlsx",
+          "file_path": "./raw_downloads/PSI-99/PSI-99_Science Documents_SAFFIRE-II_MergeResult-jpeg_v5_Final.xlsx",
+          "row_count": 28950,
+          "columns": [
+            "EpochTime",
+            "Time delta",
+            "Jpeg File ID (hex)",
+            "Jpeg File ID (decimal)",
+            "Jpeg File Name",
+            "S9 Received",
+            "Jpeg File size (bytes)",
+            "Zip File ID (hex)",
+            "Zip File ID (decimal)",
+            "Zip File Name",
+            "Zip File size (bytes)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-99_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_path": "./raw_downloads/PSI-99/PSI-99_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_size": 186259,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-99_Science Documents_SAFFIRE-II_Image_Directory_Nomenclature_v3.0.pdf",
+          "file_path": "./raw_downloads/PSI-99/PSI-99_Science Documents_SAFFIRE-II_Image_Directory_Nomenclature_v3.0.pdf",
+          "file_size": 755236,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-99/i_Investigation.txt",
+          "file_size": 10247,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-99.txt",
+          "file_path": "./extracted_psi/PSI-99/s_PSI-99.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 2,
+        "pdfs": 2,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-100": {
+      "psi_id": "PSI-100",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-100_Experimental table_SAFFIRE-3.csv",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Experimental table_SAFFIRE-3.csv",
+          "row_count": 2,
+          "columns": [
+            "Sample Number",
+            "Material",
+            "Sample Thickness",
+            "Sample Length",
+            "Sample Width",
+            "Air Flow",
+            "Direction",
+            "Camera 1",
+            "Camera 2"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-100_Science Documents_SAFFIRE-III_MergeResult-jpeg_Final.xlsx",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Science Documents_SAFFIRE-III_MergeResult-jpeg_Final.xlsx",
+          "row_count": 38051,
+          "columns": [
+            "BIT Received",
+            "F1 FV Received",
+            "F2 FV Received",
+            "S1 Received",
+            "S2 Received",
+            "S3 Received",
+            "S4 Received",
+            "S5 Received",
+            "S6 Received",
+            "S7 Received",
+            "S8 Received",
+            "S9 Received"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-100_Science Documents_SAFFIRE-III_MergeResult-raw_Final.xlsx",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Science Documents_SAFFIRE-III_MergeResult-raw_Final.xlsx",
+          "row_count": 6275,
+          "columns": [
+            "EpochTime",
+            "Date / GMT",
+            "File ID (hex)",
+            "File ID (decimal)",
+            "File Name",
+            "Exposure",
+            "Gain",
+            "S2 Received",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-100_Engineering Documents_SAFFIRE-III Operations.pdf",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Engineering Documents_SAFFIRE-III Operations.pdf",
+          "file_size": 40256,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-100_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Science Documents_SAFFIRE Objectives, Development and Status.pdf",
+          "file_size": 186259,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-100_Science Documents_SAFFIRE-III Image Directory Nomenclature_v3.0.pdf",
+          "file_path": "./raw_downloads/PSI-100/PSI-100_Science Documents_SAFFIRE-III Image Directory Nomenclature_v3.0.pdf",
+          "file_size": 273485,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-100/i_Investigation.txt",
+          "file_size": 8090,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-100.txt",
+          "file_path": "./extracted_psi/PSI-100/s_PSI-100.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 3,
+        "pdfs": 3,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-101": {
+      "psi_id": "PSI-101",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-101_Engineering Documents_SAME VPRED Matrix PLN-005 Baseline.xls",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_SAME VPRED Matrix PLN-005 Baseline.xls",
+          "row_count": 1090,
+          "columns": [
+            "Requirement\nNumber",
+            "Requirement\nSource",
+            "Discipline",
+            "Requirement",
+            "System Response & Notes",
+            "Method",
+            "Series",
+            "Safety",
+            "HFIT",
+            "VDS #",
+            "Hardware",
+            "",
+            "System",
+            "",
+            "GSE Required",
+            "In MSG EU",
+            "Documents",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_SAME-R_ThermalPrecipitatorUsage.xlsx",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_SAME-R_ThermalPrecipitatorUsage.xlsx",
+          "row_count": 24,
+          "columns": [
+            "",
+            "",
+            "SAME-R Thermal Precipitator Usage",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_SAME_Wire_Test.xls",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_SAME_Wire_Test.xls",
+          "row_count": 11,
+          "columns": [
+            "Wire",
+            "R/R0"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Experimental table_SAME-R.csv",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Experimental table_SAME-R.csv",
+          "row_count": 109,
+          "columns": [
+            "Sample Type",
+            "SAME Test #",
+            "Description",
+            "Date",
+            "Inlet velocity (cm/s)",
+            "Rt/R0",
+            "Duration (sec)",
+            "Primary aging time (sec)",
+            "Primary mixing time (sec)",
+            "Net aging time (sec)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA150-B Aging Chamber Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA150-B Aging Chamber Assembly.pdf",
+          "file_size": 335105,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA410-A Teflon Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA410-A Teflon Sample Assembly.pdf",
+          "file_size": 156530,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA411 Teflon Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA411 Teflon Ignitor Wire Coil Assembly.pdf",
+          "file_size": 175857,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA414-A Lampwick Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA414-A Lampwick Sample Assembly.pdf",
+          "file_size": 151181,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA415 Ignitor Wire Coil Assembly (for 0 .250 OD samples).pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA415 Ignitor Wire Coil Assembly (for 0 .250 OD samples).pdf",
+          "file_size": 98185,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA416-A Silicone Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA416-A Silicone Sample Assembly.pdf",
+          "file_size": 152496,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA417-B Kapton Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA417-B Kapton Sample Assembly.pdf",
+          "file_size": 149738,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA419 Silicone Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA419 Silicone Ignitor Wire Coil Assembly.pdf",
+          "file_size": 161926,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHA432-A Kapton Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHA432-A Kapton Ignitor Wire Coil Assembly.pdf",
+          "file_size": 169403,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHD126-B Smoke Generation Tube.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHD126-B Smoke Generation Tube.pdf",
+          "file_size": 243826,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHD413 Teflon Sample Part.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHD413 Teflon Sample Part.pdf",
+          "file_size": 150152,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHD509 P-Trak Condenser Tube Modification.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHD509 P-Trak Condenser Tube Modification.pdf",
+          "file_size": 162861,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_60089MFHP000-C SAME Fluids System Schematic.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_60089MFHP000-C SAME Fluids System Schematic.pdf",
+          "file_size": 258861,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic, right side-1.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic, right side-1.pdf",
+          "file_size": 1611750,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic.pdf",
+          "file_size": 333332,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_Drawing_SAME Aging Chamber.PDF",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_Drawing_SAME Aging Chamber.PDF",
+          "file_size": 212840,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_Fluids Control Unit, Schematic, left side-1.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_Fluids Control Unit, Schematic, left side-1.pdf",
+          "file_size": 1163957,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_S1171MFHA401 Pyrell Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_S1171MFHA401 Pyrell Sample Assembly.pdf",
+          "file_size": 154569,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+          "file_size": 5378409,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Engineering Documents_SAME_Wire_Report.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Engineering Documents_SAME_Wire_Report.pdf",
+          "file_size": 1852991,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Reference Data_SAME_Software Description Document_003 Rev A.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Reference Data_SAME_Software Description Document_003 Rev A.pdf",
+          "file_size": 270540,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Reference Data_SAME_Software Requirement Document_004 Rev D.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Reference Data_SAME_Software Requirement Document_004 Rev D.pdf",
+          "file_size": 400833,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Reports_SAME-R_Final Report.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Reports_SAME-R_Final Report.pdf",
+          "file_size": 4578437,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Science Documents_SAME_Baseline Concept Description Document_001 Rev A.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Science Documents_SAME_Baseline Concept Description Document_001 Rev A.pdf",
+          "file_size": 247315,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-101_Science Documents_SAME_Operations Manual_007.pdf",
+          "file_path": "./raw_downloads/PSI-101/PSI-101_Science Documents_SAME_Operations Manual_007.pdf",
+          "file_size": 699811,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [],
+      "counts": {
+        "spreadsheets": 4,
+        "pdfs": 25,
+        "images": 0,
+        "metadata": 0
+      }
+    },
+    "PSI-102": {
+      "psi_id": "PSI-102",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-102_Engineering Documents_SAME VPRED Matrix PLN-005 Baseline.xls",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_SAME VPRED Matrix PLN-005 Baseline.xls",
+          "row_count": 1090,
+          "columns": [
+            "Requirement\nNumber",
+            "Requirement\nSource",
+            "Discipline",
+            "Requirement",
+            "System Response & Notes",
+            "Method",
+            "Series",
+            "Safety",
+            "HFIT",
+            "VDS #",
+            "Hardware",
+            "",
+            "System",
+            "",
+            "GSE Required",
+            "In MSG EU",
+            "Documents",
+            "",
+            ""
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_SAME_Wire_Test.xls",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_SAME_Wire_Test.xls",
+          "row_count": 11,
+          "columns": [
+            "Wire",
+            "R/R0"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Experimental table_SAME.csv",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Experimental table_SAME.csv",
+          "row_count": 8,
+          "columns": [
+            "Sample #",
+            "Sample Material",
+            "Air Flow (cm/s)",
+            "Weight loss rate (mg/min)",
+            "Aging Duration (minutes)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA150-B Aging Chamber Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA150-B Aging Chamber Assembly.pdf",
+          "file_size": 335105,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA151-B Same Aging Chamber.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA151-B Same Aging Chamber.pdf",
+          "file_size": 212992,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA410-A Teflon Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA410-A Teflon Sample Assembly.pdf",
+          "file_size": 156530,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA411 Teflon Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA411 Teflon Ignitor Wire Coil Assembly.pdf",
+          "file_size": 175861,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA414-A Lampwick Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA414-A Lampwick Sample Assembly.pdf",
+          "file_size": 151181,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA415 Ignitor Wire Coil Assembly (for 0 .250 OD samples).pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA415 Ignitor Wire Coil Assembly (for 0 .250 OD samples).pdf",
+          "file_size": 98186,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA416-A Silicone Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA416-A Silicone Sample Assembly.pdf",
+          "file_size": 152496,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA417-B Kapton Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA417-B Kapton Sample Assembly.pdf",
+          "file_size": 149738,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA419 Silicone Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA419 Silicone Ignitor Wire Coil Assembly.pdf",
+          "file_size": 161925,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHA432-A Kapton Ignitor Wire Coil Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHA432-A Kapton Ignitor Wire Coil Assembly.pdf",
+          "file_size": 169403,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHD126-B Smoke Generation Tube.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHD126-B Smoke Generation Tube.pdf",
+          "file_size": 243826,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHD413 Teflon Sample Part.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHD413 Teflon Sample Part.pdf",
+          "file_size": 150152,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHD509 P-Trak Condenser Tube Modification.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHD509 P-Trak Condenser Tube Modification.pdf",
+          "file_size": 162848,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHP000-E SAME Fluids System Schematic, right side.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHP000-E SAME Fluids System Schematic, right side.pdf",
+          "file_size": 1611751,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_60089MFHP0001-C Same Fluids System Schematic.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_60089MFHP0001-C Same Fluids System Schematic.pdf",
+          "file_size": 258855,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_80089MFHP000-E SAME Fluids System Schematic.pdf",
+          "file_size": 333331,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_Fluids Control Unit, Schematic, left side.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_Fluids Control Unit, Schematic, left side.pdf",
+          "file_size": 1163952,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_S1171MFHA401 Pyrell Sample Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_S1171MFHA401 Pyrell Sample Assembly.pdf",
+          "file_size": 154568,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_SAME Verification Plan and Engineering Requirements Document (VPRED)_January 2007.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_SAME Verification Plan and Engineering Requirements Document (VPRED)_January 2007.pdf",
+          "file_size": 514208,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_SAME_EIRD.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_SAME_EIRD.pdf",
+          "file_size": 5378409,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Engineering Documents_SAME_IgnitorWireCharacterizationReport.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Engineering Documents_SAME_IgnitorWireCharacterizationReport.pdf",
+          "file_size": 1852991,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Reference Data_SAME_Crew Interface Description.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Reference Data_SAME_Crew Interface Description.pdf",
+          "file_size": 694482,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Reference Data_SAME_Software Description Document.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Reference Data_SAME_Software Description Document.pdf",
+          "file_size": 270540,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Reference Data_SAME_Software Req Document.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Reference Data_SAME_Software Req Document.pdf",
+          "file_size": 400833,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Reports_SAME_Final Science Report.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Reports_SAME_Final Science Report.pdf",
+          "file_size": 3712845,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Science Documents_SAME_Baseline Concept Description Doc.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Science Documents_SAME_Baseline Concept Description Doc.pdf",
+          "file_size": 247315,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-102_Science Documents_SAME_Operations Manual_007.pdf",
+          "file_path": "./raw_downloads/PSI-102/PSI-102_Science Documents_SAME_Operations Manual_007.pdf",
+          "file_size": 699811,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-102/i_Investigation.txt",
+          "file_size": 12833,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-102.txt",
+          "file_path": "./extracted_psi/PSI-102/s_PSI-102.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 3,
+        "pdfs": 27,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-106": {
+      "psi_id": "PSI-106",
+      "status": "[OK: EXPERIMENTAL TABLES PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-106_Experimental table_Slice.csv",
+          "file_path": "./raw_downloads/PSI-106/PSI-106_Experimental table_Slice.csv",
+          "row_count": 12,
+          "columns": [
+            "Test Date",
+            "Fuel Type"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-106/i_Investigation.txt",
+          "file_size": 8449,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-106.txt",
+          "file_path": "./extracted_psi/PSI-106/s_PSI-106.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 0,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-107": {
+      "psi_id": "PSI-107",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-107_Experimental table_Spice.csv",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Experimental table_Spice.csv",
+          "row_count": 469,
+          "columns": [
+            "GMT date",
+            "GMT ignition",
+            "GMT  Flame Off",
+            "Fuel",
+            "Nozzle (mm)",
+            "Fuel Rate (sccm)",
+            "Fuel Rate (mg/s)",
+            "HC Fuel Rate (mg/s)",
+            "Air Rate (cm/s)"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-107_Engineering Documents_60054MAFH000-C SPICE Experiment Assembly.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Engineering Documents_60054MAFH000-C SPICE Experiment Assembly.pdf",
+          "file_size": 591060,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Engineering Documents_SPICE-MEM-010.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Engineering Documents_SPICE-MEM-010.pdf",
+          "file_size": 113106,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Engineering Documents_SPICE_Phase III Flight Safety Data Package.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Engineering Documents_SPICE_Phase III Flight Safety Data Package.pdf",
+          "file_size": 4490750,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Engineering Documents_SPICE_ScienceVerificationReport.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Engineering Documents_SPICE_ScienceVerificationReport.pdf",
+          "file_size": 237000,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Reference Data_SPICE_VIDEO OVERLAY RESET.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Reference Data_SPICE_VIDEO OVERLAY RESET.pdf",
+          "file_size": 1060135,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Reports_SMOKE POINTS OF MICROGRAVITY AND  NORMAL GRAVITY COFLOW DIFFUSION  FLAMES_DotsonThesis.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Reports_SMOKE POINTS OF MICROGRAVITY AND  NORMAL GRAVITY COFLOW DIFFUSION  FLAMES_DotsonThesis.pdf",
+          "file_size": 2227738,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Reports_SPICE_30-DayPostFlightReport.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Reports_SPICE_30-DayPostFlightReport.pdf",
+          "file_size": 160909,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-107_Reports_SPICE_FinalReport.pdf",
+          "file_path": "./raw_downloads/PSI-107/PSI-107_Reports_SPICE_FinalReport.pdf",
+          "file_size": 601754,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-107/i_Investigation.txt",
+          "file_size": 9019,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-107.txt",
+          "file_path": "./extracted_psi/PSI-107/s_PSI-107.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 8,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-115": {
+      "psi_id": "PSI-115",
+      "status": "[OK: PDF REPORTS PRESENT]",
+      "spreadsheets": [],
+      "pdfs": [
+        {
+          "file_name": "PSI-115_Reports_NNX17AF08A_FinalReport.pdf",
+          "file_path": "./raw_downloads/PSI-115/PSI-115_Reports_NNX17AF08A_FinalReport.pdf",
+          "file_size": 10617514,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-115_Science Documents_DataOrganizationDocument.pdf",
+          "file_path": "./raw_downloads/PSI-115/PSI-115_Science Documents_DataOrganizationDocument.pdf",
+          "file_size": 96899,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-115/i_Investigation.txt",
+          "file_size": 6727,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-115.txt",
+          "file_path": "./extracted_psi/PSI-115/s_PSI-115.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 0,
+        "pdfs": 2,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-117": {
+      "psi_id": "PSI-117",
+      "status": "[OK: PDF REPORTS PRESENT]",
+      "spreadsheets": [],
+      "pdfs": [
+        {
+          "file_name": "PSI-117_Reports_Dissertation_Combustion Behavior Of Sub-Millimeter Sized Oxygenated And N-Alka.pdf",
+          "file_path": "./raw_downloads/PSI-117/PSI-117_Reports_Dissertation_Combustion Behavior Of Sub-Millimeter Sized Oxygenated And N-Alka.pdf",
+          "file_size": 8072629,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-117/i_Investigation.txt",
+          "file_size": 10088,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-117.txt",
+          "file_path": "./extracted_psi/PSI-117/s_PSI-117.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 0,
+        "pdfs": 1,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-142": {
+      "psi_id": "PSI-142",
+      "status": "[OK: EXPERIMENTAL TABLES PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-142_Experimental table_Data Summary Table.csv",
+          "file_path": "./raw_downloads/PSI-142/PSI-142_Experimental table_Data Summary Table.csv",
+          "row_count": 8,
+          "columns": [
+            "Data ID",
+            "Data Description",
+            "Reference Publication Link",
+            "Figure ID in Reference"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [],
+      "images": [],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-142/i_Investigation.txt",
+          "file_size": 11864,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-142.txt",
+          "file_path": "./extracted_psi/PSI-142/s_PSI-142.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 1,
+        "pdfs": 0,
+        "images": 0,
+        "metadata": 2
+      }
+    },
+    "PSI-159": {
+      "psi_id": "PSI-159",
+      "status": "[OK: TABLES + PDFS PRESENT]",
+      "spreadsheets": [
+        {
+          "file_name": "PSI-159_Experimental table_CFI-G_Inverse Flames.csv",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Experimental table_CFI-G_Inverse Flames.csv",
+          "row_count": 1015,
+          "columns": [
+            "Flame Type",
+            "Day",
+            "Fuel",
+            "Test",
+            "Xf  before test",
+            "Xf  after test",
+            "approx p (bar)",
+            "XO2",
+            "HC burnrate (mg/s)",
+            "O2 flow rate (mg/s)",
+            "TFP",
+            "Tad (K)",
+            "Zst",
+            "Hot ignition",
+            "burn time (sec)",
+            "Self -ext or flow term",
+            "Peak burner Temp (C)",
+            "Peak burner temp (K)",
+            "Color",
+            "Comments"
+          ],
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-159_Experimental table_CFI-G_Normal Flames.csv",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Experimental table_CFI-G_Normal Flames.csv",
+          "row_count": 179,
+          "columns": [
+            "Flame Type",
+            "Day",
+            "Fuel",
+            "Test",
+            "Cool flame?",
+            "XO2 before test",
+            "XO2  after test",
+            "approx p (bar)",
+            "Xf",
+            "mHC (mg/s)",
+            "TFP",
+            "Tad (K)",
+            "Zst",
+            "Hot ignition",
+            "burn time (sec)",
+            "Self-ext or flow term",
+            "Peak burner T (C )",
+            "Comments"
+          ],
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "pdfs": [
+        {
+          "file_name": "PSI-159_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Engineering Documents_ACME Engineering Implementation Rpt..pdf",
+          "file_size": 7496324,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-159_Reports_FinalRpt_ACME.CFI-G.pdf",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Reports_FinalRpt_ACME.CFI-G.pdf",
+          "file_size": 3894907,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "images": [
+        {
+          "file_name": "PSI-159_Representative Image(s)_ACME logo.png",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Representative Image(s)_ACME logo.png",
+          "file_size": 127968,
+          "source_folder": "raw_downloads"
+        },
+        {
+          "file_name": "PSI-159_Representative Image(s)_CFI-G_Observation of non-premixed quasi-steady spherical cool flames on porous burners.jpg",
+          "file_path": "./raw_downloads/PSI-159/PSI-159_Representative Image(s)_CFI-G_Observation of non-premixed quasi-steady spherical cool flames on porous burners.jpg",
+          "file_size": 9866,
+          "source_folder": "raw_downloads"
+        }
+      ],
+      "metadata_files": [
+        {
+          "file_name": "i_Investigation.txt",
+          "file_path": "./extracted_psi/PSI-159/i_Investigation.txt",
+          "file_size": 8110,
+          "source_folder": "extracted_psi"
+        },
+        {
+          "file_name": "s_PSI-159.txt",
+          "file_path": "./extracted_psi/PSI-159/s_PSI-159.txt",
+          "file_size": 56,
+          "source_folder": "extracted_psi"
+        }
+      ],
+      "counts": {
+        "spreadsheets": 2,
+        "pdfs": 2,
+        "images": 2,
+        "metadata": 2
+      }
+    }
+  },
+  "root_files": [
+    {
+      "file_name": "SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+      "file_path": "./SAME EIRD Rev 2.00 02-25-05 HIgh Q.pdf",
+      "file_size": 5378409,
+      "associated_psi_id": "PSI-102"
+    }
+  ]
+}

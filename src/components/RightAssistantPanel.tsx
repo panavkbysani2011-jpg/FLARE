@@ -27,7 +27,8 @@ interface RightAssistantPanelProps {
 
 const QUICK_PROMPTS = [
   'Explain current lunar cabin risk step-by-step',
-  'Compare selected PSI runs',
+  'Compare Apollo 1, Mir 0g fire & firefighter SCBA lessons',
+  'What does ISS Researcher Guide say on cool flames (PSI-69)?',
   'Switch to Material Safety Comparison',
 ];
 
@@ -165,7 +166,7 @@ export const RightAssistantPanel: React.FC<RightAssistantPanelProps> = ({
                       key={cite}
                       type="button"
                       onClick={() => onCitationClick(cite)}
-                      title={`Inspect ${cite} in PSI Experiment Catalog`}
+                      title={`Inspect ${cite} in Data Archive`}
                       className={`px-2 py-0.5 text-[11px] font-mono font-semibold rounded-[3px] border transition-colors cursor-pointer ${
                         isDark
                           ? 'border-[#27272A] bg-zinc-900 text-zinc-200 hover:bg-[#FAFAFA] hover:text-[#09090B]'
