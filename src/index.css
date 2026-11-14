@@ -40,3 +40,26 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.55);
 }
+
+/* Subtle breathing animation for the Landing Page microgravity spherical flame orb */
+@keyframes sphericalFlamePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+
+.spherical-flame-pulse {
+  animation: sphericalFlamePulse 7s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spherical-flame-pulse {
+    animation: none;
+  }
+}

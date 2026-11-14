@@ -11,6 +11,7 @@ import {
   LiteratureCorpusStats,
   PsiInvestigationRecord,
   PsiRun,
+  QuickScenarioId,
   ResearchersGuideTopic,
   SessionIngestionEvent,
   SidebarState,
@@ -34,7 +35,8 @@ import {
 import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
 import { LeftSidebar } from './components/LeftSidebar';
-import { HomeView, QuickScenarioId } from './components/HomeView';
+import { LandingView } from './components/LandingView';
+import { OverviewView } from './components/OverviewView';
 import { VirtualTestLab } from './components/VirtualTestLab';
 import { VisualAnalyticsStudio } from './components/VisualAnalyticsStudio';
 import { ModelConsoleView } from './components/ModelConsoleView';
@@ -57,8 +59,9 @@ export default function App() {
     }
   }, [theme]);
 
-  // 2. Active Workspace View & Collapsible Sidebar State (Home entry landing page first)
-  const [activeView, setActiveView] = useState<WorkspaceView>('home');
+  // 2. Full-Screen Landing Page vs. Inside-App Overview & Collapsible Sidebar State
+  const [showLanding, setShowLanding] = useState<boolean>(true);
+  const [activeView, setActiveView] = useState<WorkspaceView>('overview');
   const [previousView, setPreviousView] =
     useState<WorkspaceView>('investigations');
   const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
@@ -147,11 +150,11 @@ export default function App() {
             ...customEvents,
             {
               id: 'evt-archive-load',
-              sourceName: 'Verified Physical Science Informatics & ISS Reference Corpus',
+              sourceName: 'Archived Spaceflight Fire Data & ISS Guide',
               eventType: 'archive-load',
               timestampUtc: loadedAtUtc,
               runsIndexed: loaded.runs.length,
-              summary: `Loaded ${loaded.investigations.length} PSI investigations, ${loaded.totalCsvRuns.toLocaleString()} calibrated experiment rows (${loaded.runs.length.toLocaleString()} total runs), and ${loaded.literatureChunks.length.toLocaleString()} guide sections across ${loaded.manifestFiles.length} reference files.`,
+              summary: `Loaded ${loaded.investigations.length} PSI experiments, ${loaded.totalCsvRuns.toLocaleString()} test data rows (${loaded.runs.length.toLocaleString()} total test runs), and ${loaded.literatureChunks.length.toLocaleString()} handbook sections across ${loaded.manifestFiles.length} data files.`,
               targetView: 'experiment-runs',
             },
           ];
@@ -164,7 +167,7 @@ export default function App() {
         setSessionEvents((prev) => [
           {
             id: `evt-archive-err-${Date.now()}`,
-            sourceName: 'Verified Physical Science Informatics & ISS Reference Corpus',
+            sourceName: 'Archived Spaceflight Fire Data & ISS Guide',
             eventType: 'archive-error',
             timestampUtc: formatUtcTimestamp(new Date()),
             runsIndexed: 0,
@@ -561,6 +564,7 @@ export default function App() {
   };
 
   const handleStartQuickScenario = (scenarioId: QuickScenarioId) => {
+    setShowLanding(false);
     if (scenarioId === 'lunar-cabin') {
       const lunarPreset = ENVIRONMENT_PRESETS.find((p) => p.id === 'lunar')!;
       setActivePresetId(lunarPreset.id);
@@ -625,9 +629,9 @@ export default function App() {
         eventType: 'custom-upload',
         timestampUtc: formatUtcTimestamp(new Date()),
         runsIndexed: newRuns.length,
-        summary: `Validated and indexed ${newRuns.length} normalized run${
+        summary: `Checked and added ${newRuns.length} test run${
           newRuns.length === 1 ? '' : 's'
-        } into active Experiment Catalog & Comparator.`,
+        } into the Experiment Catalog & Comparator.`,
         targetRunId: newRuns[0]?.id,
         unitConversions: meta.unitConversionsApplied,
       },
@@ -636,7 +640,7 @@ export default function App() {
   };
 
   const detailBackTarget: WorkspaceView =
-    previousView === 'home' ||
+    previousView === 'overview' ||
     previousView === 'experiment-runs' ||
     previousView === 'comparator' ||
     previousView === 'import-sync' ||
@@ -649,8 +653,8 @@ export default function App() {
       : 'investigations';
 
   const detailBackLabel =
-    detailBackTarget === 'home'
-      ? 'Home'
+    detailBackTarget === 'overview'
+      ? 'Overview'
       : detailBackTarget === 'experiment-runs'
       ? 'Experiment Runs'
       : detailBackTarget === 'comparator'
@@ -690,6 +694,28 @@ export default function App() {
       ? 'bg-[#FFFFFF] text-[#09090B]'
       : 'bg-[#F3F4F6] text-[#18181B]';
 
+  if (showLanding) {
+    return (
+      <LandingView
+        theme={theme}
+        investigationCount={investigationCount}
+        totalRunsCount={totalRunsCount}
+        literatureChunksCount={literatureChunks.length}
+        missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
+        isArchiveLoading={isArchiveLoading}
+        onEnterWorkspace={() => {
+          setActiveView('overview');
+          setShowLanding(false);
+        }}
+        onSelectWorkspace={(view) => {
+          setActiveView(view);
+          setShowLanding(false);
+        }}
+        onStartQuickScenario={handleStartQuickScenario}
+      />
+    );
+  }
+
   return (
     <div
       className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-150 ${canvasClass}`}
@@ -699,6 +725,7 @@ export default function App() {
         theme={theme}
         activeView={activeView}
         onSelectView={setActiveView}
+        onReturnToLanding={() => setShowLanding(true)}
         sidebarState={sidebarState}
         onCycleSidebarState={handleCycleSidebarState}
         selectedRunsCount={selectedRuns.length}
@@ -724,8 +751,8 @@ export default function App() {
         />
 
         <main className="flex-1 px-4 sm:px-6 pb-6 pt-4 max-w-[1720px] w-full">
-          {activeView === 'home' && (
-            <HomeView
+          {activeView === 'overview' && (
+            <OverviewView
               theme={theme}
               investigationCount={investigationCount}
               totalRunsCount={totalRunsCount}

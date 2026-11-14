@@ -222,7 +222,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       .sort((a, b) => b.diff - a.diff)[0];
     if (maxResidual && maxResidual.diff > 0.35) {
       anomalies.push(
-        `Largest empirical deviation vs. correlation: ${maxResidual.run.psiId} (Δ = ${maxResidual.diff.toFixed(
+        `Largest difference between real test and model: ${maxResidual.run.psiId} (Δ = ${maxResidual.diff.toFixed(
           2
         )} mm/s).`
       );
@@ -325,7 +325,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                 Virtual Test Lab Output ({simulation.nearestRuns.length} validated neighbors)
               </option>
               <option value="material-qualification">
-                Material Qualification Dataset ({simulation.materialRankings.length} substrates)
+                Material Safety Comparison ({simulation.materialRankings.length} materials)
               </option>
               <option value="imported-custom">
                 Imported Custom CSV/JSON ({customRunsCount} runs)
@@ -761,13 +761,13 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       {/* Collapsible Active Linked Runs Strip (Brushing & Linking) */}
       <CollapsibleCard
         theme={theme}
-        title="Brushed Reference Runs & Direct Inspection"
-        subtitle="Hover any tag to highlight across active charts, or click to inspect full PSI investigation dossier"
+        title="Nearby Flight Runs & Quick Links"
+        subtitle="Hover any run to highlight it in the charts, or click to inspect full experiment details"
         defaultOpen={false}
         summaryLine={
           <span>
-            {selectedRuns.length} staged comparison runs ·{' '}
-            {simulation.nearestRuns.length} nearest empirical PSI neighbors
+            {selectedRuns.length} selected for comparison ·{' '}
+            {simulation.nearestRuns.length} nearest flight test matches
           </span>
         }
       >

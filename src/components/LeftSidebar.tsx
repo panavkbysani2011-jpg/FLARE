@@ -23,6 +23,7 @@ interface LeftSidebarProps {
   theme: ThemeMode;
   activeView: WorkspaceView;
   onSelectView: (view: WorkspaceView) => void;
+  onReturnToLanding: () => void;
   sidebarState: SidebarState;
   onCycleSidebarState: () => void;
   selectedRunsCount: number;
@@ -47,6 +48,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   theme,
   activeView,
   onSelectView,
+  onReturnToLanding,
   sidebarState,
   onCycleSidebarState,
   selectedRunsCount,
@@ -117,10 +119,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       badge?: string;
     }> = [
       {
-        id: 'home',
-        label: 'Home',
+        id: 'overview',
+        label: 'Overview',
         icon: Home,
-        isActive: activeView === 'home',
+        isActive: activeView === 'overview',
       },
       {
         id: 'virtual-lab',
@@ -279,9 +281,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <div className="flex items-center justify-between gap-2 px-0.5">
           <button
             type="button"
-            onClick={() => onSelectView('home')}
+            onClick={onReturnToLanding}
             className="flex items-center gap-2 min-w-0 text-left cursor-pointer hover:opacity-80 transition-opacity"
-            title="Return to Home"
+            title="Back to Landing Page"
           >
             <div
               className={`w-6 h-6 rounded-md flex items-center justify-center border shrink-0 shadow-xs ${
@@ -369,19 +371,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
         {/* Hierarchical Expandable Navigation Tree */}
         <nav className="space-y-1 pt-1" aria-label="Workspace Navigation Tree">
-          {/* 0. Home Landing Page */}
+          {/* 0. Workspace Overview Page */}
           <button
             type="button"
-            onClick={() => onSelectView('home')}
+            onClick={() => onSelectView('overview')}
             className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
-              activeView === 'home'
+              activeView === 'overview'
                 ? activeItemClass + ' shadow-xs'
                 : inactiveItemClass
             }`}
           >
             <span className="flex items-center gap-2.5 truncate">
               <Home className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">Home</span>
+              <span className="truncate">Overview</span>
             </span>
           </button>
 

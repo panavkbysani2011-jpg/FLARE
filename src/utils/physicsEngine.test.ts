@@ -157,7 +157,7 @@ test('validateAndNormalizeDataset accepts valid combustion CSV and converts kPa 
 test('validateAndNormalizeDataset rejects unrelated non-combustion CSV files', () => {
   const res = validateAndNormalizeDataset(SAMPLE_UNRELATED_CSV, 'sales_q4.csv');
   assert.equal(res.valid, false);
-  assert.ok(res.reason?.includes('Domain Gatekeeper Rejected'));
+  assert.ok(res.reason?.includes('File Not Accepted'));
 });
 
 test('VIZ_TECHNIQUE_REGISTRY spans all 5 analytical families and evaluates compatibility dynamically', () => {
@@ -687,7 +687,7 @@ test('zero hardcoded mock runs, simulated syncs, or fake UTC timestamps remain i
   assert.equal(emptySim.modelConfidence?.validatedRunCount, 0);
 });
 
-test('home landing view, blank model console composer, unique bar labels, and zero internal path leaks hold', () => {
+test('full-screen landing view, inside-app overview guide, sidebar logo return, blank console composer, unique bar labels, and zero leaks hold', () => {
   const rootDir = path.resolve(
     import.meta.dirname ??
       path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
@@ -699,19 +699,37 @@ test('home landing view, blank model console composer, unique bar labels, and ze
 
   const appSrc = readFile('src', 'App.tsx');
   assert.ok(
-    appSrc.includes("useState<WorkspaceView>('home')"),
-    'App must open on Home landing view by default'
+    appSrc.includes('useState<boolean>(true)') && appSrc.includes('<LandingView'),
+    'App must open on dedicated full-screen LandingView first'
+  );
+  assert.ok(
+    appSrc.includes("useState<WorkspaceView>('overview')"),
+    'App main shell must default to inside-app Overview page'
+  );
+  assert.ok(
+    appSrc.includes('onReturnToLanding={() => setShowLanding(true)}'),
+    'LeftSidebar must receive onReturnToLanding callback to return to LandingView'
   );
   assert.ok(
     appSrc.includes('useState<AssistantMessage[]>([])'),
     'Model Console must initialize with empty messages array'
   );
 
-  const homeSrc = readFile('src', 'components', 'HomeView.tsx');
-  assert.ok(homeSrc.includes('18') && homeSrc.includes('Orbital Investigations'), 'HomeView must render 18 Investigations stat');
-  assert.ok(homeSrc.includes('1616') && homeSrc.includes('Calibrated Runs'), 'HomeView must render 1616 Calibrated Runs stat');
-  assert.ok(homeSrc.includes('979') && homeSrc.includes('Indexed Guide Sections'), 'HomeView must render 979 Indexed Guide Sections stat');
-  assert.ok(homeSrc.includes('missionCasesCount') && homeSrc.includes('Historical &amp; Earth Spin-Off Cases'), 'HomeView must render 8 Cases stat');
+  const landingSrc = readFile('src', 'components', 'LandingView.tsx');
+  assert.ok(landingSrc.includes('18') && landingSrc.includes('Space Flight Experiments'), 'LandingView must render 18 Space Flight Experiments stat');
+  assert.ok(landingSrc.includes('1616') && landingSrc.includes('Calibrated Test Runs'), 'LandingView must render 1616 Calibrated Test Runs stat');
+  assert.ok(landingSrc.includes('979') && landingSrc.includes('Guide &amp; Report Sections'), 'LandingView must render 979 Guide & Report Sections stat');
+  assert.ok(landingSrc.includes('missionCasesCount') && landingSrc.includes('Fire History &amp; Spin-Off Cases'), 'LandingView must render 8 Fire History & Spin-Off Cases stat');
+  assert.ok(landingSrc.includes('Open PSI Data Manager') && landingSrc.includes('Try Lunar Cabin Scenario'), 'LandingView must include hero CTAs');
+  assert.ok(landingSrc.includes('spherical-flame-pulse') && landingSrc.includes('<svg'), 'LandingView hero must render microgravity spherical flame SVG');
+
+  const overviewSrc = readFile('src', 'components', 'OverviewView.tsx');
+  assert.ok(overviewSrc.includes('How to Use This Platform'), 'OverviewView must include 3-step guide section');
+  assert.ok(overviewSrc.includes('What Is Inside Each Section'), 'OverviewView must include 6 section cards');
+  assert.ok(overviewSrc.includes('Quick-Start Examples'), 'OverviewView must include 3 quick-start cards');
+
+  const sidebarSrc = readFile('src', 'components', 'LeftSidebar.tsx');
+  assert.ok(sidebarSrc.includes('onClick={onReturnToLanding}') && sidebarSrc.includes('>Overview<'), 'LeftSidebar must rename top item to Overview and return to LandingView on logo click');
 
   const consoleSrc = readFile('src', 'components', 'ModelConsoleView.tsx');
   const formIdx = consoleSrc.indexOf('<form onSubmit={handleSubmit}');
@@ -725,11 +743,12 @@ test('home landing view, blank model console composer, unique bar labels, and ze
     'Horizontal Ranked Bar chart must label Y-axis ticks with both PSI ID and runCode'
   );
 
-  // Ensure components and engine expose zero internal filesystem paths or workspace branding
+  // Ensure components and engine expose zero internal filesystem paths, zero rounded-full pills, and zero agency/workspace leaks
   const componentsDir = path.join(rootDir, 'src', 'components');
   for (const name of fs.readdirSync(componentsDir)) {
     if (!name.endsWith('.tsx')) continue;
     const text = readFile('src', 'components', name);
+    assert.ok(!/rounded-full/.test(text), `Forbidden rounded-full class found in ${name}`);
     assert.ok(!/public\/data\/nasa-space-apps/i.test(text), `Internal public path leaked in ${name}`);
     assert.ok(!/\bnasa-space-apps\b/i.test(text), `Internal folder slug leaked in ${name}`);
     assert.ok(!/Antigravity/i.test(text), `Workspace tool name leaked in ${name}`);

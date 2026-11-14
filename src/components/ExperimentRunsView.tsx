@@ -150,14 +150,14 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
           Experiment Runs Catalog ({runs.length.toLocaleString()})
         </h1>
         <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-          Calibrated multi-investigation run telemetry
+          Flight test measurements across all 18 experiments
         </span>
       </div>
 
       {/* Search, Filter & Comparison Selection Bar */}
       <CollapsibleCard
         theme={theme}
-        title="Granular Experiment Run Catalog"
+        title="Search All Experiment Runs"
         subtitle={`${filteredAndSortedRuns.length.toLocaleString()} matching runs`}
         summaryLine={`${filteredAndSortedRuns.length.toLocaleString()} matching runs · Facility: ${facilityFilter} · Regime: ${outcomeFilter} · ${selectedRunIds.length}/4 Selected`}
         rightActions={
@@ -185,7 +185,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
       >
         <div className="space-y-3">
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Search individual calibrated runs, sort telemetry parameters, and check up to 4 runs for side-by-side comparison.
+            Search individual test runs, sort fire measurements, and check up to 4 runs to compare side by side.
           </p>
 
           <div className="flex flex-wrap items-center gap-2">

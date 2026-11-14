@@ -55,44 +55,44 @@ const MODE_DEFINITIONS: Array<{
 }> = [
   {
     id: 'decoder',
-    label: 'Telemetry & Chart Decoder',
+    label: 'Explain Chart & Sensors',
     shortDesc:
-      'Decode sensor trajectories, cool-flame plateaus, or Visual Analytics Studio plots in plain engineering terms.',
+      'Explain what sensor curves, cool-flame zones, or Visual Analytics Studio charts mean in plain English.',
     starters: [
-      'Decode current 0–120s thermal, IR flux, and optical visibility telemetry',
+      'Explain the current 0–120s temperature, heat glow, and smoke visibility readings',
       'Explain why 550K–800K cool flames evade optical cameras under low airflow',
       'Explain low-gravity forced-ventilation peak between 0.05 and 0.22 m/s',
     ],
   },
   {
     id: 'what-if',
-    label: 'Hypothetical "What-If" Sweep',
+    label: '"What-If" Scenarios',
     shortDesc:
-      'Run parametric sensitivity sweeps across O2 %, airflow, thickness, and materials with instant chamber loading.',
+      'Test how changing O2 %, airflow, thickness, or materials changes fire speed and risk, with one-click lab loading.',
     starters: [
       'What if cabin O2 rises to 40% under Lunar 0.166g with PMMA at 2.0 mm?',
       'What if ventilation drops to 0.04 m/s quiescent flow vs 0.14 m/s?',
-      'Run sweep comparing Cotton-Fiberglass vs Nomex and increased 4.0 mm thickness',
+      'Compare Cotton-Fiberglass vs Nomex and increased 4.0 mm thickness',
     ],
   },
   {
     id: 'literature',
-    label: 'Literature & Archive Synthesis',
+    label: 'Guide & Past Missions',
     shortDesc:
-      'Cross-reference SAFFIRE-II reports, the 50-page ISS Researcher\'s Guide, and historical flight fire briefs.',
+      'Search SAFFIRE-II test reports, the 50-page ISS Researcher\'s Guide, and historical flight fire briefs.',
     starters: [
-      'Synthesize SAFFIRE-II (PSI-99) and BASS-II (PSI-25) microgravity flame spread bounds',
+      'Compare SAFFIRE-II (PSI-99) and BASS-II (PSI-25) space flame spread limits',
       'Summarize ISS Researcher\'s Guide cool-flame discovery and FLEX droplet findings',
       'Review Apollo 1, Apollo 13 PTFE wire arc, and Mir oxygen candle fire lessons',
     ],
   },
   {
     id: 'risk-audit',
-    label: 'Pre-Test Risk Audit',
+    label: 'Pre-Test Safety Check',
     shortDesc:
-      'Audit configured parameters against spacecraft fire safety gates, quenching thickness bounds, and model confidence.',
+      'Check your current settings against spacecraft fire safety limits, quenching thickness rules, and model confidence.',
     starters: [
-      'Run full 4-gate pre-test spacecraft fire safety risk audit on current setup',
+      'Run full 4-gate pre-test spacecraft fire safety check on current setup',
       'Check conductive quenching thickness margin and physical test necessity',
       'Recommend safest barrier thickness & material mitigation under current O2',
     ],
@@ -207,8 +207,8 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             />
             <span>
               {remoteConfigured
-                ? `Live FastAPI Endpoint (${apiConfig.baseUrl})`
-                : 'Local Physics + Archive Engine'}
+                ? `Connected Server (${apiConfig.baseUrl})`
+                : 'Local Fire Physics & Flight Data'}
             </span>
           </div>
 
@@ -227,9 +227,9 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
       <CollapsibleCard
         theme={theme}
         defaultOpen={Boolean(activeChartContext)}
-        title="Active Test Context"
+        title="Current Test Settings"
         subtitle={`${virtualConfig.material} · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${virtualConfig.Flow_ms.toFixed(2)} m/s`}
-        summaryLine={`${virtualConfig.material} (${virtualConfig.Thickness_mm.toFixed(1)} mm) · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${virtualConfig.P_psi.toFixed(1)} psi · ${virtualConfig.Flow_ms.toFixed(2)} m/s · ${totalRunsCount.toLocaleString()} runs indexed`}
+        summaryLine={`${virtualConfig.material} (${virtualConfig.Thickness_mm.toFixed(1)} mm) · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${virtualConfig.P_psi.toFixed(1)} psi · ${virtualConfig.Flow_ms.toFixed(2)} m/s · ${totalRunsCount.toLocaleString()} test runs loaded`}
         rightActions={
           <button
             type="button"
@@ -237,7 +237,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${inactiveMonochrome}`}
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset Thread</span>
+            <span>Clear Chat</span>
           </button>
         }
       >
@@ -245,7 +245,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <div className={`p-3 rounded-[5px] border ${subSurface}`}>
               <div className="text-[11px] font-sans text-zinc-500">
-                Chamber State
+                Test Cabin Settings
               </div>
               <div className="mt-1 font-mono font-semibold tabular-nums">
                 {virtualConfig.O2_pct.toFixed(1)}% O2 · {virtualConfig.P_psi.toFixed(1)} psi · {virtualConfig.Flow_ms.toFixed(2)} m/s
@@ -274,7 +274,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
 
             <div className={`p-3 rounded-[5px] border ${subSurface}`}>
               <div className="text-[11px] font-sans text-zinc-500">
-                Confidence &amp; Physical Test
+                Confidence &amp; Physical Testing
               </div>
               <div className="mt-1 font-sans font-semibold">
                 <span className="font-mono tabular-nums">
@@ -283,7 +283,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                 Confidence
               </div>
               <div className="mt-0.5 font-sans text-[11px] text-zinc-500">
-                {simulation.modelConfidence?.validatedRunCount ?? simulation.nearestRuns.length} nearby anchors · Physical test:{' '}
+                {simulation.modelConfidence?.validatedRunCount ?? simulation.nearestRuns.length} nearby flight runs · Physical test:{' '}
                 <span className="font-semibold text-[#18181B] dark:text-[#FAFAFA]">
                   {simulation.modelConfidence?.physicalTestingRecommendation ?? 'Recommended'}
                 </span>
@@ -292,14 +292,14 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
 
             <div className={`p-3 rounded-[5px] border ${subSurface}`}>
               <div className="text-[11px] font-sans text-zinc-500">
-                Grounded Archive Corpus
+                Archived Flight Data
               </div>
               <div className="mt-1 font-sans font-semibold">
-                <span className="font-mono tabular-nums">{investigationCount}</span> PSI ·{' '}
+                <span className="font-mono tabular-nums">{investigationCount}</span> Experiments ·{' '}
                 <span className="font-mono tabular-nums">{totalRunsCount.toLocaleString()}</span> Runs
               </div>
               <div className="mt-0.5 font-sans text-[11px] text-zinc-500">
-                <span className="font-mono tabular-nums">{literatureChunksCount.toLocaleString()}</span> indexed text chunks
+                <span className="font-mono tabular-nums">{literatureChunksCount.toLocaleString()}</span> guide &amp; report sections
               </div>
             </div>
           </div>
@@ -310,7 +310,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             >
               <div className="space-y-1">
                 <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-[#10B981]">
-                  ● Active Chart Context Forwarded from Visual Analytics Studio
+                  ● Chart Loaded from Visual Analytics Studio
                 </div>
                 <div className="text-xs font-sans font-medium">
                   {activeChartContext.techniqueName} · {activeChartContext.datasetLabel} ({activeChartContext.runCount.toLocaleString()} points)
@@ -397,7 +397,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                 }
               }}
               placeholder={`Ask in ${activeModeMeta.label} mode (e.g., "What if O2 is 38% at 0.04 m/s?" or "PSI-99")... Press Enter to submit, Shift+Enter for new line`}
-              aria-label="Model Console Inference Input"
+              aria-label="Model Console Question Input"
               className={`flex-1 min-h-[72px] px-4 py-3 text-xs sm:text-sm font-sans rounded-xl border outline-none resize-y ${
                 isDark
                   ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] placeholder:text-zinc-500 focus:border-zinc-500'
@@ -415,7 +415,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
           </div>
         </form>
 
-        {/* Inference Output Stream (blank until first query or running inference) */}
+        {/* Output Stream (blank until first query or running calculation) */}
         {(messages.length > 0 || isRunningInference) && (
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1 pt-3 border-t border-[#E4E4E7] dark:border-[#27272A]">
             {messages.map((msg) => {
@@ -431,7 +431,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between text-[11px] font-sans text-zinc-500 mb-1">
-                    <span>OPERATOR QUERY · {msg.mode?.toUpperCase() ?? activeMode.toUpperCase()}</span>
+                    <span>YOUR QUESTION · {msg.mode?.toUpperCase() ?? activeMode.toUpperCase()}</span>
                     <span className={/\d/.test(msg.timestamp) ? 'font-mono tabular-nums' : 'font-sans'}>
                       {msg.timestamp}
                     </span>
@@ -451,7 +451,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                 <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E4E4E7] dark:border-[#27272A]">
                   <div className="flex items-center gap-2 text-xs font-display font-semibold">
                     <Terminal className="w-3.5 h-3.5 text-zinc-500" />
-                    <span>Combustion Model Inference Output</span>
+                    <span>Model Console Answer</span>
                     {msg.mode && (
                       <span className="inline-flex items-center gap-1.5 font-sans text-[11px] font-normal text-zinc-500">
                         <span className="w-1.5 h-1.5 rounded-[2px] bg-zinc-400 dark:bg-zinc-500" />

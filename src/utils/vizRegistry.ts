@@ -211,27 +211,27 @@ export const STUDIO_DATASET_SOURCES: Array<{
   {
     id: 'full-archive',
     label: 'Full PSI Archive',
-    description: 'All calibrated runs across 18 PSI investigations',
+    description: 'All flight test runs across 18 PSI experiments',
   },
   {
     id: 'selected-comparison',
     label: 'Selected Comparison Runs',
-    description: 'Active runs staged for side-by-side Run Comparator evaluation',
+    description: 'Runs picked for side-by-side Run Comparator view',
   },
   {
     id: 'virtual-lab-output',
     label: 'Virtual Test Lab Output',
-    description: 'Predicted chamber run + nearest validated archive neighbors + 120s sensor stream',
+    description: 'Current virtual test result + nearest real flight runs + 120s sensor curve',
   },
   {
     id: 'material-qualification',
-    label: 'Material Qualification Dataset',
-    description: 'Standardized candidate substrates (PMMA, SIBAL, Cotton-Fiberglass, PTFE, Nomex)',
+    label: 'Material Safety Comparison',
+    description: '5 common spacecraft materials (PMMA, SIBAL, Cotton-Fiberglass, PTFE, Nomex)',
   },
   {
     id: 'imported-custom',
     label: 'Imported Custom CSV/JSON',
-    description: 'User-uploaded experimental runs normalized to PSI telemetry units',
+    description: 'Your uploaded test rows formatted into matching PSI units',
   },
 ];
 
@@ -1106,51 +1106,51 @@ export function getTechniqueHeadline(
     case 'grouped-bar':
       return `Grouped Bar Chart${axisSuffix}: Comparing ${activeRuns.length} records against virtual state (${simulation.flameSpread_mms.toFixed(2)} mm/s at ${sliders.O2_pct.toFixed(1)}% O₂).`;
     case 'stacked-bar':
-      return `Stacked Bar Chart: Composite hazard index across 5 candidate substrates under ${sliders.O2_pct.toFixed(1)}% O₂ and ${sliders.P_psi.toFixed(1)} psi.`;
+      return `Stacked Bar Chart: Combined hazard score across 5 spacecraft materials at ${sliders.O2_pct.toFixed(1)}% O₂ and ${sliders.P_psi.toFixed(1)} psi.`;
     case 'horizontal-ranked-bar':
       return maxRun
-        ? `Horizontal Ranked Bar Chart${axisSuffix}: ${maxRun.psiId} peaks at ${maxRun.flameSpread_mms.toFixed(2)} mm/s vs. active virtual test (${simulation.flameSpread_mms.toFixed(2)} mm/s).`
-        : `Horizontal Ranked Bar Chart: Active flame spread is ${simulation.flameSpread_mms.toFixed(2)} mm/s against 0.48 mm/s quench threshold.`;
+        ? `Horizontal Ranked Bar Chart${axisSuffix}: ${maxRun.psiId} peaks at ${maxRun.flameSpread_mms.toFixed(2)} mm/s vs. your virtual test (${simulation.flameSpread_mms.toFixed(2)} mm/s).`
+        : `Horizontal Ranked Bar Chart: Current flame speed is ${simulation.flameSpread_mms.toFixed(2)} mm/s against 0.48 mm/s self-extinguishing limit.`;
     case 'lollipop-dot':
-      return `Cleveland Lollipop Plot${axisSuffix}: Signed deltas anchored to active test state (${simulation.flameSpread_mms.toFixed(2)} mm/s; dataset mean ${avgSpread.toFixed(2)} mm/s).`;
+      return `Cleveland Lollipop Plot${axisSuffix}: Difference compared to current test speed (${simulation.flameSpread_mms.toFixed(2)} mm/s; dataset average ${avgSpread.toFixed(2)} mm/s).`;
     case 'histogram':
-      return `Telemetry Histogram${axisSuffix}: Binned frequency distribution over n = ${activeRuns.length} samples relative to current operating point.`;
+      return `Distribution Histogram${axisSuffix}: How values cluster across n = ${activeRuns.length} runs relative to current test settings.`;
     case 'frequency-distribution':
-      return `Frequency Distribution Bars: Categorical distribution across n = ${activeRuns.length} records grouped by ${axes?.colorByLabel ?? 'Safety Regime'}.`;
+      return `Frequency Distribution Bars: Count of runs in each category across n = ${activeRuns.length} runs grouped by ${axes?.colorByLabel ?? 'Fire Safety Result'}.`;
     case 'range-interval-bar':
-      return `Confidence Interval Range Plot: Active state carries ±${simulation.confidenceInterval_mms.toFixed(2)} mm/s 95% confidence bounds at ${simulation.peakTemp_K} K peak temperature.`;
+      return `Confidence Interval Range Plot: Current test carries ±${simulation.confidenceInterval_mms.toFixed(2)} mm/s uncertainty around ${simulation.peakTemp_K} K peak temperature.`;
     case 'box-quartile':
-      return `Box & Quartile Distribution: Five-number dispersion summary (Min, Q1, Median, Q3, Max) over n = ${activeRuns.length} records.`;
+      return `Box & Quartile Distribution: Range summary (Min, Q1, Median, Q3, Max) over n = ${activeRuns.length} runs.`;
     case 'density-strip':
-      return `Bivariate Density Strip Plot${axisSuffix}: Displays individual sample dispersion per category across n = ${activeRuns.length} records.`;
+      return `Bivariate Density Strip Plot${axisSuffix}: Individual spread of points per category across n = ${activeRuns.length} runs.`;
     case 'scatter-plot':
-      return `Multi-Axis Scatter Plot${axisSuffix}: Exploring n = ${activeRuns.length} records alongside current virtual state (${simulation.flameSpread_mms.toFixed(2)} mm/s).`;
+      return `Multi-Axis Scatter Plot${axisSuffix}: Comparing n = ${activeRuns.length} test runs alongside your current virtual test (${simulation.flameSpread_mms.toFixed(2)} mm/s).`;
     case 'bubble-plot':
-      return `Bubble Multi-Metric Plot${axisSuffix}: Projects mapped X/Y dimensions, radiative flux magnitude (area), and category across n = ${activeRuns.length} records.`;
+      return `Bubble Multi-Metric Plot${axisSuffix}: Maps X and Y columns, heat glow size (bubble area), and group across n = ${activeRuns.length} runs.`;
     case 'correlation-matrix':
-      return `Correlation Matrix: Symmetric pairwise Pearson r grid across n = ${activeRuns.length} active records.`;
+      return `Correlation Matrix: Shows which measurements rise and fall together across n = ${activeRuns.length} runs.`;
     case 'heatmap-matrix':
-      return `Normalized Matrix Heatmap: Compares normalized telemetry columns across ${activeRuns.length} runs and active virtual output.`;
+      return `Matrix Heatmap: Color grid comparing columns across ${activeRuns.length} runs and current virtual test.`;
     case 'residual-deviation':
-      return `Residual Spread Deviation Plot${axisSuffix}: Evaluates signed error between empirical archive runs and predicted combustion rates.`;
+      return `Prediction Error Plot${axisSuffix}: Shows difference between real spaceflight test runs and model predictions.`;
     case 'sensor-timeline':
-      return `Dual-Axis Sensor Line Chart: Synchronized 0–120s thermal (K), IR flux (W/m²), and visible emission (%) curves across cool-flame regimes.`;
+      return `Dual-Axis Sensor Line Chart: Synchronized 0–120s temperature (K), heat glow (W/m²), and visibility (%) curves.`;
     case 'multi-series-line':
-      return `Multi-Series Line Chart: Overlays 0–120s modeled thermal trajectories across ${activeRuns.length} active records.`;
+      return `Multi-Series Line Chart: Overlays 0–120s burn temperature curves across ${activeRuns.length} selected runs.`;
     case 'area-chart':
-      return `Area Progression Chart: Tracks cumulative 0–120s radiometer flux and CO emission progression.`;
+      return `Area Progression Chart: Tracks cumulative 0–120s heat radiation and CO smoke emission.`;
     case 'stacked-area':
-      return `Stacked Area Chart: Relative proportions of thermal, radiative, and CO emission load over 0–120s.`;
+      return `Stacked Area Chart: Relative share of heat, radiation, and CO gas load over 0–120s.`;
     case 'step-chart':
-      return `Step Transition Chart: Discrete regime transitions (Ignition → Hot Flame → 550K–800K Cool-Flame NTC → Quench).`;
+      return `Step Transition Chart: Stage shifts (Ignition → Hot Flame → 550K–800K Cool Flame → Quench).`;
     case 'timeline-progression':
-      return `Forecast Progression Chart: 10s growth projection yields ${simulation.forecast10s.radius_mm.toFixed(1)} mm radius and +${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin rise.`;
+      return `Forecast Progression Chart: 10s growth forecast reaches ${simulation.forecast10s.radius_mm.toFixed(1)} mm radius and +${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin pressure.`;
     case 'polar-radial':
-      return `Polar Radial Profile: Multi-axis normalized envelope (note quadratic area caveat; prefer Parallel Coordinates for quantitative reading).`;
+      return `Polar Radial Profile: Scaled radial comparison (note radial area distorts proportions; Parallel Coordinates gives stricter reading).`;
     case 'multi-variable':
-      return `Parallel Coordinates: Normalized multi-dimensional overlay across ${activeRuns.length} active records and virtual test state.`;
+      return `Parallel Coordinates: Multi-column overlay across ${activeRuns.length} test runs and current virtual setup.`;
     case 'material-safety':
-      return `Bullet Target Chart: Evaluates 5 spacecraft substrates against current LOI, smoke, toxic yield, and cool-flame thresholds.`;
+      return `Bullet Target Chart: Checks 5 spacecraft materials against oxygen, smoke, toxic gas, and cool-flame limits.`;
     default:
       return `Active model predicts ${simulation.flameSpread_mms.toFixed(2)} mm/s flame spread (${simulation.hazardStatus}).`;
   }

@@ -786,7 +786,7 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
             )}
           </div>
           <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-            Click any cell to sample parameters · Hover squares for PSI run telemetry
+            Click any square to load settings · Hover squares for flight test measurements
           </span>
         </div>
 
@@ -2745,10 +2745,10 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
       <div className="space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-[#E4E4E7] dark:border-[#27272A] text-xs">
           <span className="font-sans text-zinc-500">
-            Observed minus Physics-Model Spread Error (mm/s) across {xMeta.label} ({residualPts.length} points)
+            Real Test minus Model Speed Difference (mm/s) across {xMeta.label} ({residualPts.length} points)
           </span>
           <span className="font-sans text-[11px] text-[#10B981] font-semibold">
-            Zero Line = Exact Calibration Fit
+            Zero Line = Model Matches Test
           </span>
         </div>
         <div className="h-[310px] w-full">

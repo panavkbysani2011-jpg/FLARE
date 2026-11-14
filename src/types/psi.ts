@@ -2,8 +2,10 @@ export type ThemeMode = 'normal' | 'light' | 'dark';
 
 export type SidebarState = 'expanded' | 'compact' | 'hidden';
 
+export type QuickScenarioId = 'lunar-cabin' | 'cool-flame' | 'apollo-mir';
+
 export type WorkspaceView =
-  | 'home'
+  | 'overview'
   | 'virtual-lab'
   | 'comparator'
   | 'visual-studio'

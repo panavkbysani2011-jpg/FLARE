@@ -110,13 +110,13 @@ export function validateAndNormalizeDataset(
     )
   );
 
-  // Domain Relevance Gatekeeper: require at least 2 combustion/spacecraft domain headers
+  // Check that column names match spacecraft fire-safety or cabin air data
   if (detectedKeywords.length < 2) {
     return {
       valid: false,
-      reason: `Domain Gatekeeper Rejected "${fileName}": Found headers [${Object.keys(rows[0]).join(
+      reason: `File Not Accepted "${fileName}": Found columns [${Object.keys(rows[0]).join(
         ', '
-      )}], which do not match microgravity combustion, fire safety, or cabin atmosphere telemetry (expected fields such as oxygen/o2, pressure/psi/kpa, airflow/velocity, fuel/material, temperature, or gravity).`,
+      )}], which do not look like spaceflight fire-test or cabin air data (expected columns such as oxygen/o2, pressure/psi/kpa, airflow/velocity, fuel/material, temperature, or gravity).`,
       detectedKeywords,
       unitConversionsApplied: [],
       parsedRuns: [],
@@ -286,7 +286,7 @@ export function validateAndNormalizeDataset(
       outcome,
       notes:
         sanitizeVisiblePsiText(String(getVal(['notes', 'comment']) || '')) ||
-        'Normalized and imported via Domain Gatekeeper.',
+        'Checked units and imported from user CSV/JSON upload.',
       isCustom: true,
     };
   });

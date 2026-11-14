@@ -98,8 +98,8 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
       ok: true,
       mode: saved.baseUrl ? 'remote' : 'offline-fallback',
       message: saved.baseUrl
-        ? `Saved runtime FastAPI endpoint: ${saved.baseUrl} (automatic offline fallback remains active if unreachable).`
-        : 'Cleared remote endpoint. Operating via Local Physics + Archive Inference Engine.',
+        ? `Saved server address: ${saved.baseUrl} (automatic local mode remains active if unreachable).`
+        : 'Cleared remote server address. Running on Local Fire Physics & Flight Data.',
     });
   };
 
@@ -127,7 +127,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
       ok: true,
       mode: 'offline-fallback',
       message:
-        'Switched cleanly to Local Physics + Archive Inference Engine (zero external network dependency).',
+        'Switched cleanly to Local Fire Physics & Flight Data (no external server needed).',
     });
   };
 
@@ -171,7 +171,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
         unitConversionsApplied: validationResult.unitConversionsApplied,
       });
       setImportedCommitMessage(
-        `Added ${validationResult.parsedRuns.length} normalized runs to Experiment Catalog & Simulator.`
+        `Added ${validationResult.parsedRuns.length} formatted test runs to Experiment Catalog & Virtual Test Lab.`
       );
     }
   };
@@ -394,7 +394,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             <Upload className="w-4 h-4" />
           </div>
           <span className="text-xs font-sans font-semibold">
-            Drop .CSV or .JSON combustion telemetry here, or click to browse
+            Drop .CSV or .JSON fire-test data here, or click to browse
           </span>
           <span className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 mt-1">
             Supports raw PSI spreadsheets, thermocouple logs, and mixed-unit
@@ -477,7 +477,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
               const res = processCustomDatasetUpload(e.target.value, fileName);
               setValidationResult(res);
             }}
-            placeholder="Paste CSV or JSON combustion telemetry here..."
+            placeholder="Paste CSV or JSON fire-test data here..."
             className={`w-full p-2.5 text-xs font-mono rounded-[4px] border focus:outline-none ${
               isDark
                 ? 'bg-[#09090B] border-[#27272A] text-zinc-200 focus:border-zinc-500'
@@ -508,7 +508,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
               <div className="p-3.5 rounded-[4px] border border-[#EF4444]/40 bg-[#EF4444]/10 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-sans font-semibold text-[#EF4444]">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Domain Relevance Gatekeeper Blocked Import</span>
+                  <span>File Not Accepted — Not Combustion Data</span>
                 </div>
                 <p className="font-sans text-zinc-700 dark:text-zinc-200 leading-relaxed">
                   {validationResult.reason}
@@ -521,8 +521,8 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                     <div className="flex items-center gap-2 font-sans font-semibold text-[#10B981]">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>
-                        Domain Verified ({validationResult.parsedRuns.length}{' '}
-                        Runs Normalized)
+                        File Accepted ({validationResult.parsedRuns.length}{' '}
+                        Test Runs Ready)
                       </span>
                     </div>
                     <span className="font-sans text-[11px] text-zinc-600 dark:text-zinc-300">
@@ -617,7 +617,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                         : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
                     }`}
                   >
-                    Add Normalized Runs to Catalog
+                    Add Test Runs to Catalog
                   </button>
                 </div>
               </div>
@@ -627,15 +627,15 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
         </div>
       </CollapsibleCard>
 
-      {/* Right 5 Columns: Live Public Archive Manifest & Session Ingestion Log */}
+      {/* Right 5 Columns: Loaded Data Files & Session History */}
       <CollapsibleCard
         theme={theme}
-        title="Data Manifest & Ingestion Status"
-        subtitle="Verified Spaceflight Dataset"
+        title="Loaded Data Files & Session Status"
+        subtitle="Included Spaceflight Fire Dataset"
         summaryLine={
           isArchiveLoading
-            ? 'Loading verified PSI dataset assets...'
-            : `${manifestFiles.length} archive datasets loaded · ${sessionEvents.length} session ingestion events`
+            ? 'Loading PSI dataset files...'
+            : `${manifestFiles.length} data files loaded · ${sessionEvents.length} session updates`
         }
         className="xl:col-span-5"
       >
@@ -644,14 +644,14 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             <span className="inline-flex items-center gap-2">
               <Database className="w-3.5 h-3.5" />
               <span>
-                Source: Verified Physical Science Informatics &amp; ISS Reference Corpus
+                Source: Spaceflight Fire Test Data &amp; ISS Safety Guide
               </span>
             </span>
           </div>
 
           {isArchiveLoading ? (
             <div className={`p-3.5 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}>
-              Fetching and indexing verified PSI &amp; ISS reference datasets...
+              Loading included PSI &amp; ISS dataset files...
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -692,12 +692,12 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             }`}
           >
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              Session Ingestion Log
+              Session History
             </div>
 
             {sessionEvents.length === 0 ? (
               <div className={`p-3 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}>
-                No archive loads or custom CSV/JSON uploads recorded in this session yet.
+                No dataset loads or custom CSV/JSON uploads recorded in this session yet.
               </div>
             ) : (
               <div className="space-y-2.5">

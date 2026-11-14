@@ -14,7 +14,7 @@ interface HeaderBarProps {
 }
 
 const VIEW_BREADCRUMBS: Record<WorkspaceView, { section: string; subPage?: string }> = {
-  home: { section: 'Home' },
+  overview: { section: 'Overview' },
   'virtual-lab': { section: 'Virtual Test Lab' },
   comparator: { section: 'Virtual Test Lab', subPage: 'Run Comparator' },
   'visual-studio': { section: 'Visual Analytics Studio' },

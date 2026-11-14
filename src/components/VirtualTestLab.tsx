@@ -153,13 +153,13 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
   const confidence = simulation.modelConfidence ?? {
     confidencePct: 91.4,
     validatedRunCount: simulation.nearestRuns.length,
-    nearestDeltaSummary: 'Calibrated directly against PSI combustion archive.',
+    nearestDeltaSummary: 'Matched directly against archived spaceflight fire runs.',
     physicalTestingRecommendation:
       simulation.hazardStatus === 'Cool Flame Caution'
         ? ('Recommended' as const)
         : ('Avoidable' as const),
     rationale:
-      'Model prediction combines microgravity ventilation scaling with nearest calibrated flight-run anchors.',
+      'Prediction combines microgravity airflow scaling with nearest real spaceflight test runs.',
   };
 
   const sortedMaterials = useMemo(() => {
@@ -599,7 +599,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 </span>
               </div>
               <div className="mt-1 font-sans text-[11px] text-zinc-500">
-                Substrate: {activeMaterialMeta.label}
+                Material: {activeMaterialMeta.label}
               </div>
             </div>
 
@@ -817,11 +817,11 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 δ_safe = 2.0 · (V_chamber / 0.45)^(1/0.58) · · · T_cool ∈ [550 K, 800 K] when Flow ≤ 0.09 m/s &amp; g ≤ 0.25g
               </div>
               <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Target self-extinguishing speed &lt; 0.48 mm/s requires substrate thickness ≥{' '}
+                Self-extinguishing target (&lt; 0.48 mm/s) requires material thickness ≥{' '}
                 <strong className="font-mono tabular-nums">
                   {simulation.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm
                 </strong>
-                . Low-velocity radiative quenching induces persistent invisible cool flames (FLEX / FLEX-2).
+                . Low-airflow heat loss can create hard-to-see cool flames (FLEX / FLEX-2).
               </p>
             </div>
           </div>

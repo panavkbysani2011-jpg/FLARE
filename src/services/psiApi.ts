@@ -104,7 +104,7 @@ export async function testApiEndpointHealth(
       latencyMs: 1,
       mode: 'offline-fallback',
       message:
-        'No remote FastAPI URL configured. Operating seamlessly via Local Physics + Archive Inference Engine.',
+        'No remote server address set. Running smoothly on Local Fire Physics & Flight Data.',
     };
   }
 
@@ -123,7 +123,7 @@ export async function testApiEndpointHealth(
         ok: true,
         latencyMs,
         mode: 'remote',
-        message: `Connected to live inference endpoint (${baseUrl}) in ${latencyMs} ms.`,
+        message: `Connected to live server (${baseUrl}) in ${latencyMs} ms.`,
       };
     }
     return {

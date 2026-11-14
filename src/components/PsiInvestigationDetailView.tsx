@@ -330,10 +330,10 @@ export const PsiInvestigationDetailView: React.FC<
         </div>
       </div>
 
-      {/* 1. Header & Executive Summary */}
+      {/* 1. Experiment Overview & Hardware Summary */}
       <CollapsibleCard
         theme={theme}
-        title="Investigation Executive Summary & Hardware Context"
+        title="Experiment Summary & Hardware Info"
         subtitle={`${investigationRecord ? `${investigationRecord.psiId} · ${investigationRecord.acronym}` : run.psiId} · ${run.facility} · ${run.outcome}`}
         summaryLine={`${investigationRecord?.title ?? run.investigationTitle} · ${run.flameSpread_mms.toFixed(2)} mm/s (${run.outcome})`}
         bodyClassName="p-5 space-y-4"
@@ -394,7 +394,7 @@ export const PsiInvestigationDetailView: React.FC<
             </h1>
 
             <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-              Fuel / Substrate:{' '}
+              Fuel / Material:{' '}
               <span className="font-medium text-zinc-800 dark:text-zinc-200">
                 {run.material}
               </span>{' '}
@@ -425,7 +425,7 @@ export const PsiInvestigationDetailView: React.FC<
           <div className="flex items-center gap-4 shrink-0 pt-1">
             <div>
               <div className="text-[10px] font-sans uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Safety Regime Status
+                Fire Safety Result
               </div>
               <div className={`mt-0.5 inline-flex items-center gap-1.5 text-sm font-sans font-bold ${statusMeta.color}`}>
                 <StatusIcon className="w-4 h-4 shrink-0" />
@@ -488,11 +488,11 @@ export const PsiInvestigationDetailView: React.FC<
         </div>
       </CollapsibleCard>
 
-      {/* 2. Calibrated Telemetry & Experimental Runs Table */}
+      {/* 2. Run Measurements & Experiment Table */}
       <CollapsibleCard
         theme={theme}
-        title={`Active Run Telemetry (${run.runCode}) & Experimental Sweep Table`}
-        subtitle={`${investigationRuns.length} calibrated experimental runs · Record ${canonicalId} / ${run.runCode}`}
+        title={`Selected Run Measurements (${run.runCode}) & Test Table`}
+        subtitle={`${investigationRuns.length} flight test runs · Record ${canonicalId} / ${run.runCode}`}
         summaryLine={`${run.O2_pct.toFixed(1)}% O2 · ${run.P_psi.toFixed(1)} psi · ${run.Flow_ms.toFixed(2)} m/s · ${run.flameSpread_mms.toFixed(2)} mm/s (${investigationRuns.length} experimental runs)`}
         bodyClassName="p-5 space-y-4"
       >
@@ -590,7 +590,7 @@ export const PsiInvestigationDetailView: React.FC<
                 >
                   <th className="py-2 px-3">Run Code</th>
                   <th className="py-2 px-3">Campaign</th>
-                  <th className="py-2 px-3">Substrate / Fuel</th>
+                  <th className="py-2 px-3">Material / Fuel</th>
                   <th className="py-2 px-3 text-right">O₂ %</th>
                   <th className="py-2 px-3 text-right">Pressure</th>
                   <th className="py-2 px-3 text-right">Airflow</th>
@@ -694,23 +694,23 @@ export const PsiInvestigationDetailView: React.FC<
       {(investigationRecord || investigationChunks.length > 0) && (
         <CollapsibleCard
           theme={theme}
-          title="Archive Reports, Literature Chunks & Peer-Reviewed Publications"
+          title="Flight Reports, Handbook Sections & Published Papers"
           subtitle={investigationRecord?.auditStatus}
-          summaryLine={`${investigationChunks.length} literature excerpts · ${investigationRecord?.publications.length ?? 0} peer-reviewed publications`}
+          summaryLine={`${investigationChunks.length} report excerpts · ${investigationRecord?.publications.length ?? 0} published papers`}
           bodyClassName="p-5 space-y-4"
         >
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* Literature Chunks for this PSI */}
+            {/* Handbook & Report Excerpts for this PSI */}
             <div className="lg:col-span-7 space-y-2.5">
               <div className="text-xs font-sans font-semibold text-zinc-600 dark:text-zinc-300">
-                Indexed Technical Literature Chunks ({investigationChunks.length})
+                Indexed Report &amp; Handbook Sections ({investigationChunks.length})
               </div>
               {investigationChunks.length === 0 ? (
                 <div
                   className={`p-3 rounded-[4px] border text-xs font-sans text-zinc-500 ${cellSurface}`}
                 >
-                  Metadata-only / tabular dataset in archive (see generated engineering protocol artifacts below).
+                  Metadata and test rows only in archive (see downloadable test summaries below).
                 </div>
               ) : (
                 investigationChunks.map((ch) => (
@@ -808,12 +808,12 @@ export const PsiInvestigationDetailView: React.FC<
         </CollapsibleCard>
       )}
 
-      {/* 4. Generated Protocol & Calibrated Artifacts Browser */}
+      {/* 4. Test Procedures & Processed Run Summaries */}
       <CollapsibleCard
         theme={theme}
-        title="Investigation Protocol & Calibrated Run Summaries"
-        subtitle={`Inspect generated protocols, sensor calibration bounds, and time-slice telemetry for ${run.runCode} (${artifacts.length} Calibrated Summaries)`}
-        summaryLine={`${artifacts.length} generated protocol & calibration artifacts · Active: ${activeArtifact?.title ?? 'None'}`}
+        title="Test Procedures & Processed Run Summaries"
+        subtitle={`Read test setup notes, sensor info, and 0–120s data rows for ${run.runCode} (${artifacts.length} Summaries)`}
+        summaryLine={`${artifacts.length} downloadable test summaries · Active: ${activeArtifact?.title ?? 'None'}`}
         bodyClassName="p-5 space-y-4"
       >
 

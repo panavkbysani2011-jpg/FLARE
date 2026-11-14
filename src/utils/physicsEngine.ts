@@ -666,8 +666,8 @@ export function buildAssistantReply(
         `Decoded View [${chartCtx.techniqueName}] on ${chartCtx.datasetLabel} (${chartCtx.runCount.toLocaleString()} plotted observations): Mapping ${chartCtx.xAxisLabel} -> ${chartCtx.yAxisLabel} grouped by ${chartCtx.colorByLabel}.`,
         `Primary Observed Pattern: ${chartCtx.summaryHeadline}`,
         chartCtx.anomalies.length > 0
-          ? `Detected Regimes & Outliers: ${chartCtx.anomalies.join(' ')}`
-          : `Active Regime Telemetry: Chamber operates at ${req.O2_pct.toFixed(1)}% O2 and ${req.Flow_ms.toFixed(2)} m/s (${req.g_eff.toFixed(3)}g) yielding ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s (${sim.hazardStatus}).`,
+          ? `Detected Patterns & Outliers: ${chartCtx.anomalies.join(' ')}`
+          : `Current Burn Summary: Test runs at ${req.O2_pct.toFixed(1)}% O2 and ${req.Flow_ms.toFixed(2)} m/s (${req.g_eff.toFixed(3)}g), predicting ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s (${sim.hazardStatus}).`,
         `Physical Interpretation: In reduced gravity (${req.g_eff.toFixed(3)}g), eliminating buoyant plumes creates a peak oxidizer-transport band between 0.05 and 0.22 m/s (PSI-99 SAFFIRE-II / PSI-25 BASS-II), while flows <= 0.09 m/s allow radiative heat loss to lock fuels into 550K–800K non-luminous cool flames (PSI-69 FLEX).`,
       ];
       if (chunkSnippetStep) steps.push(chunkSnippetStep);
@@ -690,11 +690,11 @@ export function buildAssistantReply(
     const maxCo = Math.max(...sim.timelineSeries.map((p) => p.coYield_ppm));
     const minVis = Math.min(...sim.timelineSeries.map((p) => p.opticalVisibility_pct));
     const steps = [
-      `Active Telemetry Decode (${normalizeCandidateCode(req.material)}, ${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s, ${req.g_eff.toFixed(3)}g): Model computes ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s spread with peak gas temperature ${sim.peakTemp_K} K (${sim.hazardStatus}).`,
+      `Current Test Summary (${normalizeCandidateCode(req.material)}, ${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s, ${req.g_eff.toFixed(3)}g): Model predicts ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s spread with ${sim.peakTemp_K} K peak gas temp (${sim.hazardStatus}).`,
       coolPts.length > 0
-        ? `Non-Luminous Cool-Flame Signature Detected: Gas temperature occupies the 550K–800K window across ${coolPts.length * 5}s of trajectory while visible smoke/flame visibility drops to ${minVis}% and peak CO reaches ${maxCo} ppm (requires IR/CO sensing per PSI-69 FLEX & PSI-102 SAME).`
-        : `Thermal Trajectory Decode: Radiative-convective balance tracks monotonic combustion with peak ${maxCo} ppm CO emission and ${minVis}% optical clarity at t=120s.`,
-      `Archive Anchor Comparison: Closest flight benchmark is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% parameter proximity), corroborated by ${sim.modelConfidence?.validatedRunCount ?? sim.nearestRuns.length} nearby calibrated PSI runs.`,
+        ? `Invisible Cool-Flame Warning: Gas temperature stays inside the 550K–800K window for ${coolPts.length * 5}s while visible smoke/flame drops to ${minVis}% and peak CO reaches ${maxCo} ppm (requires IR/CO sensing per PSI-69 FLEX & PSI-102 SAME).`
+        : `Temperature & Smoke Trend: Heat rises smoothly across the 120s burn with peak ${maxCo} ppm CO output and ${minVis}% optical clarity at t=120s.`,
+      `Closest Flight Match: Most similar spaceflight test is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% match), backed by ${sim.modelConfidence?.validatedRunCount ?? sim.nearestRuns.length} nearby PSI runs.`,
     ];
     if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
@@ -740,10 +740,10 @@ export function buildAssistantReply(
     const conf = sim.modelConfidence;
     const mitigatedThickness = Number(Math.min(10.0, Math.max(req.Thickness_mm, sim.safeMaterialCheck.minSafeThickness_mm + 0.5)).toFixed(1));
     const steps = [
-      `Gate 1 — Flame Spread Envelope: ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s vs. 0.48 mm/s self-extinguishing bound -> ${sim.flameSpread_mms < 0.48 ? 'PASS' : sim.flameSpread_mms < 1.3 ? 'CAUTION' : 'FAIL'} (${sim.hazardStatus}).`,
-      `Gate 2 — Conductive Quenching Margin: Configured ${matCode} thickness ${req.Thickness_mm.toFixed(1)} mm vs. ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm minimum threshold -> ${sim.safeMaterialCheck.passed ? 'PASS' : 'FAIL'} (${sim.safeMaterialCheck.margin_mm >= 0 ? '+' : ''}${sim.safeMaterialCheck.margin_mm.toFixed(1)} mm margin; verified via PSI-159).`,
-      `Gate 3 — Sensor & Cool-Flame Exposure: ${coolWindowActive ? 'WARNING — Low-velocity ventilation (<=0.09 m/s) in low gravity permits 550K–800K non-luminous cool flames invisible to optical smoke cameras (PSI-69 FLEX / PSI-102 SAME).' : 'CLEAR — Forced convective flow exceeds quiescent cool-flame trapping window.'}`,
-      `Gate 4 — Pre-Physical Chamber Decision: Model Confidence is ${conf?.confidencePct.toFixed(1) ?? '90.0'}% (${conf?.validatedRunCount ?? sim.nearestRuns.length} nearby runs) -> Physical Testing ${conf?.physicalTestingRecommendation ?? 'Recommended'}. Recommended mitigation loads >= ${mitigatedThickness.toFixed(1)} mm Nomex/Cotton-Fiberglass barrier.`,
+      `Step 1 — Flame Spread Limit: ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s vs. 0.48 mm/s self-extinguishing limit -> ${sim.flameSpread_mms < 0.48 ? 'PASS' : sim.flameSpread_mms < 1.3 ? 'CAUTION' : 'FAIL'} (${sim.hazardStatus}).`,
+      `Step 2 — Safe Thickness Check: Configured ${matCode} thickness ${req.Thickness_mm.toFixed(1)} mm vs. ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm minimum -> ${sim.safeMaterialCheck.passed ? 'PASS' : 'FAIL'} (${sim.safeMaterialCheck.margin_mm >= 0 ? '+' : ''}${sim.safeMaterialCheck.margin_mm.toFixed(1)} mm margin; verified via PSI-159).`,
+      `Step 3 — Sensor & Cool-Flame Exposure: ${coolWindowActive ? 'WARNING — Low airflow (<=0.09 m/s) in low gravity allows 550K–800K cool flames invisible to standard smoke cameras (PSI-69 FLEX / PSI-102 SAME).' : 'CLEAR — Forced airflow is fast enough to prevent trapped low-flow cool flames.'}`,
+      `Step 4 — Physical Testing Need: Model Confidence is ${conf?.confidencePct.toFixed(1) ?? '90.0'}% (${conf?.validatedRunCount ?? sim.nearestRuns.length} nearby flight runs) -> Physical Testing ${conf?.physicalTestingRecommendation ?? 'Recommended'}. Suggested safer setup uses >= ${mitigatedThickness.toFixed(1)} mm Nomex or Cotton-Fiberglass.`,
     ];
     if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
@@ -789,9 +789,9 @@ export function buildAssistantReply(
   if (matchedPsiFromQuery) {
     const rep = matchedPsiFromQuery.representativeRun;
     const steps = [
-      `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) — ${matchedPsiFromQuery.title}: Conducted in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} calibrated experimental runs in CSV.`,
-      `Science Objective: ${matchedPsiFromQuery.objective.slice(0, 210)}${matchedPsiFromQuery.objective.length > 210 ? '...' : ''}`,
-      `Parameter Envelope: ${matchedPsiFromQuery.o2Range[0].toFixed(1)}–${matchedPsiFromQuery.o2Range[1].toFixed(1)}% O2, ${matchedPsiFromQuery.pressureRange[0].toFixed(1)}–${matchedPsiFromQuery.pressureRange[1].toFixed(1)} psi, ${matchedPsiFromQuery.flowRange[0].toFixed(2)}–${matchedPsiFromQuery.flowRange[1].toFixed(2)} m/s airflow.`,
+      `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) — ${matchedPsiFromQuery.title}: Run in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} flight test rows in CSV.`,
+      `Main Research Goal: ${matchedPsiFromQuery.objective.slice(0, 210)}${matchedPsiFromQuery.objective.length > 210 ? '...' : ''}`,
+      `Tested Range: ${matchedPsiFromQuery.o2Range[0].toFixed(1)}–${matchedPsiFromQuery.o2Range[1].toFixed(1)}% O2, ${matchedPsiFromQuery.pressureRange[0].toFixed(1)}–${matchedPsiFromQuery.pressureRange[1].toFixed(1)} psi, ${matchedPsiFromQuery.flowRange[0].toFixed(2)}–${matchedPsiFromQuery.flowRange[1].toFixed(2)} m/s airflow.`,
     ];
     if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
@@ -875,10 +875,10 @@ export function computeModelConfidence(
     return {
       confidencePct: 0,
       validatedRunCount: 0,
-      nearestDeltaSummary: 'Loading verified PSI telemetry and experiment archive…',
+      nearestDeltaSummary: 'Loading flight test records and experiment archive…',
       physicalTestingRecommendation: 'Recommended',
       rationale:
-        'Waiting for the verified PSI archive to finish loading before matching against historical spaceflight runs.',
+        'Waiting for the spaceflight fire records to finish loading before matching against past runs.',
     };
   }
   const scored = catalog
@@ -931,8 +931,8 @@ export function computeModelConfidence(
 
   const rationale =
     physicalTestingRecommendation === 'Avoidable'
-      ? `Model confidence ${confidencePct}% is anchored by ${validatedRunCount} nearby calibrated PSI runs inside a well-characterized regime; pre-physical chamber testing can be bypassed unless material batch certification is required.`
-      : `Model confidence ${confidencePct}% flags elevated uncertainty (${core.hazardStatus === 'Cool Flame Caution' ? 'transitional cool-flame kinetics' : req.O2_pct > 33 ? 'high-oxygen boundary extrapolation' : 'sparse archive coverage'} across ${validatedRunCount} nearby runs); physical confirmation testing is advised.`;
+      ? `Confidence ${confidencePct}% is backed by ${validatedRunCount} nearby spaceflight test runs in well-known conditions; physical ground testing can usually be skipped unless material batch checks are needed.`
+      : `Confidence ${confidencePct}% flags higher uncertainty (${core.hazardStatus === 'Cool Flame Caution' ? 'unpredictable cool-flame behavior' : req.O2_pct > 33 ? 'very high oxygen conditions' : 'fewer matching flight runs'} across ${validatedRunCount} nearby runs); physical confirmation testing is advised.`;
 
   return {
     confidencePct,

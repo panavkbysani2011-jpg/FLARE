@@ -334,7 +334,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <div className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-            <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Calibrated Runs ·{' '}
+            <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Test Runs ·{' '}
             {corpusStats ? (
               <>
                 <span className="font-mono tabular-nums">
@@ -447,7 +447,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             {/* Fuel / Material Category Filter */}
             <div className={`space-y-1.5 pt-3 border-t ${dividerBorder}`}>
               <div className="text-[11px] font-sans font-semibold text-zinc-500 dark:text-zinc-400">
-                Fuel & Substrate Class
+                Fuel &amp; Material Class
               </div>
               <div className="space-y-1">
                 {[
@@ -537,19 +537,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <span className="text-zinc-300 dark:text-zinc-700">|</span>
                 <span className="font-sans text-zinc-500 dark:text-zinc-400">
                   {isArchiveLoading ? (
-                    'Indexing calibrated investigation runs...'
+                    'Loading experiment test runs...'
                   ) : (
                     <>
                       <span className="font-mono tabular-nums">
                         {runs.length.toLocaleString()}
                       </span>{' '}
-                      experimental runs indexed
+                      test runs loaded
                     </>
                   )}
                 </span>
               </div>
               <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-                Source: Verified Physical Science Informatics &amp; ISS Reference Corpus
+                Source: Spaceflight Fire Test Data &amp; ISS Safety Guide
               </span>
             </div>
 
@@ -793,8 +793,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             <div className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-                  Indexed directly from the verified ISS Reference Corpus (190 verbatim Researcher&apos;s Guide sections +{' '}
-                  {literatureChunks.length.toLocaleString()} technical report excerpts). Search physics concepts or open any chapter page in the 50-page PDF guide.
+                  Search directly through the ISS Fire Safety Handbook (190 Researcher&apos;s Guide sections +{' '}
+                  {literatureChunks.length.toLocaleString()} report excerpts). Search fire-safety concepts or open any page in the 50-page PDF guide.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2">

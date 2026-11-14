@@ -158,8 +158,8 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               <Columns3 className="w-3.5 h-3.5" />
               <span>
                 {showExtendedCols
-                  ? 'Hide Extra Telemetry'
-                  : 'Show Extra Telemetry (+3 cols)'}
+                  ? 'Hide Extra Measurements'
+                  : 'Show Extra Measurements (+3 cols)'}
               </span>
             </button>
 
@@ -447,23 +447,23 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
         )}
       </CollapsibleCard>
 
-      {/* 2. Switchable Multi-Axis & Trajectory Comparison Chart */}
+      {/* 2. Switchable Multi-Axis & Time-Series Comparison Chart */}
       {selectedRuns.length >= 2 && (
         <CollapsibleCard
           theme={theme}
-          title="Overlaid Multi-Axis Trajectory & Technique Comparison"
+          title="Multi-Axis & Time-Series Comparison"
           subtitle={
             chartMode === 'parallel'
               ? 'Parallel Coordinates'
               : chartMode === 'trajectory'
-              ? '0–120s Trajectory Overlay'
+              ? '0–120s Burn Curve Overlay'
               : chartMode === 'grouped-bar'
               ? 'Grouped Bars'
               : chartMode === 'lollipop'
               ? 'Cleveland Lollipop'
               : 'Matrix Heatmap'
           }
-          summaryLine={`Comparing ${selectedRuns.length} runs across ${chartMode === 'trajectory' ? '0–120s thermal evolution' : 'multi-variable axes'}`}
+          summaryLine={`Comparing ${selectedRuns.length} runs across ${chartMode === 'trajectory' ? '0–120s burn curves' : 'multiple test columns'}`}
           rightActions={
             onOpenWorkbenchTechnique ? (
               <button
@@ -511,7 +511,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                 {(
                   [
                     { id: 'parallel', label: 'Parallel Coordinates' },
-                    { id: 'trajectory', label: '0–120s Trajectory' },
+                    { id: 'trajectory', label: '0–120s Burn Curve' },
                     { id: 'grouped-bar', label: 'Grouped Bars' },
                     { id: 'lollipop', label: 'Lollipop / Dot' },
                     { id: 'heatmap', label: 'Heatmap Matrix' },
