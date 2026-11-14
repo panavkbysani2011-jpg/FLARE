@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ThemeMode } from '../types/psi';
+
+interface CollapsibleCardProps {
+  theme: ThemeMode;
+  title: string;
+  subtitle?: string;
+  summaryLine?: React.ReactNode;
+  rightActions?: React.ReactNode;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onToggle?: (nextOpen: boolean) => void;
+  className?: string;
+  bodyClassName?: string;
+  compactHeader?: boolean;
+  children: React.ReactNode;
+}
+
+export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
+  theme,
+  title,
+  subtitle,
+  summaryLine,
+  rightActions,
+  defaultOpen = true,
+  open: controlledOpen,
+  onToggle,
+  className = '',
+  bodyClassName = '',
+  compactHeader = false,
+  children,
+}) => {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+
+  const isDark = theme === 'dark';
+  const surfaceClass = isDark
+    ? 'bg-[#18181B] border-[#27272A] text-[#FAFAFA]'
+    : 'bg-white border-[#E4E4E7] text-[#18181B]';
+
+  const handleToggle = () => {
+    const next = !isOpen;
+    if (controlledOpen === undefined) {
+      setInternalOpen(next);
+    }
+    onToggle?.(next);
+  };
+
+  return (
+    <section
+      className={`rounded-[6px] border transition-colors duration-150 ${surfaceClass} ${className}`}
+    >
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2.5 ${
+          compactHeader ? 'px-3.5 py-2' : 'px-4 py-2.5'
+        } ${
+          isOpen
+            ? `border-b ${isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`
+            : ''
+        }`}
+      >
+        <div className="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <h2 className="font-display text-xs sm:text-sm font-semibold tracking-tight truncate">
+            {title}
+          </h2>
+          {isOpen && subtitle && (
+            <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400 truncate">
+              {subtitle}
+            </span>
+          )}
+          {!isOpen && summaryLine && (
+            <div className="text-xs font-sans text-zinc-500 dark:text-zinc-400 truncate">
+              {summaryLine}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {rightActions}
+          <button
+            type="button"
+            onClick={handleToggle}
+            aria-expanded={isOpen}
+            className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+              isDark
+                ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:border-zinc-500 hover:text-white'
+                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950'
+            }`}
+            title={isOpen ? `Hide ${title}` : `Show ${title}`}
+          >
+            {isOpen ? (
+              <>
+                <ChevronUp className="w-3 h-3" />
+                <span>Hide</span>
+              </>
+            ) : (
+              <>
+                <ChevronDown className="w-3 h-3" />
+                <span>Show</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className={bodyClassName || 'p-4'}>{children}</div>
+      )}
+    </section>
+  );
+};

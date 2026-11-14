@@ -24,8 +24,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-20', 'PSI-25', 'PSI-69', 'PSI-159'],
     sourceTitle: 'Glenn Combustion Science Program Overview',
-    sourceDisplayUrl:
-      'nasa.gov/glenn/.../physical-sciences-program/combustion-science',
+    sourceDisplayUrl: 'Physical Sciences Program — Combustion Science Brief',
     sourceUrl:
       'https://www.nasa.gov/glenn/glenn-expertise-space-exploration/physical-sciences-program/combustion-science/',
     simulatableEnvironment: {
@@ -60,7 +59,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-98', 'PSI-99', 'PSI-25'],
     sourceTitle: 'Apollo 1 Lessons Learned (SMA ACCLLP)',
-    sourceDisplayUrl: 'sma.nasa.gov/sma-disciplines/accllp/apollo-1',
+    sourceDisplayUrl: 'SMA ACCLLP Incident Brief — Apollo 1',
     sourceUrl: 'https://sma.nasa.gov/sma-disciplines/accllp/apollo-1',
     simulatableEnvironment: {
       label: 'Apollo 1 Pad Test (100% O₂, 16.7 psi, 1.0g)',
@@ -94,7 +93,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-101', 'PSI-102', 'PSI-20'],
     sourceTitle: 'Apollo 13 Lessons Learned (SMA ACCLLP)',
-    sourceDisplayUrl: 'sma.nasa.gov/sma-disciplines/accllp/apollo-13',
+    sourceDisplayUrl: 'SMA ACCLLP Incident Brief — Apollo 13',
     sourceUrl: 'https://sma.nasa.gov/sma-disciplines/accllp/apollo-13',
     simulatableEnvironment: {
       label: 'High-O₂ PTFE Ignition Threshold (100% O₂, 18.0 psi, 0g)',
@@ -128,8 +127,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-98', 'PSI-100', 'PSI-102'],
     sourceTitle: '25 Years Ago: Fire Aboard Space Station Mir',
-    sourceDisplayUrl:
-      'nasa.gov/history/25-years-ago-fire-aboard-space-station-mir',
+    sourceDisplayUrl: 'Orbital Station Mir Kvant-1 Incident Archive',
     sourceUrl:
       'https://www.nasa.gov/history/25-years-ago-fire-aboard-space-station-mir/',
     simulatableEnvironment: {
@@ -164,7 +162,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-98', 'PSI-99'],
     sourceTitle: 'Spinoff: Firefighter Breathing Air Tanks',
-    sourceDisplayUrl: 'spinoff.nasa.gov/node/9582',
+    sourceDisplayUrl: 'Protective Technology Brief #9582 (SCBA Composite)',
     sourceUrl: 'https://spinoff.nasa.gov/node/9582',
   },
   {
@@ -190,7 +188,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-102', 'PSI-101', 'PSI-69'],
     sourceTitle: 'Spinoff: Shuttle Smoke & Fire Detector',
-    sourceDisplayUrl: 'spinoff.nasa.gov/node/9407',
+    sourceDisplayUrl: 'Protective Technology Brief #9407 (Smoke & Fire Sensor)',
     sourceUrl: 'https://spinoff.nasa.gov/node/9407',
   },
   {
@@ -216,7 +214,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-25', 'PSI-26', 'PSI-99'],
     sourceTitle: 'Spinoff: Advanced Protective Fire Attire',
-    sourceDisplayUrl: 'spinoff.nasa.gov/node/9918',
+    sourceDisplayUrl: 'Protective Technology Brief #9918 (PBI & Nomex Turnout)',
     sourceUrl: 'https://spinoff.nasa.gov/node/9918',
   },
   {

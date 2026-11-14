@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AssistantMessage,
+  CandidateMaterialCode,
+  ConsoleMode,
+  DecodedChartContext,
   EnvironmentPreset,
   EnvironmentPresetId,
   LiteratureChunk,
@@ -8,9 +11,11 @@ import {
   PsiInvestigationRecord,
   PsiRun,
   ResearchersGuideTopic,
+  SidebarState,
   SimulationResponse,
   SyncChangelogEntry,
   ThemeMode,
+  VirtualTestConfig,
   VizMode,
   WorkspaceView,
 } from './types/psi';
@@ -23,17 +28,21 @@ import {
 import { MISSION_AND_SPINOFF_CASES } from './data/missionAndSpinoffCases';
 import { loadPsiArchiveData } from './services/dataLoader';
 import { runLocalPhysicsSimulation } from './utils/physicsEngine';
-import { analyzeCombustionState } from './services/psiApi';
+import {
+  analyzeCombustionState,
+  runModelConsoleInference,
+} from './services/psiApi';
 import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
 import { LeftSidebar } from './components/LeftSidebar';
-import { VisualizationStage } from './components/VisualizationStage';
+import { VirtualTestLab } from './components/VirtualTestLab';
+import { VisualAnalyticsStudio } from './components/VisualAnalyticsStudio';
+import { ModelConsoleView } from './components/ModelConsoleView';
 import { CatalogView } from './components/CatalogView';
 import { ExperimentRunsView } from './components/ExperimentRunsView';
 import { RunComparator } from './components/RunComparator';
 import { ImportSyncView } from './components/ImportSyncView';
 import { PsiInvestigationDetailView } from './components/PsiInvestigationDetailView';
-import { RightAssistantPanel } from './components/RightAssistantPanel';
 
 export default function App() {
   // 1. Theme State ('normal' default #F3F4F6, 'light' #FFFFFF, 'dark' #09090B)
@@ -48,10 +57,11 @@ export default function App() {
     }
   }, [theme]);
 
-  // 2. Active Workspace View ('overview' default) + Back-navigation origin
-  const [activeView, setActiveView] = useState<WorkspaceView>('overview');
+  // 2. Active Workspace View & Collapsible Sidebar State
+  const [activeView, setActiveView] = useState<WorkspaceView>('virtual-lab');
   const [previousView, setPreviousView] =
     useState<WorkspaceView>('investigations');
+  const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
 
   // 3. Catalog, Real Loaded Archive & Selected Runs
   const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>(BASELINE_PSI_RUNS);
@@ -79,22 +89,28 @@ export default function App() {
   );
   const [inspectedRunId, setInspectedRunId] = useState<string | null>(null);
 
-  // 5. Environment Sliders (default Lunar 0.166g baseline)
+  // 5. Virtual Test Chamber Configuration (default Lunar 0.166g baseline)
   const [activePresetId, setActivePresetId] =
     useState<EnvironmentPresetId | null>('lunar');
-  const [sliders, setSliders] = useState({
+  const [sliders, setSliders] = useState<VirtualTestConfig>({
     O2_pct: 34.0,
     P_psi: 8.2,
     Flow_ms: 0.12,
     g_eff: 0.166,
     Thickness_mm: 2.0,
+    material: 'PMMA',
+    ignitionFlux_Wm2: 25000,
   });
+  const [isRunningVirtualTest, setIsRunningVirtualTest] = useState(false);
+  const [virtualRunCounter, setVirtualRunCounter] = useState(1);
+  const [lastVirtualRunId, setLastVirtualRunId] = useState<string | null>('VTL-001');
+  const [lastVirtualRunTimestamp, setLastVirtualRunTimestamp] =
+    useState<string | null>('Ready');
 
   // 6. Visualization Mode
   const [vizMode, setVizMode] = useState<VizMode>('safety-map');
 
-  // 7. Slide-Over AI Assistant Drawer & Sync Feed State
-  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  // 7. Sync Feed State
   const [syncEntries, setSyncEntries] = useState<SyncChangelogEntry[]>(
     INITIAL_SYNC_CHANGELOG
   );
@@ -133,19 +149,32 @@ export default function App() {
     };
   }, []);
 
-  // Support ⌘K / Ctrl+K shortcut for AI Research Assistant
+  // Support [ keyboard shortcut to cycle sidebar (Expanded -> Compact -> Hidden -> Expanded)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+      if (!isInput && e.key === '[') {
         e.preventDefault();
-        setIsAssistantOpen((prev) => !prev);
+        setSidebarState((prev) =>
+          prev === 'expanded'
+            ? 'compact'
+            : prev === 'compact'
+            ? 'hidden'
+            : 'expanded'
+        );
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // 8. Simulation & Assistant Messages
+  // 8. Simulation & Model Console State
   const initialSim = useMemo(
     () => runLocalPhysicsSimulation(sliders, catalogRuns),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -153,11 +182,15 @@ export default function App() {
   );
   const [simulation, setSimulation] = useState<SimulationResponse>(initialSim);
   const [isThinking, setIsThinking] = useState(false);
+  const [consoleMode, setConsoleMode] = useState<ConsoleMode>('decoder');
+  const [activeChartContext, setActiveChartContext] =
+    useState<DecodedChartContext | null>(null);
   const [messages, setMessages] = useState<AssistantMessage[]>(() => {
     const initReply = runLocalPhysicsSimulation(
       {
         ...sliders,
-        question: 'Explain current lunar cabin risk step-by-step',
+        consoleMode: 'decoder',
+        question: 'Decode active Lunar 0.166g Virtual Chamber telemetry step-by-step',
       },
       BASELINE_PSI_RUNS
     ).assistantReply;
@@ -167,8 +200,11 @@ export default function App() {
         id: 'msg-init',
         role: 'assistant',
         timestamp: 'Ready',
+        mode: 'decoder',
         steps: initReply?.steps ?? [],
         citations: initReply?.citations ?? ['PSI-99', 'PSI-25', 'PSI-69'],
+        recommendedParams: initReply?.recommendedParams,
+        whatIfRows: initReply?.whatIfRows,
       },
     ];
   });
@@ -226,16 +262,26 @@ export default function App() {
     );
   }, [inspectedRun, investigations]);
 
+  const mapMaterialToCandidate = (raw?: string): CandidateMaterialCode => {
+    const m = (raw ?? '').toLowerCase();
+    if (m.includes('nomex')) return 'Nomex';
+    if (m.includes('ptfe') || m.includes('teflon')) return 'PTFE';
+    if (m.includes('cotton') || m.includes('cfg')) return 'Cotton-Fiberglass';
+    if (m.includes('sibal')) return 'SIBAL';
+    return 'PMMA';
+  };
+
   // Handlers
   const handleSelectPreset = (preset: EnvironmentPreset) => {
     setActivePresetId(preset.id);
-    setSliders({
+    setSliders((prev) => ({
+      ...prev,
       O2_pct: preset.O2_pct,
       P_psi: preset.P_psi,
       Flow_ms: preset.Flow_ms,
       g_eff: preset.g_eff,
       Thickness_mm: preset.Thickness_mm,
-    });
+    }));
   };
 
   const handleChangeSlider = (
@@ -249,9 +295,83 @@ export default function App() {
     }));
   };
 
+  const handleChangeVirtualConfig = <K extends keyof VirtualTestConfig>(
+    key: K,
+    value: VirtualTestConfig[K]
+  ) => {
+    setActivePresetId(null);
+    setSliders((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
   const handleResetSliders = () => {
     const lunarPreset = ENVIRONMENT_PRESETS.find((p) => p.id === 'lunar')!;
-    handleSelectPreset(lunarPreset);
+    setActivePresetId(lunarPreset.id);
+    setSliders({
+      O2_pct: lunarPreset.O2_pct,
+      P_psi: lunarPreset.P_psi,
+      Flow_ms: lunarPreset.Flow_ms,
+      g_eff: lunarPreset.g_eff,
+      Thickness_mm: lunarPreset.Thickness_mm,
+      material: 'PMMA',
+      ignitionFlux_Wm2: 25000,
+    });
+  };
+
+  const handleRunVirtualTest = async () => {
+    setIsRunningVirtualTest(true);
+    try {
+      const result = await analyzeCombustionState(
+        sliders,
+        catalogRuns,
+        archiveContext
+      );
+      setSimulation(result);
+      const nextNum = virtualRunCounter + 1;
+      setVirtualRunCounter(nextNum);
+      setLastVirtualRunId(`VTL-${String(nextNum).padStart(3, '0')}`);
+      setLastVirtualRunTimestamp(
+        new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      );
+    } finally {
+      setIsRunningVirtualTest(false);
+    }
+  };
+
+  const handleAddVirtualRunToComparator = () => {
+    const numStr = String(virtualRunCounter).padStart(3, '0');
+    const virtualCode = lastVirtualRunId ?? `VTL-${numStr}`;
+    const virtualId = `virtual-${virtualCode.toLowerCase()}-${Date.now()}`;
+    const virtualRun: PsiRun = {
+      id: virtualId,
+      psiId: virtualCode,
+      investigationTitle: `Virtual Chamber Test (${sliders.material}, ${sliders.g_eff.toFixed(3)}g)`,
+      runCode: `${virtualCode}-${sliders.material.slice(0, 4).toUpperCase()}`,
+      facility: 'Virtual',
+      material: sliders.material,
+      O2_pct: sliders.O2_pct,
+      P_psi: sliders.P_psi,
+      Flow_ms: sliders.Flow_ms,
+      g_eff: sliders.g_eff,
+      Thickness_mm: sliders.Thickness_mm,
+      flameSpread_mms: simulation.flameSpread_mms,
+      peakTemp_K: simulation.peakTemp_K,
+      radiometerFlux_Wm2: sliders.ignitionFlux_Wm2,
+      coolFlameObserved: simulation.hazardStatus === 'Cool Flame Caution',
+      outcome: simulation.hazardStatus,
+      notes: `Pre-physical Virtual Test Lab output · Model confidence ${simulation.modelConfidence?.confidencePct.toFixed(1) ?? '90.0'}% (${simulation.modelConfidence?.physicalTestingRecommendation ?? 'Recommended'})`,
+      isVirtual: true,
+    };
+
+    setCatalogRuns((prev) => [virtualRun, ...prev]);
+    setSelectedRunIds((prev) => [virtualRun.id, ...prev].slice(0, 4));
+    setHighlightedRunId(virtualRun.id);
   };
 
   const handleToggleRun = (runId: string) => {
@@ -272,15 +392,17 @@ export default function App() {
 
   const handleApplyRunToSliders = (run: PsiRun) => {
     setActivePresetId(null);
-    setSliders({
+    setSliders((prev) => ({
+      ...prev,
       O2_pct: Math.min(100.0, Math.max(14.0, run.O2_pct)),
       P_psi: Math.min(20.0, Math.max(4.3, run.P_psi)),
       Flow_ms: Math.min(0.5, Math.max(0.0, run.Flow_ms)),
       g_eff: Math.min(1.0, Math.max(0.0, run.g_eff)),
       Thickness_mm: Math.min(10.0, Math.max(0.2, run.Thickness_mm)),
-    });
+      material: mapMaterialToCandidate(run.material),
+    }));
     setHighlightedRunId(run.id);
-    setActiveView('overview');
+    setActiveView('virtual-lab');
   };
 
   const handleSimulateEnvironment = (env: {
@@ -291,14 +413,15 @@ export default function App() {
     Thickness_mm: number;
   }) => {
     setActivePresetId(null);
-    setSliders({
+    setSliders((prev) => ({
+      ...prev,
       O2_pct: env.O2_pct,
       P_psi: env.P_psi,
       Flow_ms: env.Flow_ms,
       g_eff: env.g_eff,
       Thickness_mm: env.Thickness_mm,
-    });
-    setActiveView('overview');
+    }));
+    setActiveView('virtual-lab');
   };
 
   const navigateToInvestigationDetail = (run: PsiRun) => {
@@ -326,32 +449,28 @@ export default function App() {
     navigateToInvestigationDetail(run);
   };
 
-  const handleUpdateSlidersFromMap = (O2_pct: number, Flow_ms: number) => {
-    setActivePresetId(null);
-    setSliders((prev) => ({
-      ...prev,
-      O2_pct,
-      Flow_ms,
-    }));
-  };
-
   const handleExportBrief = () => {
     const reportLines = [
       `# PSI Data Manager — Microgravity Combustion Engineering Brief`,
       `Generated: ${new Date().toISOString()}`,
       ``,
-      `## 1. Active Cabin Environment Parameters`,
+      `## 1. Active Virtual Test Chamber Parameters`,
+      `- Candidate Material: ${sliders.material}`,
       `- Oxygen Concentration: ${sliders.O2_pct.toFixed(1)}% O2`,
       `- Cabin Pressure: ${sliders.P_psi.toFixed(1)} psi`,
       `- Forced Airflow Velocity: ${sliders.Flow_ms.toFixed(2)} m/s`,
       `- Effective Gravity: ${sliders.g_eff.toFixed(3)}g`,
       `- Substrate Thickness: ${sliders.Thickness_mm.toFixed(1)} mm`,
+      `- Ignition Heat Flux: ${sliders.ignitionFlux_Wm2.toLocaleString()} W/m2`,
       ``,
       `## 2. Computed Fire Safety Telemetry`,
       `- Predicted Flame Spread Speed: ${simulation.flameSpread_mms.toFixed(2)} ± ${simulation.confidenceInterval_mms.toFixed(2)} mm/s (95% CI)`,
       `- Hazard Status: ${simulation.hazardStatus} (Peak Temp: ${simulation.peakTemp_K} K)`,
       `- 10s Growth Forecast: ${simulation.forecast10s.radius_mm.toFixed(1)} mm radius (+${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa)`,
       `- Minimum Safe Thickness: >= ${simulation.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (${simulation.safeMaterialCheck.passed ? 'PASS' : 'FAIL'})`,
+      simulation.modelConfidence
+        ? `- Model Confidence: ${simulation.modelConfidence.confidencePct.toFixed(1)}% (${simulation.modelConfidence.validatedRunCount} nearby PSI runs · Physical Testing: ${simulation.modelConfidence.physicalTestingRecommendation})`
+        : `- Model Confidence: Calibrated baseline`,
       ``,
       `## 3. Selected PSI Archive Reference Runs`,
       ...selectedRuns.map(
@@ -373,42 +492,93 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleSendPrompt = async (promptText: string) => {
+  const handleSendPrompt = async (
+    promptText: string,
+    modeOverride?: ConsoleMode,
+    chartContextOverride?: DecodedChartContext | null
+  ) => {
+    const modeToUse = modeOverride ?? consoleMode;
+    const chartCtx =
+      chartContextOverride !== undefined
+        ? chartContextOverride
+        : activeChartContext;
+
     const userMsg: AssistantMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
       timestamp: 'Now',
+      mode: modeToUse,
       text: promptText,
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsThinking(true);
 
-    const response = await analyzeCombustionState(
-      {
+    const response = await runModelConsoleInference({
+      question: promptText,
+      mode: modeToUse,
+      request: {
         ...sliders,
-        question: promptText,
         selectedRunIds,
       },
-      catalogRuns,
-      archiveContext
-    );
+      catalog: catalogRuns,
+      archiveContext,
+      chartContext: chartCtx,
+    });
     setIsThinking(false);
 
     if (response.assistantReply) {
       if (response.assistantReply.suggestedVizMode) {
         setVizMode(response.assistantReply.suggestedVizMode);
-        setActiveView('overview');
       }
       const assistantMsg: AssistantMessage = {
         id: `ast-${Date.now()}`,
         role: 'assistant',
         timestamp: 'Synced',
+        mode: modeToUse,
         steps: response.assistantReply.steps,
         citations: response.assistantReply.citations,
         suggestedVizMode: response.assistantReply.suggestedVizMode,
+        recommendedParams: response.assistantReply.recommendedParams,
+        whatIfRows: response.assistantReply.whatIfRows,
+        chartContext: chartCtx ?? undefined,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     }
+  };
+
+  const handleResetConsole = () => {
+    const initReply = runLocalPhysicsSimulation(
+      {
+        ...sliders,
+        consoleMode,
+        question: 'Decode active Virtual Test Chamber configuration and safety bounds',
+      },
+      catalogRuns,
+      archiveContext
+    ).assistantReply;
+
+    setMessages([
+      {
+        id: `msg-reset-${Date.now()}`,
+        role: 'assistant',
+        timestamp: 'Ready',
+        mode: consoleMode,
+        steps: initReply?.steps ?? [],
+        citations: initReply?.citations ?? ['PSI-99', 'PSI-25', 'PSI-69'],
+        recommendedParams: initReply?.recommendedParams,
+        whatIfRows: initReply?.whatIfRows,
+      },
+    ]);
+  };
+
+  const handleApplyParamsToVirtualLab = (
+    params: Partial<VirtualTestConfig>
+  ) => {
+    setActivePresetId(null);
+    setSliders((prev) => ({
+      ...prev,
+      ...params,
+    }));
   };
 
   const handleImportSuccess = (newRuns: PsiRun[]) => {
@@ -439,7 +609,12 @@ export default function App() {
   const detailBackTarget: WorkspaceView =
     previousView === 'experiment-runs' ||
     previousView === 'comparator' ||
-    previousView === 'import-sync'
+    previousView === 'import-sync' ||
+    previousView === 'researchers-guide' ||
+    previousView === 'mission-spinoffs' ||
+    previousView === 'model-console' ||
+    previousView === 'virtual-lab' ||
+    previousView === 'visual-studio'
       ? previousView
       : 'investigations';
 
@@ -450,7 +625,31 @@ export default function App() {
       ? 'Run Comparator'
       : detailBackTarget === 'import-sync'
       ? 'Data Import & Sync'
+      : detailBackTarget === 'researchers-guide'
+      ? "ISS Researcher's Guide"
+      : detailBackTarget === 'mission-spinoffs'
+      ? 'Mission & Spin-Off Cases'
+      : detailBackTarget === 'model-console'
+      ? 'Model Console'
+      : detailBackTarget === 'virtual-lab'
+      ? 'Virtual Test Lab'
+      : detailBackTarget === 'visual-studio'
+      ? 'Visual Analytics Studio'
       : 'Data Archive';
+
+  const handleCycleSidebarState = () => {
+    setSidebarState((prev) =>
+      prev === 'expanded'
+        ? 'compact'
+        : prev === 'compact'
+        ? 'hidden'
+        : 'expanded'
+    );
+  };
+
+  const handleHeaderToggleSidebar = () => {
+    setSidebarState((prev) => (prev === 'expanded' ? 'compact' : 'expanded'));
+  };
 
   const canvasClass =
     theme === 'dark'
@@ -463,7 +662,7 @@ export default function App() {
     <div
       className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-150 ${canvasClass}`}
     >
-      {/* Left Grouped Navigation Rail (240px Fixed Width) */}
+      {/* Left Hierarchical Collapsible Navigation Sidebar */}
       <LeftSidebar
         theme={theme}
         activeView={activeView}
@@ -473,9 +672,12 @@ export default function App() {
             setHasUnreadSync(false);
           }
         }}
+        sidebarState={sidebarState}
+        onCycleSidebarState={handleCycleSidebarState}
         selectedRunsCount={selectedRuns.length}
         investigationCount={investigationCount}
         totalRunsCount={totalRunsCount}
+        missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
         hasUnreadSync={hasUnreadSync}
         runs={catalogRuns}
         onQuickJumpRun={handleQuickJumpRun}
@@ -488,32 +690,91 @@ export default function App() {
           onThemeChange={setTheme}
           activeView={activeView}
           inspectedRun={inspectedRun}
-          isAssistantOpen={isAssistantOpen}
-          onToggleAssistant={() => setIsAssistantOpen((prev) => !prev)}
+          sidebarState={sidebarState}
+          onHeaderToggleSidebar={handleHeaderToggleSidebar}
           onExportBrief={handleExportBrief}
         />
 
-        <main className="flex-1 px-5 pb-5 pt-0 max-w-[1640px] w-full">
-          {activeView === 'overview' && (
-            <VisualizationStage
+        <main className="flex-1 px-4 sm:px-6 pb-6 pt-4 max-w-[1720px] w-full">
+          {activeView === 'virtual-lab' && (
+            <VirtualTestLab
+              theme={theme}
+              config={sliders}
+              activePresetId={activePresetId}
+              simulation={simulation}
+              isRunningTest={isRunningVirtualTest}
+              lastRunId={lastVirtualRunId}
+              lastRunTimestamp={lastVirtualRunTimestamp}
+              onSelectPreset={handleSelectPreset}
+              onChangeConfig={handleChangeVirtualConfig}
+              onResetConfig={handleResetSliders}
+              onRunVirtualTest={handleRunVirtualTest}
+              onInspectInVisualStudio={() => setActiveView('visual-studio')}
+              onAnalyzeInModelConsole={() => {
+                setConsoleMode('decoder');
+                setActiveChartContext(null);
+                setActiveView('model-console');
+                handleSendPrompt(
+                  `Analyze Virtual Test Lab output (${sliders.material}, ${sliders.O2_pct.toFixed(1)}% O2, ${sliders.P_psi.toFixed(1)} psi, ${sliders.Flow_ms.toFixed(2)} m/s, ${sliders.g_eff.toFixed(3)}g, ${sliders.Thickness_mm.toFixed(1)} mm) yielding ${simulation.flameSpread_mms.toFixed(2)} mm/s (${simulation.hazardStatus}).`,
+                  'decoder',
+                  null
+                );
+              }}
+              onAddVirtualRunToComparator={handleAddVirtualRunToComparator}
+              onInspectRun={handleOpenInspector}
+              hoveredMaterialId={hoveredMaterialId}
+              onHoverMaterial={setHoveredMaterialId}
+            />
+          )}
+
+          {activeView === 'visual-studio' && (
+            <VisualAnalyticsStudio
               theme={theme}
               vizMode={vizMode}
               onChangeVizMode={setVizMode}
-              activePresetId={activePresetId}
-              onSelectPreset={handleSelectPreset}
               sliders={sliders}
               onChangeSlider={handleChangeSlider}
-              onResetSliders={handleResetSliders}
-              onUpdateSlidersFromMap={handleUpdateSlidersFromMap}
               simulation={simulation}
               selectedRuns={selectedRuns}
               catalogRuns={catalogRuns}
-              onLoadDefaultComparisonSet={handleLoadDefaultComparisonSet}
               hoveredRunId={hoveredRunId}
               onHoverRun={setHoveredRunId}
               hoveredMaterialId={hoveredMaterialId}
               onHoverMaterial={setHoveredMaterialId}
               onInspectRun={handleOpenInspector}
+              onGoToImportSync={() => setActiveView('import-sync')}
+              onDecodeInModelConsole={(chartContext) => {
+                setActiveChartContext(chartContext);
+                setConsoleMode('decoder');
+                setActiveView('model-console');
+                handleSendPrompt(
+                  `Decode active Visual Analytics view: ${chartContext.techniqueName} (${chartContext.xAxisLabel} vs ${chartContext.yAxisLabel}) across ${chartContext.runCount} points. ${chartContext.anomalies[0] ?? ''}`,
+                  'decoder',
+                  chartContext
+                );
+              }}
+            />
+          )}
+
+          {activeView === 'model-console' && (
+            <ModelConsoleView
+              theme={theme}
+              activeMode={consoleMode}
+              onChangeMode={setConsoleMode}
+              virtualConfig={sliders}
+              simulation={simulation}
+              messages={messages}
+              isRunningInference={isThinking}
+              activeChartContext={activeChartContext}
+              onClearChartContext={() => setActiveChartContext(null)}
+              totalRunsCount={totalRunsCount}
+              investigationCount={investigationCount}
+              literatureChunksCount={literatureChunks.length}
+              onSubmitInference={(text, mode) => handleSendPrompt(text, mode)}
+              onResetConsole={handleResetConsole}
+              onApplyParamsToVirtualLab={handleApplyParamsToVirtualLab}
+              onOpenInvestigation={handleOpenInspector}
+              onGoToEndpointConfig={() => setActiveView('import-sync')}
             />
           )}
 
@@ -527,17 +788,36 @@ export default function App() {
               onRemoveRun={handleToggleRun}
               onApplyRunToSliders={handleApplyRunToSliders}
               onLoadDefaultComparisonSet={handleLoadDefaultComparisonSet}
+              onAddActiveVirtualRun={handleAddVirtualRunToComparator}
               onGoToCatalog={() => setActiveView('experiment-runs')}
               onOpenWorkbenchTechnique={(mode) => {
                 setVizMode(mode);
-                setActiveView('overview');
+                setActiveView('visual-studio');
               }}
             />
           )}
 
-          {activeView === 'investigations' && (
+          {(activeView === 'investigations' ||
+            activeView === 'researchers-guide' ||
+            activeView === 'mission-spinoffs') && (
             <CatalogView
               theme={theme}
+              activeTabOverride={
+                activeView === 'researchers-guide'
+                  ? 'researchers-guide'
+                  : activeView === 'mission-spinoffs'
+                  ? 'mission-spinoffs'
+                  : 'psi-investigations'
+              }
+              onChangeTab={(tab) =>
+                setActiveView(
+                  tab === 'researchers-guide'
+                    ? 'researchers-guide'
+                    : tab === 'mission-spinoffs'
+                    ? 'mission-spinoffs'
+                    : 'investigations'
+                )
+              }
               runs={catalogRuns}
               investigations={investigations}
               guideTopics={guideTopics}
@@ -602,26 +882,6 @@ export default function App() {
           )}
         </main>
       </div>
-
-      {/* Slide-Over AI Research Assistant Drawer (380px width) */}
-      <RightAssistantPanel
-        isOpen={isAssistantOpen}
-        onClose={() => setIsAssistantOpen(false)}
-        theme={theme}
-        simulation={simulation}
-        messages={messages}
-        isThinking={isThinking}
-        onSendPrompt={handleSendPrompt}
-        onCitationClick={(cite) => {
-          setIsAssistantOpen(false);
-          handleOpenInspector(cite);
-        }}
-        onSwitchVizMode={(mode) => {
-          setVizMode(mode);
-          setActiveView('overview');
-          setIsAssistantOpen(false);
-        }}
-      />
     </div>
   );
 }

@@ -7,14 +7,29 @@ import {
   ShieldAlert,
   RefreshCw,
   Database,
+  Server,
+  Eye,
+  EyeOff,
+  Activity,
 } from 'lucide-react';
-import { PsiRun, SyncChangelogEntry, ThemeMode } from '../types/psi';
+import {
+  PsiApiEndpointConfig,
+  PsiRun,
+  SyncChangelogEntry,
+  ThemeMode,
+} from '../types/psi';
 import {
   ImportValidationResult,
   SAMPLE_COMBUSTION_CSV,
   SAMPLE_UNRELATED_CSV,
 } from '../utils/dataImporter';
-import { processCustomDatasetUpload } from '../services/psiApi';
+import {
+  getApiEndpointConfig,
+  processCustomDatasetUpload,
+  saveApiEndpointConfig,
+  testApiEndpointHealth,
+} from '../services/psiApi';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface ImportSyncViewProps {
   theme: ThemeMode;
@@ -43,10 +58,65 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
     string | null
   >(null);
 
+  // Runtime FastAPI + API Key Endpoint Settings
+  const [endpointConfig, setEndpointConfig] = useState<PsiApiEndpointConfig>(() =>
+    getApiEndpointConfig()
+  );
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isTestingEndpoint, setIsTestingEndpoint] = useState(false);
+  const [endpointHealthNotice, setEndpointHealthNotice] = useState<{
+    mode: 'remote' | 'offline-fallback';
+    ok: boolean;
+    message: string;
+  } | null>(null);
+
   const isDark = theme === 'dark';
   const cardSurface = isDark
     ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
     : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]';
+  const subSurface = isDark
+    ? 'bg-[#09090B]/70 border-[#27272A]'
+    : 'bg-zinc-50/80 border-[#E4E4E7]';
+
+  const handleSaveEndpointConfig = () => {
+    const saved = saveApiEndpointConfig(endpointConfig);
+    setEndpointConfig(saved);
+    setEndpointHealthNotice({
+      ok: true,
+      mode: saved.baseUrl ? 'remote' : 'offline-fallback',
+      message: saved.baseUrl
+        ? `Saved runtime FastAPI endpoint: ${saved.baseUrl} (automatic offline fallback remains active if unreachable).`
+        : 'Cleared remote endpoint. Operating via Local Physics + Archive Inference Engine.',
+    });
+  };
+
+  const handleTestEndpoint = async () => {
+    setIsTestingEndpoint(true);
+    const saved = saveApiEndpointConfig(endpointConfig);
+    setEndpointConfig(saved);
+    const result = await testApiEndpointHealth(saved);
+    setEndpointHealthNotice({
+      ok: result.ok,
+      mode: result.mode,
+      message: result.message,
+    });
+    setIsTestingEndpoint(false);
+  };
+
+  const handleUseOfflineEngine = () => {
+    const cleared = saveApiEndpointConfig({
+      baseUrl: '',
+      apiKeyHeader: endpointConfig.apiKeyHeader,
+      apiKeyValue: '',
+    });
+    setEndpointConfig(cleared);
+    setEndpointHealthNotice({
+      ok: true,
+      mode: 'offline-fallback',
+      message:
+        'Switched cleanly to Local Physics + Archive Inference Engine (zero external network dependency).',
+    });
+  };
 
   const triggerValidationWithSkeleton = (content: string, name: string) => {
     setImportedCommitMessage(null);
@@ -91,20 +161,195 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
   };
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-      {/* Left 7 Columns: Domain-Gated CSV/JSON Custom Data Importer */}
-      <section
-        className={`xl:col-span-7 border rounded-[6px] p-5 space-y-4 ${cardSurface}`}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="font-display text-lg font-bold tracking-tight">
+          Data Import, Unit Normalizer &amp; FastAPI Sync
+        </h1>
+        <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+          Domain-gated CSV/JSON ingestion and live inference endpoint configuration
+        </span>
+      </div>
+
+      {/* Top Collapsible FastAPI & Model Endpoint Configuration Panel */}
+      <CollapsibleCard
+        theme={theme}
+        title="Model & FastAPI Endpoint Configuration"
+        subtitle={
+          endpointConfig.baseUrl
+            ? `Configured: ${endpointConfig.baseUrl}`
+            : 'Offline Fallback Active (Local Physics + Archive Engine)'
+        }
+        summaryLine={
+          endpointConfig.baseUrl
+            ? `Live FastAPI Target: ${endpointConfig.baseUrl} (${endpointConfig.apiKeyHeader})`
+            : 'No external backend required · Local Physics + Archive Inference Engine Active'
+        }
       >
-        <div className="pb-3 border-b border-zinc-200 dark:border-[#27272A]">
-          <h2 className="font-display text-base font-semibold">
-            Domain-Gated Custom Data Importer
-          </h2>
-          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
+        <div className="space-y-4">
+          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+            Configure an optional external FastAPI inference endpoint (`POST /api/analyze`, `GET /health`) and API key header for live remote predictions. Leaving the URL empty seamlessly routes all Virtual Test Lab and Model Console requests through the local deterministic combustion engine.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div className="md:col-span-6 space-y-1">
+              <label
+                htmlFor="psi-api-base-url"
+                className="block text-[11px] font-sans font-medium text-zinc-500"
+              >
+                FastAPI Base URL (Optional — overrides VITE_API_BASE_URL)
+              </label>
+              <div className="relative">
+                <Server className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  id="psi-api-base-url"
+                  type="url"
+                  value={endpointConfig.baseUrl}
+                  onChange={(e) =>
+                    setEndpointConfig((prev) => ({
+                      ...prev,
+                      baseUrl: e.target.value,
+                    }))
+                  }
+                  placeholder="http://127.0.0.1:8000 (leave blank for local offline engine)"
+                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${subSurface}`}
+                />
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-1">
+              <label
+                htmlFor="psi-api-key-header"
+                className="block text-[11px] font-sans font-medium text-zinc-500"
+              >
+                Auth Header
+              </label>
+              <select
+                id="psi-api-key-header"
+                value={endpointConfig.apiKeyHeader}
+                onChange={(e) =>
+                  setEndpointConfig((prev) => ({
+                    ...prev,
+                    apiKeyHeader: e.target.value as 'X-API-Key' | 'Authorization',
+                  }))
+                }
+                className={`w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${cardSurface}`}
+              >
+                <option value="X-API-Key">X-API-Key</option>
+                <option value="Authorization">Authorization</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-4 space-y-1">
+              <label
+                htmlFor="psi-api-key-value"
+                className="block text-[11px] font-sans font-medium text-zinc-500"
+              >
+                API Key / Bearer Token (Optional)
+              </label>
+              <div className="relative">
+                <input
+                  id="psi-api-key-value"
+                  type={showApiKey ? 'text' : 'password'}
+                  value={endpointConfig.apiKeyValue}
+                  onChange={(e) =>
+                    setEndpointConfig((prev) => ({
+                      ...prev,
+                      apiKeyValue: e.target.value,
+                    }))
+                  }
+                  placeholder="Enter secret token if required..."
+                  className={`w-full pl-3 pr-8 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${subSurface}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey((prev) => !prev)}
+                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                >
+                  {showApiKey ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveEndpointConfig}
+                className={`px-3.5 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
+                  isDark
+                    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
+                    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
+                }`}
+              >
+                Save Endpoint Config
+              </button>
+
+              <button
+                type="button"
+                disabled={isTestingEndpoint}
+                onClick={handleTestEndpoint}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer disabled:opacity-60 ${
+                  isDark
+                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
+                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>{isTestingEndpoint ? 'Testing...' : 'Test Endpoint Health'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleUseOfflineEngine}
+                className={`px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                  isDark
+                    ? 'border-[#27272A] text-zinc-400 hover:bg-zinc-800'
+                    : 'border-[#E4E4E7] text-zinc-600 hover:bg-zinc-100'
+                }`}
+              >
+                Reset to Offline Engine
+              </button>
+            </div>
+
+            {endpointHealthNotice && (
+              <div className="flex items-center gap-2 text-xs font-sans">
+                <span
+                  className={`w-2 h-2 rounded-[2px] ${
+                    endpointHealthNotice.mode === 'remote' && endpointHealthNotice.ok
+                      ? 'bg-[#10B981]'
+                      : 'bg-[#F59E0B]'
+                  }`}
+                />
+                <span className="text-zinc-700 dark:text-zinc-200">
+                  {endpointHealthNotice.message}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </CollapsibleCard>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+      {/* Left 7 Columns: Domain-Gated CSV/JSON Custom Data Importer */}
+      <CollapsibleCard
+        theme={theme}
+        title="Domain-Gated Custom Data Importer"
+        subtitle="CSV / JSON telemetry validator & unit normalizer"
+        summaryLine={`Buffer: ${fileName} · ${validationResult ? (validationResult.valid ? `${validationResult.parsedRuns.length} runs verified` : 'Blocked non-combustion upload') : 'Ready for CSV/JSON drop'}`}
+        className="xl:col-span-7"
+      >
+        <div className="space-y-4">
+          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
             Automatically validates combustion/spacecraft domain headers and
             normalizes pressure (kPa/atm → psi) and airflow (cm/s → m/s).
           </p>
-        </div>
 
         {/* Primary Visual Element: Drag-and-Drop Upload Zone */}
         <label
@@ -265,15 +510,19 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                         Runs Normalized)
                       </span>
                     </div>
-                    <span className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300">
+                    <span className="font-sans text-[11px] text-zinc-600 dark:text-zinc-300">
                       Matched keys:{' '}
-                      {validationResult.detectedKeywords.join(', ')}
+                      <span className="font-mono">
+                        {validationResult.detectedKeywords.join(', ')}
+                      </span>
                     </span>
                   </div>
                   {validationResult.unitConversionsApplied.length > 0 && (
-                    <div className="font-mono text-[11px] text-zinc-600 dark:text-zinc-300 pt-1">
+                    <div className="font-sans text-[11px] text-zinc-600 dark:text-zinc-300 pt-1">
                       Smart Unit Normalizer:{' '}
-                      {validationResult.unitConversionsApplied.join(' · ')}
+                      <span className="font-mono tabular-nums">
+                        {validationResult.unitConversionsApplied.join(' · ')}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -360,23 +609,22 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             )}
           </div>
         )}
-      </section>
+        </div>
+      </CollapsibleCard>
 
       {/* Right 5 Columns: PSI Archive Sync Changelog Feed */}
-      <section
-        className={`xl:col-span-5 border rounded-[6px] p-5 space-y-4 ${cardSurface}`}
+      <CollapsibleCard
+        theme={theme}
+        title="PSI Archive Sync Log"
+        subtitle="Schema v3.4"
+        summaryLine={`${syncEntries.length} sync events · ${hasSimulatedNewSync ? 'PSI-164 Synced' : 'Ready for PSI-164 sync test'}`}
+        className="xl:col-span-5"
       >
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-[#27272A]">
-          <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-zinc-500" />
-            <h2 className="font-display text-base font-semibold">
-              PSI Archive Sync Log
-            </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs font-sans text-zinc-500">
+            <Database className="w-3.5 h-3.5" />
+            <span>Incremental investigation synchronization changelog</span>
           </div>
-          <span className="font-mono text-[11px] text-zinc-400">
-            Schema v3.4
-          </span>
-        </div>
 
         <button
           type="button"
@@ -413,8 +661,8 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   : 'bg-zinc-50/80 border-[#E4E4E7]'
               }`}
             >
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="font-bold">{entry.psiId}</span>
+              <div className="flex items-center justify-between text-xs font-sans">
+                <span className="font-mono font-bold tabular-nums">{entry.psiId}</span>
                 <span className="text-zinc-400">{entry.syncedAt}</span>
               </div>
               <h3 className="mt-1 text-xs font-sans font-semibold">
@@ -428,8 +676,12 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
                 }`}
               >
-                <span className="font-mono">
-                  Facility: {entry.facility} · +{entry.runsAdded} Runs
+                <span className="font-sans">
+                  Facility: {entry.facility} ·{' '}
+                  <span className="font-mono tabular-nums">
+                    +{entry.runsAdded}
+                  </span>{' '}
+                  Runs
                 </span>
                 <button
                   type="button"
@@ -442,7 +694,9 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             </div>
           ))}
         </div>
-      </section>
+        </div>
+      </CollapsibleCard>
+      </div>
     </div>
   );
 };

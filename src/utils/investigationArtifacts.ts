@@ -6,6 +6,8 @@ export const FACILITY_DESCRIPTIONS: Record<PsiRun['facility'], string> = {
   Cygnus:
     'Autonomous Pressurized Spacecraft Module — Large-Scale Post-Undocking Cabin Fire Testbed',
   FSL: 'Fluid Science Laboratory (FSL) — Optical Diagnostics & Interferometry Combustion Cell',
+  Virtual:
+    'Pre-Physical Virtual Test Chamber — Validated Microgravity Combustion Model Sandbox',
 };
 
 export interface InvestigationArtifact {
@@ -39,7 +41,7 @@ export function getCanonicalPsiId(run: PsiRun): string {
 }
 
 /**
- * Builds the official NASA PSI investigation archive URL and display path.
+ * Builds the official PSI investigation archive portal link and human-readable search label.
  */
 export function getPsiSourceLink(run: PsiRun): {
   canonicalId: string;
@@ -47,12 +49,10 @@ export function getPsiSourceLink(run: PsiRun): {
   href: string;
 } {
   const canonicalId = getCanonicalPsiId(run);
-  const slug = canonicalId.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
-  const displayPath = `psi.nasa.gov/investigations/${slug}`;
   return {
     canonicalId,
-    displayPath,
-    href: `https://${displayPath}`,
+    displayPath: `Official PSI Portal (Search: ${canonicalId}) ↗`,
+    href: 'https://psi.nasa.gov/',
   };
 }
 

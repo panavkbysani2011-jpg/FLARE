@@ -1,14 +1,18 @@
 import {
+  ConsoleMode,
   HazardOutcome,
   LiteratureChunk,
   MaterialCandidate,
   MissionSpinoffCase,
+  ModelConfidenceSummary,
   PsiInvestigationRecord,
   PsiRun,
   SimulationRequest,
   SimulationResponse,
   TimelinePoint,
+  VirtualTestConfig,
   VizMode,
+  WhatIfScenarioResult,
 } from '../types/psi';
 import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
 import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
@@ -24,12 +28,26 @@ export interface AssistantArchiveContext {
  * Models opposing/concurrent forced-flow flame spread over thermally thin/thick solids
  * and low-temperature cool-flame (NTC) regimes observed in PSI investigations.
  */
+export function getMaterialSpreadMultiplier(material?: string): number {
+  const m = (material ?? 'pmma').toLowerCase();
+  if (m.includes('nomex')) return 0.22;
+  if (m.includes('ptfe') || m.includes('teflon')) return 0.34;
+  if (m.includes('cotton') || m.includes('cfg')) return 0.72;
+  if (m.includes('sibal')) return 0.86;
+  if (m.includes('methanol')) return 0.62;
+  if (m.includes('heptane') || m.includes('decane')) return 0.94;
+  if (m.includes('cellulose') || m.includes('kimwipe')) return 1.06;
+  return 1.0;
+}
+
 export function computeFlameSpreadVelocity(params: {
   O2_pct: number;
   P_psi: number;
   Flow_ms: number;
   g_eff: number;
   Thickness_mm: number;
+  material?: string;
+  ignitionFlux_Wm2?: number;
 }): {
   flameSpread_mms: number;
   confidenceInterval_mms: number;
@@ -37,7 +55,7 @@ export function computeFlameSpreadVelocity(params: {
   hazardStatus: HazardOutcome;
   minSafeThickness_mm: number;
 } {
-  const { O2_pct, P_psi, Flow_ms, g_eff, Thickness_mm } = params;
+  const { O2_pct, P_psi, Flow_ms, g_eff, Thickness_mm, material, ignitionFlux_Wm2 } = params;
 
   // Normalized oxygen factor relative to 21% standard atmosphere
   const o2Factor = Math.pow(Math.max(O2_pct - 13.5, 0.5) / 12.5, 1.48);
@@ -63,7 +81,22 @@ export function computeFlameSpreadVelocity(params: {
   // Thermal thickness heat-sink factor: thinner samples heat rapidly; thicker samples conduct heat away
   const thicknessFactor = Math.pow(2.0 / Math.max(Thickness_mm, 0.2), 0.58);
 
-  const rawSpread = 1.18 * o2Factor * pressureFactor * flowResonance * gravityMod * thicknessFactor;
+  // Candidate material and radiant ignition flux scaling (1.0 when omitted / nominal)
+  const materialFactor = getMaterialSpreadMultiplier(material);
+  const fluxFactor =
+    ignitionFlux_Wm2 !== undefined
+      ? Math.pow(Math.max(ignitionFlux_Wm2, 5000) / 25000, 0.18)
+      : 1.0;
+
+  const rawSpread =
+    1.18 *
+    o2Factor *
+    pressureFactor *
+    flowResonance *
+    gravityMod *
+    thicknessFactor *
+    materialFactor *
+    fluxFactor;
   const flameSpread_mms = Number(Math.max(0.05, Math.min(rawSpread, 8.5)).toFixed(2));
 
   // 95% confidence interval scales slightly with velocity & flow turbulence
@@ -73,7 +106,12 @@ export function computeFlameSpreadVelocity(params: {
 
   // Calculate minimum safe thickness required to self-extinguish (target < 0.45 mm/s)
   const rawMinThickness =
-    2.0 * Math.pow((1.18 * o2Factor * pressureFactor * flowResonance * gravityMod) / 0.45, 1 / 0.58);
+    2.0 *
+    Math.pow(
+      (1.18 * o2Factor * pressureFactor * flowResonance * gravityMod * materialFactor * fluxFactor) /
+        0.45,
+      1 / 0.58
+    );
   const minSafeThickness_mm = Number(Math.max(0.4, Math.min(rawMinThickness, 14.0)).toFixed(1));
 
   // Estimate peak flame temperature (K)
@@ -407,6 +445,149 @@ function findRelevantMissionCases(
   return matched.slice(0, 2);
 }
 
+function normalizeCandidateCode(material?: string): VirtualTestConfig['material'] {
+  const m = (material ?? 'PMMA').toLowerCase();
+  if (m.includes('nomex')) return 'Nomex';
+  if (m.includes('ptfe') || m.includes('teflon')) return 'PTFE';
+  if (m.includes('cotton') || m.includes('cfg')) return 'Cotton-Fiberglass';
+  if (m.includes('sibal')) return 'SIBAL';
+  return 'PMMA';
+}
+
+export function buildWhatIfSweep(
+  req: SimulationRequest,
+  question: string = ''
+): WhatIfScenarioResult[] {
+  const baseMat = normalizeCandidateCode(req.material);
+  const baseFlux = req.ignitionFlux_Wm2 ?? 25000;
+  const qLower = question.toLowerCase();
+
+  // Extract optional target O2, thickness, pressure, gravity or material from query text
+  const o2Match = qLower.match(/(\d+(?:\.\d+)?)\s*%\s*o2|\bo2\s*(?:at|to|=)?\s*(\d+(?:\.\d+)?)/);
+  const requestedO2 = o2Match ? Number(o2Match[1] || o2Match[2]) : null;
+  const thickMatch = qLower.match(/(\d+(?:\.\d+)?)\s*mm/);
+  const requestedThick = thickMatch ? Number(thickMatch[1]) : null;
+  const requestedMat = qLower.includes('nomex')
+    ? ('Nomex' as const)
+    : qLower.includes('ptfe')
+    ? ('PTFE' as const)
+    : qLower.includes('cotton')
+    ? ('Cotton-Fiberglass' as const)
+    : qLower.includes('sibal')
+    ? ('SIBAL' as const)
+    : null;
+  const requestedFlow = qLower.includes('0.04') || qLower.includes('quiescent')
+    ? 0.04
+    : qLower.includes('0.14')
+    ? 0.14
+    : null;
+  const requestedG = qLower.includes('lunar') || qLower.includes('0.166')
+    ? 0.166
+    : qLower.includes('martian') || qLower.includes('0.38')
+    ? 0.38
+    : qLower.includes('orbital') || qLower.includes('0g')
+    ? 0.0
+    : qLower.includes('terrestrial') || qLower.includes('1g')
+    ? 1.0
+    : null;
+
+  const variants: Array<{
+    id: string;
+    label: string;
+    O2_pct: number;
+    P_psi: number;
+    Flow_ms: number;
+    g_eff: number;
+    Thickness_mm: number;
+    material: VirtualTestConfig['material'];
+    ignitionFlux_Wm2: number;
+  }> = [
+    {
+      id: 'baseline',
+      label: 'Active Baseline Config',
+      O2_pct: req.O2_pct,
+      P_psi: req.P_psi,
+      Flow_ms: req.Flow_ms,
+      g_eff: req.g_eff,
+      Thickness_mm: req.Thickness_mm,
+      material: baseMat,
+      ignitionFlux_Wm2: baseFlux,
+    },
+  ];
+
+  if (
+    requestedO2 !== null ||
+    requestedThick !== null ||
+    requestedMat !== null ||
+    requestedFlow !== null ||
+    requestedG !== null
+  ) {
+    variants.push({
+      id: 'requested',
+      label: 'Query Target Perturbation',
+      O2_pct:
+        requestedO2 !== null
+          ? Math.max(14, Math.min(100, requestedO2))
+          : req.O2_pct,
+      P_psi: req.P_psi,
+      Flow_ms: requestedFlow !== null ? requestedFlow : req.Flow_ms,
+      g_eff: requestedG !== null ? requestedG : req.g_eff,
+      Thickness_mm:
+        requestedThick !== null
+          ? Math.max(0.2, Math.min(10, requestedThick))
+          : req.Thickness_mm,
+      material: requestedMat ?? baseMat,
+      ignitionFlux_Wm2: baseFlux,
+    });
+  } else {
+    variants.push({
+      id: 'enriched-o2',
+      label: 'Hypothetical +6% O2 Excursion',
+      O2_pct: Math.min(50, Number((req.O2_pct + 6.0).toFixed(1))),
+      P_psi: req.P_psi,
+      Flow_ms: req.Flow_ms,
+      g_eff: req.g_eff,
+      Thickness_mm: req.Thickness_mm,
+      material: baseMat,
+      ignitionFlux_Wm2: baseFlux,
+    });
+  }
+
+  variants.push({
+    id: 'cool-flame-flow',
+    label: 'Low-Flow Cool-Flame Window (0.04 m/s)',
+    O2_pct: Math.min(26, req.O2_pct),
+    P_psi: req.P_psi,
+    Flow_ms: 0.04,
+    g_eff: Math.min(0.166, req.g_eff),
+    Thickness_mm: req.Thickness_mm,
+    material: baseMat,
+    ignitionFlux_Wm2: baseFlux,
+  });
+
+  variants.push({
+    id: 'thick-quenching',
+    label: 'Conductive Quenching (+2.0 mm / Nomex)',
+    O2_pct: Math.max(21.0, Math.min(req.O2_pct, 28.0)),
+    P_psi: Math.max(8.2, req.P_psi),
+    Flow_ms: req.Flow_ms,
+    g_eff: req.g_eff,
+    Thickness_mm: Number(Math.min(8.0, req.Thickness_mm + 2.0).toFixed(1)),
+    material: baseMat === 'Nomex' ? 'Nomex' : 'Cotton-Fiberglass',
+    ignitionFlux_Wm2: baseFlux,
+  });
+
+  return variants.map((v) => {
+    const out = computeFlameSpreadVelocity(v);
+    return {
+      ...v,
+      flameSpread_mms: out.flameSpread_mms,
+      minSafeThickness_mm: out.minSafeThickness_mm,
+      outcome: out.hazardStatus,
+    };
+  });
+}
+
 export function buildAssistantReply(
   question: string,
   sim: Omit<SimulationResponse, 'assistantReply'>,
@@ -416,10 +597,21 @@ export function buildAssistantReply(
   steps: string[];
   citations: string[];
   suggestedVizMode?: VizMode;
+  recommendedParams?: Partial<VirtualTestConfig>;
+  whatIfRows?: WhatIfScenarioResult[];
 } {
   const qLower = question.toLowerCase();
-  let suggestedVizMode: VizMode | undefined;
+  const mode: ConsoleMode =
+    req.consoleMode ??
+    (req.activeChartContext || qLower.includes('decode') || qLower.includes('visual analytics')
+      ? 'decoder'
+      : qLower.includes('what if') || qLower.includes('what-if') || qLower.includes('sweep') || qLower.includes('hypothetical')
+      ? 'what-if'
+      : qLower.includes('audit') || qLower.includes('compliance') || qLower.includes('margin')
+      ? 'risk-audit'
+      : 'literature');
 
+  let suggestedVizMode: VizMode | undefined;
   if (qLower.includes('material') || qLower.includes('nomex') || qLower.includes('pmma')) {
     suggestedVizMode = 'material-safety';
   } else if (qLower.includes('timeline') || qLower.includes('cool flame') || qLower.includes('sensor') || qLower.includes('temperature')) {
@@ -440,7 +632,7 @@ export function buildAssistantReply(
   const matchedChunks = findRelevantLiteratureExcerpts(
     question,
     archiveContext?.literatureChunks ?? [],
-    2
+    3
   );
   const matchedPsiFromQuery = (archiveContext?.investigations ?? []).find(
     (inv) => qLower.includes(inv.psiId.toLowerCase()) || (inv.acronym && qLower.includes(inv.acronym.toLowerCase()))
@@ -463,10 +655,110 @@ export function buildAssistantReply(
       ? `Literature Grounding (${matchedChunks[0].psi_id}, p.${matchedChunks[0].page_number}): "${matchedChunks[0].text
           .replace(/\s+/g, ' ')
           .trim()
-          .slice(0, 190)}..."`
+          .slice(0, 210)}..."`
       : null;
 
-  // Historical Incident or Spin-off Specific Response
+  // MODE 1: TELEMETRY & CHART DECODER
+  if (mode === 'decoder') {
+    const chartCtx = req.activeChartContext;
+    if (chartCtx) {
+      const steps = [
+        `Decoded View [${chartCtx.techniqueName}] on ${chartCtx.datasetLabel} (${chartCtx.runCount.toLocaleString()} plotted observations): Mapping ${chartCtx.xAxisLabel} -> ${chartCtx.yAxisLabel} grouped by ${chartCtx.colorByLabel}.`,
+        `Primary Observed Pattern: ${chartCtx.summaryHeadline}`,
+        chartCtx.anomalies.length > 0
+          ? `Detected Regimes & Outliers: ${chartCtx.anomalies.join(' ')}`
+          : `Active Regime Telemetry: Chamber operates at ${req.O2_pct.toFixed(1)}% O2 and ${req.Flow_ms.toFixed(2)} m/s (${req.g_eff.toFixed(3)}g) yielding ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s (${sim.hazardStatus}).`,
+        `Physical Interpretation: In reduced gravity (${req.g_eff.toFixed(3)}g), eliminating buoyant plumes creates a peak oxidizer-transport band between 0.05 and 0.22 m/s (PSI-99 SAFFIRE-II / PSI-25 BASS-II), while flows <= 0.09 m/s allow radiative heat loss to lock fuels into 550K–800K non-luminous cool flames (PSI-69 FLEX).`,
+      ];
+      if (chunkSnippetStep) steps.push(chunkSnippetStep);
+      const needsMitigation = !sim.safeMaterialCheck.passed || sim.hazardStatus === 'Rapid Flame Spread';
+      return {
+        steps,
+        citations: Array.from(new Set(['PSI-99', 'PSI-69', 'PSI-25', 'PSI-159', ...citationSet])).slice(0, 5),
+        suggestedVizMode,
+        recommendedParams: needsMitigation
+          ? {
+              O2_pct: Math.min(req.O2_pct, 26.5),
+              Thickness_mm: Math.max(req.Thickness_mm, sim.safeMaterialCheck.minSafeThickness_mm),
+              material: 'Cotton-Fiberglass',
+            }
+          : undefined,
+      };
+    }
+
+    const coolPts = sim.timelineSeries.filter((p) => p.isCoolFlameZone);
+    const maxCo = Math.max(...sim.timelineSeries.map((p) => p.coYield_ppm));
+    const minVis = Math.min(...sim.timelineSeries.map((p) => p.opticalVisibility_pct));
+    const steps = [
+      `Active Telemetry Decode (${normalizeCandidateCode(req.material)}, ${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s, ${req.g_eff.toFixed(3)}g): Model computes ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s spread with peak gas temperature ${sim.peakTemp_K} K (${sim.hazardStatus}).`,
+      coolPts.length > 0
+        ? `Non-Luminous Cool-Flame Signature Detected: Gas temperature occupies the 550K–800K window across ${coolPts.length * 5}s of trajectory while visible smoke/flame visibility drops to ${minVis}% and peak CO reaches ${maxCo} ppm (requires IR/CO sensing per PSI-69 FLEX & PSI-102 SAME).`
+        : `Thermal Trajectory Decode: Radiative-convective balance tracks monotonic combustion with peak ${maxCo} ppm CO emission and ${minVis}% optical clarity at t=120s.`,
+      `Archive Anchor Comparison: Closest flight benchmark is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% parameter proximity), corroborated by ${sim.modelConfidence?.validatedRunCount ?? sim.nearestRuns.length} nearby calibrated PSI runs.`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
+    return {
+      steps,
+      citations: Array.from(new Set(['PSI-69', 'PSI-102', 'PSI-99', ...citationSet])).slice(0, 5),
+      suggestedVizMode: 'sensor-timeline',
+    };
+  }
+
+  // MODE 2: HYPOTHETICAL "WHAT-IF" SWEEP
+  if (mode === 'what-if') {
+    const whatIfRows = buildWhatIfSweep(req, question);
+    const targetRow = whatIfRows[1] ?? whatIfRows[0];
+    const safeRow = [...whatIfRows].sort((a, b) => a.flameSpread_mms - b.flameSpread_mms)[0];
+    const steps = [
+      `Executed 4-scenario parametric sweep anchored at ${whatIfRows[0].O2_pct.toFixed(1)}% O2, ${whatIfRows[0].P_psi.toFixed(1)} psi, ${whatIfRows[0].Flow_ms.toFixed(2)} m/s (${whatIfRows[0].material}, ${whatIfRows[0].Thickness_mm.toFixed(1)} mm).`,
+      `Primary Perturbation (${targetRow.label}): Shifts flame spread rate to ${targetRow.flameSpread_mms.toFixed(2)} mm/s [${targetRow.outcome}] and requires minimum quenching thickness >= ${targetRow.minSafeThickness_mm.toFixed(1)} mm.`,
+      `Lowest-Hazard Variant (${safeRow.label}): Reduces spread speed to ${safeRow.flameSpread_mms.toFixed(2)} mm/s [${safeRow.outcome}] (${((1 - safeRow.flameSpread_mms / Math.max(whatIfRows[0].flameSpread_mms, 0.05)) * 100).toFixed(0)}% change vs baseline).`,
+      `Apply Parameter Action: Click any scenario row or the primary action below to load validated parameters straight into the Virtual Test Lab chamber.`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
+    return {
+      steps,
+      citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-159', ...citationSet])).slice(0, 5),
+      suggestedVizMode: 'multi-variable',
+      recommendedParams: {
+        O2_pct: targetRow.O2_pct,
+        P_psi: targetRow.P_psi,
+        Flow_ms: targetRow.Flow_ms,
+        g_eff: targetRow.g_eff,
+        Thickness_mm: targetRow.Thickness_mm,
+        material: targetRow.material,
+        ignitionFlux_Wm2: targetRow.ignitionFlux_Wm2,
+      },
+      whatIfRows,
+    };
+  }
+
+  // MODE 3: PRE-TEST RISK AUDIT
+  if (mode === 'risk-audit') {
+    const matCode = normalizeCandidateCode(req.material);
+    const coolWindowActive = req.Flow_ms <= 0.09 && req.g_eff <= 0.25 && req.O2_pct >= 18;
+    const conf = sim.modelConfidence;
+    const mitigatedThickness = Number(Math.min(10.0, Math.max(req.Thickness_mm, sim.safeMaterialCheck.minSafeThickness_mm + 0.5)).toFixed(1));
+    const steps = [
+      `Gate 1 — Flame Spread Envelope: ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s vs. 0.48 mm/s self-extinguishing bound -> ${sim.flameSpread_mms < 0.48 ? 'PASS' : sim.flameSpread_mms < 1.3 ? 'CAUTION' : 'FAIL'} (${sim.hazardStatus}).`,
+      `Gate 2 — Conductive Quenching Margin: Configured ${matCode} thickness ${req.Thickness_mm.toFixed(1)} mm vs. ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm minimum threshold -> ${sim.safeMaterialCheck.passed ? 'PASS' : 'FAIL'} (${sim.safeMaterialCheck.margin_mm >= 0 ? '+' : ''}${sim.safeMaterialCheck.margin_mm.toFixed(1)} mm margin; verified via PSI-159).`,
+      `Gate 3 — Sensor & Cool-Flame Exposure: ${coolWindowActive ? 'WARNING — Low-velocity ventilation (<=0.09 m/s) in low gravity permits 550K–800K non-luminous cool flames invisible to optical smoke cameras (PSI-69 FLEX / PSI-102 SAME).' : 'CLEAR — Forced convective flow exceeds quiescent cool-flame trapping window.'}`,
+      `Gate 4 — Pre-Physical Chamber Decision: Model Confidence is ${conf?.confidencePct.toFixed(1) ?? '90.0'}% (${conf?.validatedRunCount ?? sim.nearestRuns.length} nearby runs) -> Physical Testing ${conf?.physicalTestingRecommendation ?? 'Recommended'}. Recommended mitigation loads >= ${mitigatedThickness.toFixed(1)} mm Nomex/Cotton-Fiberglass barrier.`,
+    ];
+    if (chunkSnippetStep) steps.push(chunkSnippetStep);
+    return {
+      steps,
+      citations: Array.from(new Set(['PSI-159', 'PSI-99', 'PSI-69', 'PSI-102', ...citationSet])).slice(0, 5),
+      suggestedVizMode: 'material-safety',
+      recommendedParams: {
+        Thickness_mm: mitigatedThickness,
+        material: matCode === 'Nomex' ? 'Nomex' : 'Cotton-Fiberglass',
+        O2_pct: Math.min(req.O2_pct, 26.5),
+      },
+    };
+  }
+
+  // MODE 4 (and Historical/Investigation Specific Queries): LITERATURE & ARCHIVE SYNTHESIS
   if (matchedCases.length > 0 && !qLower.includes('material safety comparison')) {
     const primaryCase = matchedCases[0];
     const caseSteps = [
@@ -481,11 +773,21 @@ export function buildAssistantReply(
       steps: caseSteps,
       citations: Array.from(citationSet).slice(0, 5),
       suggestedVizMode,
+      recommendedParams: primaryCase.simulatableEnvironment
+        ? {
+            O2_pct: primaryCase.simulatableEnvironment.O2_pct,
+            P_psi: primaryCase.simulatableEnvironment.P_psi,
+            Flow_ms: primaryCase.simulatableEnvironment.Flow_ms,
+            g_eff: primaryCase.simulatableEnvironment.g_eff,
+            Thickness_mm: primaryCase.simulatableEnvironment.Thickness_mm,
+          }
+        : undefined,
     };
   }
 
   // Specific PSI Investigation inquiry
   if (matchedPsiFromQuery) {
+    const rep = matchedPsiFromQuery.representativeRun;
     const steps = [
       `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) — ${matchedPsiFromQuery.title}: Conducted in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} calibrated experimental runs in CSV.`,
       `Science Objective: ${matchedPsiFromQuery.objective.slice(0, 210)}${matchedPsiFromQuery.objective.length > 210 ? '...' : ''}`,
@@ -496,6 +798,13 @@ export function buildAssistantReply(
       steps,
       citations: [matchedPsiFromQuery.psiId, ...Array.from(citationSet)].slice(0, 4),
       suggestedVizMode,
+      recommendedParams: {
+        O2_pct: rep.O2_pct,
+        P_psi: rep.P_psi,
+        Flow_ms: rep.Flow_ms,
+        g_eff: rep.g_eff,
+        Thickness_mm: rep.Thickness_mm,
+      },
     };
   }
 
@@ -503,22 +812,26 @@ export function buildAssistantReply(
     const safest = [...sim.materialRankings].sort((a, b) => a.flameSpread_mms - b.flameSpread_mms)[0];
     const riskiest = [...sim.materialRankings].sort((a, b) => b.flameSpread_mms - a.flameSpread_mms)[0];
     const steps = [
-      `Switched view to Material Safety Comparison for ${req.O2_pct.toFixed(1)}% O2 at ${req.P_psi.toFixed(1)} psi and ${req.Flow_ms.toFixed(2)} m/s airflow.`,
+      `Material Safety Comparison under ${req.O2_pct.toFixed(1)}% O2 at ${req.P_psi.toFixed(1)} psi and ${req.Flow_ms.toFixed(2)} m/s airflow.`,
       `${riskiest.name} exhibits the highest flame spread rate (${riskiest.flameSpread_mms.toFixed(2)} mm/s) because its Limiting Oxygen Index (${riskiest.limitingO2_pct}% O2) is exceeded, matching ${topMatch}.`,
       `PTFE Wire Jacket resists open flame propagation (${sim.materialRankings.find((m) => m.name.includes('PTFE'))?.flameSpread_mms.toFixed(2)} mm/s) but triggers high fractal soot aggregation and CO yield under low flow (PSI-102 / SAME).`,
-      `Engineering recommendation: Substitute ${safest.name} (spread ${safest.flameSpread_mms.toFixed(2)} mm/s, LOI ${safest.limitingO2_pct}% O2 — also proven in fire attire spin-offs) or increase thickness above ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (PSI-159).`,
+      `Engineering recommendation: Substitute ${safest.name} (spread ${safest.flameSpread_mms.toFixed(2)} mm/s, LOI ${safest.limitingO2_pct}% O2) or increase thickness above ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (PSI-159).`,
     ];
     if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
       steps,
       citations: Array.from(new Set(['PSI-99', 'PSI-102', 'PSI-106', 'PSI-159', ...citationSet])).slice(0, 5),
       suggestedVizMode: 'material-safety',
+      recommendedParams: {
+        material: 'Nomex',
+        Thickness_mm: Math.max(req.Thickness_mm, sim.safeMaterialCheck.minSafeThickness_mm),
+      },
     };
   }
 
   if (qLower.includes('compare')) {
     const steps = [
-      `Normalized active cabin simulation (${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s) across all parallel telemetry axes.`,
+      `Normalized active chamber simulation (${req.O2_pct.toFixed(1)}% O2, ${req.P_psi.toFixed(1)} psi, ${req.Flow_ms.toFixed(2)} m/s) across all parallel telemetry axes.`,
       `Nearest CSV archive match is ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 94}% parameter similarity) followed by ${secondMatch}.`,
       `At ${req.Thickness_mm.toFixed(1)} mm thickness, predicted flame spread is ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s, whereas increasing thickness to >=${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm provides conductive heat-sink quenching (PSI-159).`,
       `Low-velocity ventilation (${req.Flow_ms.toFixed(2)} m/s) in reduced gravity (${req.g_eff.toFixed(3)}g) sustains boundary-layer oxidizer transport without convective blow-off (PSI-25 BASS-II).`,
@@ -531,19 +844,92 @@ export function buildAssistantReply(
     };
   }
 
-  // Default step-by-step cabin risk breakdown (plus literature grounding if available)
-  const defaultSteps = [
-    `Atmosphere Assessment: At ${req.O2_pct.toFixed(1)}% O2 and ${req.P_psi.toFixed(1)} psi (${req.g_eff.toFixed(3)}g), the cabin operates in the ${sim.hazardStatus} regime with a predicted spread speed of ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s.`,
-    `Microgravity Airflow Effect: Current duct velocity (${req.Flow_ms.toFixed(2)} m/s) sits near the 0.05–0.20 m/s microgravity oxygen-replenishment band documented in PSI-99 and PSI-25, matching ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% similarity).`,
-    `10-Second Growth & Cool-Flame Check: Unmitigated combustion projects a ${sim.forecast10s.radius_mm.toFixed(1)} mm flame radius and +${sim.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin pressure rise over 10s; monitor 550K–800K non-luminous cool flames (PSI-69 FLEX, PSI-68 FLEX-2).`,
-    `Mitigation Threshold: Current ${req.Thickness_mm.toFixed(1)} mm material ${sim.safeMaterialCheck.passed ? 'PASSES' : 'FAILS'} the ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm conductive quenching threshold verified in PSI-159.`,
+  // General Literature & Archive Synthesis response
+  const steps = [
+    `Archive Synthesis (${archiveContext?.investigations?.length ?? 18} PSI Investigations · ${archiveContext?.literatureChunks?.length ?? 0} indexed excerpts): Active ${req.O2_pct.toFixed(1)}% O2 / ${req.P_psi.toFixed(1)} psi state (${req.g_eff.toFixed(3)}g) yields ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s (${sim.hazardStatus}).`,
+    `Experimental Flight Grounding: Nearest calibrated records are ${topMatch} (${sim.nearestRuns[0]?.similarityPct ?? 92}% similarity) and ${secondMatch}.`,
+    matchedChunks[1]
+      ? `Secondary Technical Citation (${matchedChunks[1].psi_id}, p.${matchedChunks[1].page_number}): "${matchedChunks[1].text.replace(/\s+/g, ' ').trim().slice(0, 190)}..."`
+      : `10-Second Growth & Cool-Flame Bound: Projects ${sim.forecast10s.radius_mm.toFixed(1)} mm radius (+${sim.forecast10s.pressureRise_kPa.toFixed(2)} kPa) while monitoring 550K–800K non-luminous cool flames (PSI-69 FLEX).`,
+    `Quenching Criterion: Configured ${req.Thickness_mm.toFixed(1)} mm thickness ${sim.safeMaterialCheck.passed ? 'PASSES' : 'FAILS'} the ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm conductive quenching boundary verified in PSI-159.`,
   ];
-  if (chunkSnippetStep) defaultSteps.push(chunkSnippetStep);
+  if (chunkSnippetStep) steps.push(chunkSnippetStep);
 
   return {
-    steps: defaultSteps,
+    steps,
     citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-69', 'PSI-68', 'PSI-159', ...citationSet])).slice(0, 5),
     suggestedVizMode,
+  };
+}
+
+export function computeModelConfidence(
+  req: SimulationRequest,
+  core: {
+    flameSpread_mms: number;
+    hazardStatus: HazardOutcome;
+    minSafeThickness_mm: number;
+  },
+  catalog: PsiRun[] = BASELINE_PSI_RUNS
+): ModelConfidenceSummary {
+  const scored = catalog
+    .map((run) => {
+      const dO2 = Math.abs(run.O2_pct - req.O2_pct) / 40;
+      const dP = Math.abs(run.P_psi - req.P_psi) / 10.4;
+      const dFlow = Math.abs(run.Flow_ms - req.Flow_ms) / 0.4;
+      const dG = Math.abs(run.g_eff - req.g_eff) / 1.0;
+      const dThick = Math.abs(run.Thickness_mm - req.Thickness_mm) / 6.0;
+      const dist = Math.sqrt(
+        0.34 * dO2 * dO2 +
+          0.18 * dP * dP +
+          0.24 * dFlow * dFlow +
+          0.12 * dG * dG +
+          0.12 * dThick * dThick
+      );
+      const similarityPct = Math.round(Math.max(12, Math.min(99, (1 - dist * 0.72) * 100)));
+      return { run, similarityPct };
+    })
+    .sort((a, b) => b.similarityPct - a.similarityPct);
+
+  const nearbyRuns = scored.filter((s) => s.similarityPct >= 75);
+  const validatedRuns = nearbyRuns.length >= 3 ? nearbyRuns : scored.filter((s) => s.similarityPct >= 62);
+  const validatedRunCount = validatedRuns.length;
+  const top = scored[0];
+  const topSim = top?.similarityPct ?? 80;
+
+  const coverageBonus = Math.min(8.5, Math.log10(Math.max(1, validatedRunCount) + 1) * 4.2);
+  const extrapolationPenalty =
+    (req.O2_pct > 36 ? 6.5 : 0) +
+    (req.Flow_ms > 0.35 ? 5.0 : 0) +
+    (req.Thickness_mm < 0.6 ? 4.5 : 0) +
+    ((req.ignitionFlux_Wm2 ?? 25000) > 45000 ? 4.0 : 0);
+
+  const confidencePct = Number(
+    Math.max(58.0, Math.min(98.6, topSim * 0.91 + coverageBonus + 1.8 - extrapolationPenalty)).toFixed(1)
+  );
+
+  const physicalTestingRecommendation: 'Avoidable' | 'Recommended' =
+    confidencePct >= 88.5 &&
+    validatedRunCount >= 4 &&
+    core.hazardStatus !== 'Cool Flame Caution' &&
+    req.O2_pct <= 33
+      ? 'Avoidable'
+      : 'Recommended';
+
+  const nearestDeltaSummary = top
+    ? `Nearest anchor ${top.run.psiId}: ΔO2 ${Math.abs(top.run.O2_pct - req.O2_pct).toFixed(1)}%, ΔP ${Math.abs(top.run.P_psi - req.P_psi).toFixed(1)} psi, ΔFlow ${Math.abs(top.run.Flow_ms - req.Flow_ms).toFixed(2)} m/s.`
+    : 'Interpolated directly from baseline microgravity flame-spread manifold.';
+
+  const rationale =
+    physicalTestingRecommendation === 'Avoidable'
+      ? `Model confidence ${confidencePct}% is anchored by ${validatedRunCount} nearby calibrated PSI runs inside a well-characterized regime; pre-physical chamber testing can be bypassed unless material batch certification is required.`
+      : `Model confidence ${confidencePct}% flags elevated uncertainty (${core.hazardStatus === 'Cool Flame Caution' ? 'transitional cool-flame kinetics' : req.O2_pct > 33 ? 'high-oxygen boundary extrapolation' : 'sparse archive coverage'} across ${validatedRunCount} nearby runs); physical confirmation testing is advised.`;
+
+  return {
+    confidencePct,
+    validatedRunCount,
+    nearestDeltaSummary,
+    physicalTestingRecommendation,
+    rationale,
   };
 }
 
@@ -558,7 +944,13 @@ export function runLocalPhysicsSimulation(
     Flow_ms: req.Flow_ms,
     g_eff: req.g_eff,
     Thickness_mm: req.Thickness_mm,
+    material: req.material,
+    ignitionFlux_Wm2: req.ignitionFlux_Wm2,
   });
+
+  // Normalize out active candidate material multiplier when comparing all 5 materials in qualification matrix
+  const activeMaterialMult = getMaterialSpreadMultiplier(req.material);
+  const ambientBaseSpread = core.flameSpread_mms / Math.max(activeMaterialMult, 0.1);
 
   // 10s growth forecast
   const radius_mm = Number((12.0 + core.flameSpread_mms * 10.0 * (1 + req.Flow_ms * 0.45)).toFixed(1));
@@ -570,6 +962,7 @@ export function runLocalPhysicsSimulation(
   const margin_mm = Number((req.Thickness_mm - core.minSafeThickness_mm).toFixed(1));
 
   const nearestRuns = findNearestPsiRuns(req, catalog);
+  const modelConfidence = computeModelConfidence(req, core, catalog);
   const timelineSeries = generateTimelineSeries({
     ...req,
     peakTemp_K: core.peakTemp_K,
@@ -577,7 +970,7 @@ export function runLocalPhysicsSimulation(
   });
   const materialRankings = generateMaterialRankings({
     ...req,
-    baseSpread_mms: core.flameSpread_mms,
+    baseSpread_mms: ambientBaseSpread,
   });
 
   const headlineTakeaway: SimulationResponse['headlineTakeaway'] = {
@@ -604,6 +997,7 @@ export function runLocalPhysicsSimulation(
       passed,
       margin_mm,
     },
+    modelConfidence,
     nearestRuns,
     timelineSeries,
     materialRankings,

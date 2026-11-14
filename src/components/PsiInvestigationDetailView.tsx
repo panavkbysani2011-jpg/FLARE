@@ -31,6 +31,7 @@ import {
   getPsiSourceLink,
 } from '../utils/investigationArtifacts';
 import { getRunsForInvestigation } from '../services/dataLoader';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface PsiInvestigationDetailViewProps {
   run: PsiRun | null;
@@ -324,42 +325,73 @@ export const PsiInvestigationDetailView: React.FC<
             }`}
           >
             <Sliders className="w-3.5 h-3.5" />
-            <span>Load Parameters into Simulator</span>
+            <span>Load Parameters into Virtual Test Lab</span>
           </button>
         </div>
       </div>
 
       {/* 1. Header & Executive Summary */}
-      <section className={`border rounded-[6px] p-5 space-y-4 ${cardSurface}`}>
+      <CollapsibleCard
+        theme={theme}
+        title="Investigation Executive Summary & Hardware Context"
+        subtitle={`${investigationRecord ? `${investigationRecord.psiId} · ${investigationRecord.acronym}` : run.psiId} · ${run.facility} · ${run.outcome}`}
+        summaryLine={`${investigationRecord?.title ?? run.investigationTitle} · ${run.flameSpread_mms.toFixed(2)} mm/s (${run.outcome})`}
+        bodyClassName="p-5 space-y-4"
+      >
         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
           <div className="space-y-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-mono font-bold tracking-tight">
-                {investigationRecord
-                  ? `${investigationRecord.psiId} · ${investigationRecord.acronym}`
-                  : run.psiId}
+              <span className="font-sans font-bold tracking-tight">
+                {investigationRecord ? (
+                  <>
+                    <span className="font-mono tabular-nums">{investigationRecord.psiId}</span> ·{' '}
+                    {investigationRecord.acronym}
+                  </>
+                ) : (
+                  <span className="font-mono tabular-nums">{run.psiId}</span>
+                )}
               </span>
               <span className="text-zinc-400">·</span>
-              <span className="font-mono text-zinc-500 dark:text-zinc-400">
-                Active Run: {run.runCode}
+              <span className="font-sans text-zinc-500 dark:text-zinc-400">
+                Active Run: <span className="font-mono">{run.runCode}</span>
               </span>
               <span className="text-zinc-400">·</span>
-              <span className="font-mono text-zinc-500 dark:text-zinc-400">
+              <span className="font-sans text-zinc-500 dark:text-zinc-400">
                 Facility: {run.facility}
               </span>
               {investigationRecord?.doi && (
                 <>
                   <span className="text-zinc-400">·</span>
-                  <span className="font-mono text-zinc-500 dark:text-zinc-400">
-                    DOI: {investigationRecord.doi}
-                  </span>
+                  {investigationRecord.doiUrl ? (
+                    <a
+                      href={investigationRecord.doiUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-sans text-zinc-600 dark:text-zinc-300 hover:underline"
+                    >
+                      <span>
+                        DOI:{' '}
+                        <span className="font-mono">
+                          {investigationRecord.doi}
+                        </span>
+                      </span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <span className="font-sans text-zinc-500 dark:text-zinc-400">
+                      DOI:{' '}
+                      <span className="font-mono">
+                        {investigationRecord.doi}
+                      </span>
+                    </span>
+                  )}
                 </>
               )}
             </div>
 
-            <h2 className="font-display text-xl font-bold tracking-tight leading-snug">
+            <h1 className="font-display text-xl font-bold tracking-tight leading-snug">
               {investigationRecord?.title ?? run.investigationTitle}
-            </h2>
+            </h1>
 
             <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
               Fuel / Substrate:{' '}
@@ -367,10 +399,14 @@ export const PsiInvestigationDetailView: React.FC<
                 {run.material}
               </span>{' '}
               · Cool-Flame Regime:{' '}
-              <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">
-                {run.coolFlameObserved
-                  ? 'DETECTED (550K–800K NTC)'
-                  : 'NOT OBSERVED'}
+              <span className="font-sans font-semibold text-zinc-800 dark:text-zinc-200">
+                {run.coolFlameObserved ? (
+                  <>
+                    DETECTED (<span className="font-mono tabular-nums">550K–800K</span> NTC)
+                  </>
+                ) : (
+                  'NOT OBSERVED'
+                )}
               </span>
               {investigationRecord?.principalInvestigators &&
                 investigationRecord.principalInvestigators.length > 0 && (
@@ -425,7 +461,7 @@ export const PsiInvestigationDetailView: React.FC<
               {FACILITY_DESCRIPTIONS[run.facility]}
             </p>
             {investigationRecord && (
-              <div className="pt-1 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              <div className="pt-1 font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
                 Center: {investigationRecord.managingCenter} ·{' '}
                 {investigationRecord.flightPlatform}
               </div>
@@ -452,28 +488,16 @@ export const PsiInvestigationDetailView: React.FC<
             )}
           </div>
         </div>
-      </section>
+      </CollapsibleCard>
 
       {/* 2. Calibrated Telemetry & Real CSV Experimental Runs Table */}
-      <section className={`border rounded-[6px] p-5 space-y-4 ${cardSurface}`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 className="font-display text-sm font-semibold">
-              Active Run Telemetry ({run.runCode}) & Experimental CSV Sweep Table
-            </h3>
-            <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Showing calibrated parameters for {run.runCode} and all{' '}
-              <span className="font-mono font-semibold">
-                {investigationRuns.length}
-              </span>{' '}
-              experimental runs parsed from{' '}
-              <span className="font-mono">master_psi_telemetry.csv</span>.
-            </p>
-          </div>
-          <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
-            Record {canonicalId} / {run.runCode}
-          </span>
-        </div>
+      <CollapsibleCard
+        theme={theme}
+        title={`Active Run Telemetry (${run.runCode}) & Experimental CSV Sweep Table`}
+        subtitle={`${investigationRuns.length} experimental runs parsed from master_psi_telemetry.csv · Record ${canonicalId} / ${run.runCode}`}
+        summaryLine={`${run.O2_pct.toFixed(1)}% O2 · ${run.P_psi.toFixed(1)} psi · ${run.Flow_ms.toFixed(2)} m/s · ${run.flameSpread_mms.toFixed(2)} mm/s (${investigationRuns.length} CSV runs)`}
+        bodyClassName="p-5 space-y-4"
+      >
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {telemetryCells.map((cell) => (
@@ -521,7 +545,7 @@ export const PsiInvestigationDetailView: React.FC<
               </div>
 
               {totalRunPages > 1 && (
-                <div className="flex items-center gap-1 text-xs font-mono">
+                <div className="flex items-center gap-1 text-xs font-sans">
                   <button
                     type="button"
                     disabled={clampedPage <= 1}
@@ -533,7 +557,7 @@ export const PsiInvestigationDetailView: React.FC<
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
-                  <span className="px-2 tabular-nums">
+                  <span className="px-2 font-mono tabular-nums">
                     {clampedPage}/{totalRunPages}
                   </span>
                   <button
@@ -666,21 +690,17 @@ export const PsiInvestigationDetailView: React.FC<
             </table>
           </div>
         </div>
-      </section>
+      </CollapsibleCard>
 
       {/* 3. Archive Inventory, Literature Excerpts & Publications */}
       {(investigationRecord || investigationChunks.length > 0) && (
-        <section className={`border rounded-[6px] p-5 space-y-4 ${cardSurface}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-display text-sm font-semibold">
-              Archive Reports, Literature Chunks & Peer-Reviewed Publications
-            </h3>
-            {investigationRecord && (
-              <span className="font-mono text-[11px] text-zinc-500">
-                {investigationRecord.auditStatus}
-              </span>
-            )}
-          </div>
+        <CollapsibleCard
+          theme={theme}
+          title="Archive Reports, Literature Chunks & Peer-Reviewed Publications"
+          subtitle={investigationRecord?.auditStatus}
+          summaryLine={`${investigationChunks.length} literature excerpts · ${investigationRecord?.publications.length ?? 0} peer-reviewed publications`}
+          bodyClassName="p-5 space-y-4"
+        >
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
             {/* Literature Chunks for this PSI */}
@@ -700,11 +720,12 @@ export const PsiInvestigationDetailView: React.FC<
                     key={ch.chunk_id}
                     className={`p-3 rounded-[4px] border space-y-1 ${cellSurface}`}
                   >
-                    <div className="flex items-center justify-between gap-2 text-[11px] font-mono text-zinc-500">
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-sans text-zinc-500">
                       <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-                        {ch.psi_id} · p. {ch.page_number}
+                        <span className="font-mono tabular-nums">{ch.psi_id}</span> · p.{' '}
+                        <span className="font-mono tabular-nums">{ch.page_number}</span>
                       </span>
-                      <span className="truncate max-w-[280px]">
+                      <span className="font-mono truncate max-w-[280px]">
                         {ch.source_file}
                       </span>
                     </div>
@@ -770,10 +791,10 @@ export const PsiInvestigationDetailView: React.FC<
                     {investigationRecord.spreadsheets.length} tables ·{' '}
                     {investigationRecord.pdfs.length} PDFs)
                   </div>
-                  <div className="space-y-1 max-h-[160px] overflow-y-auto font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <div className="space-y-1 max-h-[160px] overflow-y-auto font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
                     {investigationRecord.spreadsheets.map((s) => (
                       <div key={s} className="truncate text-zinc-700 dark:text-zinc-200">
-                        [CSV/XLS] {s}
+                        [CSV/XLS] <span className="font-mono">{s}</span>
                       </div>
                     ))}
                     {investigationRecord.pdfs.slice(0, 12).map((p) => (
@@ -786,24 +807,17 @@ export const PsiInvestigationDetailView: React.FC<
               )}
             </div>
           </div>
-        </section>
+        </CollapsibleCard>
       )}
 
       {/* 4. Generated Protocol & Calibrated Artifacts Browser */}
-      <section className={`border rounded-[6px] p-5 space-y-4 ${cardSurface}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-display text-sm font-semibold">
-              Investigation Protocol & Calibrated Run Summaries
-            </h3>
-            <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Inspect generated protocols, sensor calibration bounds, and time-slice telemetry for {run.runCode}.
-            </p>
-          </div>
-          <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
-            {artifacts.length} Calibrated Summaries
-          </span>
-        </div>
+      <CollapsibleCard
+        theme={theme}
+        title="Investigation Protocol & Calibrated Run Summaries"
+        subtitle={`Inspect generated protocols, sensor calibration bounds, and time-slice telemetry for ${run.runCode} (${artifacts.length} Calibrated Summaries)`}
+        summaryLine={`${artifacts.length} generated protocol & calibration artifacts · Active: ${activeArtifact?.title ?? 'None'}`}
+        bodyClassName="p-5 space-y-4"
+      >
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           <div className="lg:col-span-5 space-y-2">
@@ -833,7 +847,7 @@ export const PsiInvestigationDetailView: React.FC<
                       </span>
                     </div>
                     <span
-                      className={`font-mono text-[10px] shrink-0 tabular-nums ${
+                      className={`font-sans text-[10px] shrink-0 ${
                         isSelected
                           ? isDark
                             ? 'text-zinc-700'
@@ -841,11 +855,11 @@ export const PsiInvestigationDetailView: React.FC<
                           : 'text-zinc-500 dark:text-zinc-400'
                       }`}
                     >
-                      {art.format} · {art.sizeLabel}
+                      {art.format} · <span className="font-mono tabular-nums">{art.sizeLabel}</span>
                     </span>
                   </div>
                   <div
-                    className={`font-mono text-[10px] mt-1 truncate ${
+                    className={`font-sans text-[10px] mt-1 truncate ${
                       isSelected
                         ? isDark
                           ? 'text-zinc-700'
@@ -853,7 +867,7 @@ export const PsiInvestigationDetailView: React.FC<
                         : 'text-zinc-500 dark:text-zinc-400'
                     }`}
                   >
-                    {art.fileName} · {art.revision}
+                    <span className="font-mono">{art.fileName}</span> · {art.revision}
                   </div>
                 </button>
               );
@@ -926,9 +940,9 @@ export const PsiInvestigationDetailView: React.FC<
             </div>
           )}
         </div>
-      </section>
+      </CollapsibleCard>
 
-      {/* 5. External Source Footer Bar */}
+      {/* 5. Verified Source Footer Bar */}
       <footer
         className={`border rounded-[6px] px-4 py-3 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
       >
@@ -939,19 +953,49 @@ export const PsiInvestigationDetailView: React.FC<
           </span>
         </div>
 
-        <a
-          href={investigationRecord?.psiSourceUrl ?? sourceLink.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1.5 text-xs font-mono font-semibold hover:underline ${
-            isDark ? 'text-[#FAFAFA]' : 'text-[#18181B]'
-          }`}
-        >
-          <span>
-            Official PSI Archive Source: {sourceLink.displayPath} ↗
-          </span>
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-        </a>
+        <div className="flex flex-wrap items-center gap-4">
+          {investigationRecord?.doiUrl && (
+            <a
+              href={investigationRecord.doiUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 text-xs font-sans font-medium hover:underline ${
+                isDark ? 'text-zinc-300' : 'text-zinc-700'
+              }`}
+            >
+              <span>DOI Dataset Record</span>
+              <ExternalLink className="w-3 h-3 shrink-0" />
+            </a>
+          )}
+
+          {investigationRecord?.hardwareLink && (
+            <a
+              href={investigationRecord.hardwareLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 text-xs font-sans font-medium hover:underline ${
+                isDark ? 'text-zinc-300' : 'text-zinc-700'
+              }`}
+            >
+              <span>Facility Hardware Spec</span>
+              <ExternalLink className="w-3 h-3 shrink-0" />
+            </a>
+          )}
+
+          <a
+            href={investigationRecord?.psiSourceUrl ?? sourceLink.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-1.5 text-xs font-sans font-semibold hover:underline ${
+              isDark ? 'text-[#FAFAFA]' : 'text-[#18181B]'
+            }`}
+          >
+            <span>
+              {investigationRecord?.psiPortalLabel ?? sourceLink.displayPath}
+            </span>
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+          </a>
+        </div>
       </footer>
     </div>
   );

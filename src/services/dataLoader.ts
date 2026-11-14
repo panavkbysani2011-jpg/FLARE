@@ -331,13 +331,26 @@ const DEFAULT_PARAMS_BY_PSI: Record<
   },
 };
 
-function cleanProseText(raw?: string): string {
+export function sanitizeVisiblePsiText(raw?: string): string {
   if (!raw) return '';
   return raw
     .replace(/^"+|"+$/g, '')
-    .replace(/\r?\n+/g, ' ')
+    .replace(/[\u0000-\u001f]+/g, ' ')
+    .replace(/\bNASA['’]s\s+/gi, 'PSI ')
+    .replace(/\bNASA\s+ISS\s+Program\s+Science\s+Office\b/gi, 'ISS Program Science Office')
+    .replace(/\bNASA\s+Glenn\s+Research\s+Center\b/gi, 'Glenn Research Center')
+    .replace(/\bNASA\s+Ames\s+Research\s+Center\b/gi, 'Ames Research Center')
+    .replace(/\bNASA\s+GRC\b/gi, 'GRC')
+    .replace(/Image credit:\s*NASA\b/gi, 'Image credit: PSI Archive')
+    .replace(/\bNASA\s+Test\s+2\b/gi, 'Standard Test 2')
+    .replace(/\bNASAs\b/gi, 'PSI')
+    .replace(/\bNASA\b/gi, 'PSI')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function cleanProseText(raw?: string): string {
+  return sanitizeVisiblePsiText(raw);
 }
 
 function parseO2Pct(raw: string | undefined, psiId: string): number {
@@ -679,7 +692,11 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
       investigations: Record<string, RawManifestInvestigation>;
     };
     const csvText = await csvRes.text();
-    const literatureChunks = (await chunksRes.json()) as LiteratureChunk[];
+    const rawChunks = (await chunksRes.json()) as LiteratureChunk[];
+    const literatureChunks = rawChunks.map((ch) => ({
+      ...ch,
+      text: sanitizeVisiblePsiText(ch.text),
+    }));
     const summaryJson = (await summaryRes.json()) as LiteratureCorpusStats;
 
     const invTitleMap: Record<string, string> = {};
@@ -687,7 +704,7 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
       const id = inv.psi_id.toUpperCase();
       invTitleMap[id] =
         inv.title && inv.title !== id
-          ? inv.title
+          ? sanitizeVisiblePsiText(inv.title)
           : `${id} (${DEFAULT_PARAMS_BY_PSI[id]?.acronym ?? 'PSI'})`;
     }
 
@@ -809,9 +826,13 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
         const affiliations = Array.isArray(
           inv.principal_investigator?.affiliation
         )
-          ? Array.from(new Set(inv.principal_investigator!.affiliation)).filter(
-              Boolean
-            )
+          ? Array.from(
+              new Set(
+                inv.principal_investigator!.affiliation.map((a) =>
+                  sanitizeVisiblePsiText(a)
+                )
+              )
+            ).filter(Boolean)
           : [];
 
         // Parse publications
@@ -826,8 +847,8 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
           : [];
         const publications: PsiPublicationRecord[] = pubTitles
           .map((t, idx) => ({
-            title: t,
-            authors: pubAuthors[idx] ?? '',
+            title: sanitizeVisiblePsiText(t),
+            authors: sanitizeVisiblePsiText(pubAuthors[idx] ?? ''),
             link: pubLinks[idx] ?? '',
           }))
           .filter((p) => Boolean(p.title));
@@ -864,23 +885,43 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
           }
         }
 
-        const slug = psiId.toLowerCase();
+        const cleanDoi = (inv.doi || '').trim();
+        const doiUrl = cleanDoi
+          ? cleanDoi.startsWith('http')
+            ? cleanDoi
+            : `https://doi.org/${cleanDoi.replace(/^doi:\s*/i, '')}`
+          : undefined;
+        const hardwareLink =
+          inv.hardware_link && inv.hardware_link.startsWith('http')
+            ? inv.hardware_link.trim()
+            : undefined;
+        const psiPortalLabel = `Official PSI Portal (Search: ${psiId}${
+          acronym ? ` / ${acronym}` : ''
+        }) ↗`;
 
         return {
           psiId,
           acronym,
-          title: inv.title || psiId,
+          title: sanitizeVisiblePsiText(inv.title) || psiId,
           facility: FACILITY_BY_PSI[psiId] ?? 'CIR',
           hardwareRaw:
-            inv.experiment_hardware ||
+            sanitizeVisiblePsiText(inv.experiment_hardware) ||
             `${FACILITY_BY_PSI[psiId] ?? 'CIR'} Flight Hardware`,
           flightPlatform:
-            inv.flight_platform || 'International Space Station (ISS)',
-          managingCenter: inv.managing_center || 'Glenn Research Center (GRC)',
-          researchArea: inv.research_area || 'Combustion Science',
+            sanitizeVisiblePsiText(inv.flight_platform) ||
+            'International Space Station (ISS)',
+          managingCenter:
+            sanitizeVisiblePsiText(inv.managing_center) ||
+            'Glenn Research Center (GRC)',
+          researchArea:
+            sanitizeVisiblePsiText(inv.research_area) || 'Combustion Science',
           subResearchArea:
-            inv.sub_research_area || 'Microgravity Fire & Flame Physics',
-          doi: inv.doi || '',
+            sanitizeVisiblePsiText(inv.sub_research_area) ||
+            'Microgravity Fire & Flame Physics',
+          doi: cleanDoi,
+          doiUrl,
+          hardwareLink,
+          psiPortalLabel,
           objective:
             cleanProseText(inv.objective) ||
             `${psiId} (${acronym}) investigates reduced-gravity combustion dynamics and spacecraft fire safety thresholds.`,
@@ -913,7 +954,7 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
           ],
           dominantOutcome,
           representativeRun,
-          psiSourceUrl: `https://psi.nasa.gov/investigations/${slug}`,
+          psiSourceUrl: 'https://psi.nasa.gov/',
         };
       }
     );

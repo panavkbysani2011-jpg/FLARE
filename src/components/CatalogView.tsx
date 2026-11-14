@@ -32,9 +32,12 @@ import {
   SAME_EIRD_PDF_URL,
   searchLiteratureChunks,
 } from '../services/dataLoader';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface CatalogViewProps {
   theme: ThemeMode;
+  activeTabOverride?: DataArchiveTab;
+  onChangeTab?: (tab: DataArchiveTab) => void;
   runs: PsiRun[];
   investigations: PsiInvestigationRecord[];
   guideTopics: ResearchersGuideTopic[];
@@ -55,6 +58,8 @@ interface CatalogViewProps {
 
 export const CatalogView: React.FC<CatalogViewProps> = ({
   theme,
+  activeTabOverride,
+  onChangeTab,
   runs,
   investigations,
   guideTopics,
@@ -70,7 +75,14 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onInspectRun,
   onGoToComparator,
 }) => {
-  const [activeTab, setActiveTab] = useState<DataArchiveTab>('psi-investigations');
+  const [internalTab, setInternalTab] =
+    useState<DataArchiveTab>('psi-investigations');
+  const activeTab = activeTabOverride ?? internalTab;
+  const setActiveTab = (tab: DataArchiveTab) => {
+    setInternalTab(tab);
+    onChangeTab?.(tab);
+  };
+  const [showFilters, setShowFilters] = useState(true);
 
   // Tab 1: PSI Investigations filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,6 +252,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="font-display text-lg font-bold tracking-tight">
+          {activeTab === 'psi-investigations'
+            ? `PSI Investigations Archive (${investigations.length})`
+            : activeTab === 'researchers-guide'
+            ? "ISS Researcher's Guide to Combustion Science"
+            : `Mission & Earth Spin-Off Cases (${missionCases.length})`}
+        </h1>
+        <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+          Physical Science Informatics Unified Repository
+        </span>
+      </div>
+
       {/* Top Unified Data Archive Navigation Bar */}
       <section
         className={`border rounded-[6px] p-3.5 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
@@ -308,11 +333,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          <div className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
-            {runs.length.toLocaleString()} Calibrated CSV Runs ·{' '}
-            {corpusStats
-              ? `${corpusStats.totalRawChunks.toLocaleString()} Indexed Source Chunks`
-              : `${literatureChunks.length} Literature Chunks`}
+          <div className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
+            <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Calibrated CSV Runs ·{' '}
+            {corpusStats ? (
+              <>
+                <span className="font-mono tabular-nums">
+                  {corpusStats.totalRawChunks.toLocaleString()}
+                </span>{' '}
+                Indexed Source Chunks
+              </>
+            ) : (
+              <>
+                <span className="font-mono tabular-nums">{literatureChunks.length}</span> Literature Chunks
+              </>
+            )}
           </div>
 
           <button
@@ -334,10 +368,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {activeTab === 'psi-investigations' && (
         <div className="flex flex-col lg:flex-row gap-5 items-start">
           {/* Left Facet Filter Panel */}
-          <aside
-            className={`w-full lg:w-[240px] shrink-0 border rounded-[6px] p-4 space-y-5 ${cardSurface}`}
-            aria-label="Investigation Filters"
-          >
+          {showFilters && (
+            <aside
+              className={`w-full lg:w-[240px] shrink-0 border rounded-[6px] p-4 space-y-5 ${cardSurface}`}
+              aria-label="Investigation Filters"
+            >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-sans font-semibold uppercase tracking-wider">
                 <Filter className="w-3.5 h-3.5" />
@@ -468,13 +503,26 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </div>
             </div>
           </aside>
+          )}
 
           {/* Right Full-Width PSI Investigations Archive Grid */}
           <div className="flex-1 min-w-0 w-full space-y-4">
             <div
               className={`border rounded-[6px] px-4 py-3 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
             >
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                    isDark
+                      ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
+                      : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                  }`}
+                >
+                  <Filter className="w-3 h-3" />
+                  <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+                </button>
                 <span className="font-sans font-medium">
                   Showing{' '}
                   <span className="font-mono font-semibold tabular-nums">
@@ -487,14 +535,23 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   PSI Investigations
                 </span>
                 <span className="text-zinc-300 dark:text-zinc-700">|</span>
-                <span className="font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">
-                  {isArchiveLoading
-                    ? 'Indexing archive CSV & manifest...'
-                    : `${runs.length.toLocaleString()} experimental runs indexed`}
+                <span className="font-sans text-zinc-500 dark:text-zinc-400">
+                  {isArchiveLoading ? (
+                    'Indexing archive CSV & manifest...'
+                  ) : (
+                    <>
+                      <span className="font-mono tabular-nums">
+                        {runs.length.toLocaleString()}
+                      </span>{' '}
+                      experimental runs indexed
+                    </>
+                  )}
                 </span>
               </div>
-              <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                Source: psi_runs_catalog.json + master_psi_telemetry.csv
+              <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
+                Source:{' '}
+                <span className="font-mono">psi_runs_catalog.json</span> +{' '}
+                <span className="font-mono">master_psi_telemetry.csv</span>
               </span>
             </div>
 
@@ -535,9 +592,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => onInspectRun(inv.psiId)}
-                                className="font-mono text-sm font-bold tracking-tight hover:underline cursor-pointer text-left"
+                                className="font-sans text-sm font-bold tracking-tight hover:underline cursor-pointer text-left"
                               >
-                                {inv.psiId} · {inv.acronym}
+                                <span className="font-mono tabular-nums">{inv.psiId}</span> · {inv.acronym}
                               </button>
                             </div>
                             <button
@@ -580,16 +637,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         </p>
 
                         {/* Archive Metadata Inventory Row */}
-                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 tabular-nums">
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
                           <span className="inline-flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-200">
                             <Layers className="w-3 h-3" />
-                            <span>{inv.runCount} CSV runs</span>
+                            <span>
+                              <span className="font-mono tabular-nums">{inv.runCount}</span> CSV runs
+                            </span>
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <FileText className="w-3 h-3" />
                             <span>
-                              {inv.pdfs.length} PDFs · {inv.spreadsheets.length} tables ·{' '}
-                              {inv.publications.length} papers
+                              <span className="font-mono tabular-nums">{inv.pdfs.length}</span> PDFs ·{' '}
+                              <span className="font-mono tabular-nums">{inv.spreadsheets.length}</span> tables ·{' '}
+                              <span className="font-mono tabular-nums">{inv.publications.length}</span> papers
                             </span>
                           </span>
                         </div>
@@ -686,19 +746,31 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         </div>
 
                         <div
-                          className={`pt-2 border-t flex items-center justify-between gap-2 ${dividerBorder}`}
+                          className={`pt-2 border-t flex flex-wrap items-center justify-between gap-2 ${dividerBorder}`}
                         >
                           <a
                             href={inv.psiSourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:underline truncate"
+                            className="inline-flex items-center gap-1 text-[11px] font-sans text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:underline truncate"
                           >
                             <span className="truncate">
-                              Official PSI Archive: {inv.psiSourceUrl.replace(/^https?:\/\//, '')}
+                              {inv.psiPortalLabel ?? `Official PSI Portal (Search: ${inv.psiId}) ↗`}
                             </span>
                             <ExternalLink className="w-3 h-3 shrink-0" />
                           </a>
+
+                          {inv.doiUrl && (
+                            <a
+                              href={inv.doiUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-sans text-zinc-500 dark:text-zinc-400 hover:underline shrink-0"
+                            >
+                              <span>DOI</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
                         </div>
                       </div>
                     </article>
@@ -714,115 +786,117 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {activeTab === 'researchers-guide' && (
         <div className="space-y-4">
           {/* Header Banner & PDF Actions */}
-          <section className={`border rounded-[6px] p-4 space-y-3 ${cardSurface}`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="space-y-1 max-w-3xl">
-                <h2 className="font-display text-sm font-semibold">
-                  A Researcher's Guide to Combustion Science in Reduced Gravity (50-Page Reference)
-                </h2>
-                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+          <CollapsibleCard
+            theme={theme}
+            title="A Researcher's Guide to Combustion Science in Reduced Gravity (50-Page Reference)"
+            subtitle={`${literatureChunks.length.toLocaleString()} indexed chunks`}
+            summaryLine={`50-Page Reference PDF · ${filteredGuideTopics.length} sections · Search filter "${guideSearch || 'All'}"`}
+          >
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
                   Indexed directly from{' '}
                   <span className="font-mono">psi_literature_chunks.json</span>{' '}
                   (190 verbatim Researcher's Guide sections +{' '}
-                  {literatureChunks.length.toLocaleString()} curated high-signal PSI technical report excerpts). Search across physics mechanisms or open any chapter page directly in the local PDF.
+                  {literatureChunks.length.toLocaleString()} curated high-signal PSI technical report excerpts). Search across physics mechanisms or open any chapter page directly in the local 50-page PDF.
                 </p>
-              </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowInlinePdf((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
-                    showInlinePdf
-                      ? activeMonochrome +
-                        (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
-                      : isDark
-                      ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                      : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>
-                    {showInlinePdf ? 'Hide Embedded PDF' : 'Read PDF Inline'}
-                  </span>
-                </button>
-
-                <a
-                  href={RESEARCHERS_GUIDE_PDF_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors ${
-                    isDark
-                      ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
-                      : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
-                  }`}
-                >
-                  <span>Open 50-Page Guide PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-
-                <a
-                  href={SAME_EIRD_PDF_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors ${
-                    isDark
-                      ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                      : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
-                  }`}
-                >
-                  <span>SAME EIRD Spec PDF</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-
-            {/* Search & Chapter Category Filter */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <div className="relative flex-1 min-w-[240px]">
-                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={guideSearch}
-                  onChange={(e) => setGuideSearch(e.target.value)}
-                  placeholder="Search Researcher's Guide & PSI literature (e.g. cool flame, soot, radiometer, BASS, PMMA)..."
-                  aria-label="Search ISS Researcher's Guide"
-                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
-                    isDark
-                      ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
-                  }`}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1">
-                {[
-                  'ALL',
-                  'Environment & Physics',
-                  'Droplet & Cool Flames',
-                  'Solid Flammability',
-                  'Gaseous & Soot',
-                  'ISS Facilities',
-                ].map((cat) => (
+                <div className="flex flex-wrap items-center gap-2">
                   <button
-                    key={cat}
                     type="button"
-                    onClick={() => setGuideCategory(cat)}
-                    className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
-                      guideCategory === cat
+                    onClick={() => setShowInlinePdf((prev) => !prev)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                      showInlinePdf
                         ? activeMonochrome +
                           (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                         : isDark
-                        ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
-                        : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
+                        : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
                     }`}
                   >
-                    {cat === 'ALL' ? 'All Sections' : cat}
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>
+                      {showInlinePdf ? 'Hide Embedded PDF' : 'Read PDF Inline'}
+                    </span>
                   </button>
-                ))}
+
+                  <a
+                    href={RESEARCHERS_GUIDE_PDF_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors ${
+                      isDark
+                        ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                        : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span>Open 50-Page Guide PDF</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+
+                  <a
+                    href={SAME_EIRD_PDF_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors ${
+                      isDark
+                        ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
+                        : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                    }`}
+                  >
+                    <span>SAME EIRD Spec PDF</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Search & Chapter Category Filter */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <div className="relative flex-1 min-w-[240px]">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={guideSearch}
+                    onChange={(e) => setGuideSearch(e.target.value)}
+                    placeholder="Search Researcher's Guide & PSI literature (e.g. cool flame, soot, radiometer, BASS, PMMA)..."
+                    aria-label="Search ISS Researcher's Guide"
+                    className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                      isDark
+                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
+                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                    }`}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1">
+                  {[
+                    'ALL',
+                    'Environment & Physics',
+                    'Droplet & Cool Flames',
+                    'Solid Flammability',
+                    'Gaseous & Soot',
+                    'ISS Facilities',
+                  ].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setGuideCategory(cat)}
+                      className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                        guideCategory === cat
+                          ? activeMonochrome +
+                            (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
+                          : isDark
+                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
+                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+                      }`}
+                    >
+                      {cat === 'ALL' ? 'All Sections' : cat}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </section>
+          </CollapsibleCard>
 
           {/* Optional Embedded Local PDF Viewer */}
           {showInlinePdf && (
@@ -830,8 +904,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               <div
                 className={`px-4 py-2 border-b flex items-center justify-between text-xs ${dividerBorder}`}
               >
-                <span className="font-mono font-semibold">
-                  {RESEARCHERS_GUIDE_PDF_URL}
+                <span className="font-sans font-semibold">
+                  ISS Researcher's Guide to Combustion Science in Reduced Gravity (50-Page PDF)
                 </span>
                 <button
                   type="button"
@@ -856,8 +930,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <h3 className="font-display font-semibold">
                   Top Verbatim Excerpts Matching "{guideSearch}"
                 </h3>
-                <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
-                  {matchedLiteratureChunks.length} matched chunks
+                <span className="font-sans text-[11px] text-zinc-500">
+                  <span className="font-mono tabular-nums">{matchedLiteratureChunks.length}</span> matched chunks
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -866,15 +940,16 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     key={chunk.chunk_id}
                     className={`p-3 rounded-[4px] border space-y-1.5 ${insetSurface}`}
                   >
-                    <div className="flex items-center justify-between gap-2 text-[11px] font-mono">
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-sans">
                       <button
                         type="button"
                         onClick={() => onInspectRun(chunk.psi_id)}
                         className="font-bold hover:underline cursor-pointer"
                       >
-                        {chunk.psi_id} · Page {chunk.page_number}
+                        <span className="font-mono tabular-nums">{chunk.psi_id}</span> · Page{' '}
+                        <span className="font-mono tabular-nums">{chunk.page_number}</span>
                       </button>
-                      <span className="text-zinc-500 truncate max-w-[220px]">
+                      <span className="font-mono text-zinc-500 truncate max-w-[220px]">
                         {chunk.source_file}
                       </span>
                     </div>
@@ -909,12 +984,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   <div className="space-y-2.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-2 text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                        <div className="flex items-center gap-2 text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
                           <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                            SECTION {topic.sectionNumber}
+                            SECTION{' '}
+                            <span className="font-mono tabular-nums">
+                              {topic.sectionNumber}
+                            </span>
                           </span>
                           <span>·</span>
-                          <span>{topic.pageRange}</span>
+                          <span>
+                            pp.{' '}
+                            <span className="font-mono tabular-nums">
+                              {topic.pageRange.replace(/^pp\.\s*/i, '')}
+                            </span>
+                          </span>
                           <span>·</span>
                           <span>{topic.category}</span>
                         </div>
@@ -927,13 +1010,15 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         href={topic.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-medium rounded-[4px] border shrink-0 transition-colors ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border shrink-0 transition-colors ${
                           isDark
                             ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
                             : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
                         }`}
                       >
-                        <span>p. {topic.startPage} PDF</span>
+                        <span>
+                          p. <span className="font-mono tabular-nums">{topic.startPage}</span> PDF
+                        </span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     </div>
@@ -945,7 +1030,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     <ul className="space-y-1 text-xs font-sans text-zinc-700 dark:text-zinc-200">
                       {topic.keyTakeaways.map((bullet, idx) => (
                         <li key={idx} className="flex items-start gap-2">
-                          <span className="font-mono text-zinc-400 mt-0.5">
+                          <span className="font-sans text-zinc-400 mt-0.5">
                             —
                           </span>
                           <span>{bullet}</span>
@@ -956,9 +1041,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     {/* Parsed Chunks Preview from psi_literature_chunks.json */}
                     {previewChunks.length > 0 && (
                       <div className={`pt-2 border-t space-y-2 ${dividerBorder}`}>
-                        <div className="flex items-center justify-between text-[11px] font-mono text-zinc-500">
+                        <div className="flex items-center justify-between text-[11px] font-sans text-zinc-500">
                           <span>
-                            Parsed Guide Excerpts ({topic.chunks.length} chunks in section)
+                            Parsed Guide Excerpts (
+                            <span className="font-mono tabular-nums">
+                              {topic.chunks.length}
+                            </span>{' '}
+                            chunks in section)
                           </span>
                           <button
                             type="button"
@@ -981,8 +1070,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             key={ch.chunk_id}
                             className={`p-2.5 rounded-[4px] border text-[11px] font-sans leading-relaxed text-zinc-600 dark:text-zinc-300 ${insetSurface}`}
                           >
-                            <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-100 mr-1.5">
-                              [p.{ch.page_number}]
+                            <span className="font-sans font-semibold text-zinc-800 dark:text-zinc-100 mr-1.5">
+                              [p.<span className="font-mono tabular-nums">{ch.page_number}</span>]
                             </span>
                             {ch.text.replace(/\s+/g, ' ').trim()}
                           </div>
@@ -1000,67 +1089,64 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* TAB 3: MISSION & SPIN-OFF CASES (8 HISTORICAL FIRES & TERRESTRIAL SPINOFFS) */}
       {activeTab === 'mission-spinoffs' && (
         <div className="space-y-4">
-          <section className={`border rounded-[6px] p-4 space-y-3 ${cardSurface}`}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-sm font-semibold">
-                  Historical Spacecraft Fire Incidents & Earth Fire-Safety Spin-Offs
-                </h2>
-                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-                  Eight engineering reference cases linking Apollo 1, Apollo 13, and Mir fire lessons to ISS microgravity combustion research and firefighter safety hardware.
-                </p>
-              </div>
-              <span className="font-mono text-xs text-zinc-500 tabular-nums">
-                {filteredCases.length} of {missionCases.length} Official Case Records
-              </span>
-            </div>
+          <CollapsibleCard
+            theme={theme}
+            title="Historical Spacecraft Fire Incidents & Earth Fire-Safety Spin-Offs"
+            subtitle={`${filteredCases.length} of ${missionCases.length} Official Case Records`}
+            summaryLine={`${filteredCases.length} of ${missionCases.length} Historical & Spin-Off Cases · Category: ${caseCategory === 'ALL' ? 'All' : caseCategory}`}
+          >
+            <div className="space-y-3">
+              <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+                Eight engineering reference cases linking Apollo 1, Apollo 13, and Mir fire lessons to ISS microgravity combustion research and firefighter safety hardware.
+              </p>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[220px]">
-                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  value={caseSearch}
-                  onChange={(e) => setCaseSearch(e.target.value)}
-                  placeholder="Filter by Apollo 1, Mir, SCBA, smoke detector, Nomex..."
-                  aria-label="Search Mission & Spin-Off Cases"
-                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
-                    isDark
-                      ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
-                  }`}
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1">
-                {[
-                  { id: 'ALL', label: 'All Cases (8)' },
-                  {
-                    id: 'Historical Spacecraft Fire',
-                    label: 'Historical Spacecraft Fires',
-                  },
-                  { id: 'ISS Program & Science', label: 'ISS Program & Science' },
-                  { id: 'Terrestrial Spin-Off', label: 'Terrestrial Spin-Offs' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCaseCategory(cat.id)}
-                    className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
-                      caseCategory === cat.id
-                        ? activeMonochrome +
-                          (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
-                        : isDark
-                        ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
-                        : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[220px]">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={caseSearch}
+                    onChange={(e) => setCaseSearch(e.target.value)}
+                    placeholder="Filter by Apollo 1, Mir, SCBA, smoke detector, Nomex..."
+                    aria-label="Search Mission & Spin-Off Cases"
+                    className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                      isDark
+                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
+                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
                     }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1">
+                  {[
+                    { id: 'ALL', label: 'All Cases (8)' },
+                    {
+                      id: 'Historical Spacecraft Fire',
+                      label: 'Historical Spacecraft Fires',
+                    },
+                    { id: 'ISS Program & Science', label: 'ISS Program & Science' },
+                    { id: 'Terrestrial Spin-Off', label: 'Terrestrial Spin-Offs' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCaseCategory(cat.id)}
+                      className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                        caseCategory === cat.id
+                          ? activeMonochrome +
+                            (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
+                          : isDark
+                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
+                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </section>
+          </CollapsibleCard>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filteredCases.map((item) => {
@@ -1080,7 +1166,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     {/* Card Header */}
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="space-y-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono">
+                        <div className="flex flex-wrap items-center gap-2 text-[11px] font-sans">
                           <span className="inline-flex items-center gap-1.5 font-semibold">
                             <span
                               className={`w-2 h-2 rounded-[2px] ${catDot}`}
@@ -1089,7 +1175,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             <span>{item.category}</span>
                           </span>
                           <span className="text-zinc-400">·</span>
-                          <span className="text-zinc-500">{item.code}</span>
+                          <span className="font-mono text-zinc-500">{item.code}</span>
                           <span className="text-zinc-400">·</span>
                           <span className="text-zinc-500">{item.yearOrEra}</span>
                         </div>
@@ -1099,7 +1185,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         </h3>
                         <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
                           {item.missionOrDomain} ·{' '}
-                          <span className="font-mono font-semibold text-zinc-700 dark:text-zinc-200">
+                          <span className="font-sans font-semibold text-zinc-700 dark:text-zinc-200">
                             {item.atmosphereLabel}
                           </span>
                         </p>
@@ -1137,7 +1223,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                           <div className="text-[10px] font-sans text-zinc-400">
                             {param.label}
                           </div>
-                          <div className="font-mono text-[11px] font-semibold mt-0.5 leading-snug">
+                          <div className="font-sans text-[11px] font-semibold mt-0.5 leading-snug">
                             {param.value}
                           </div>
                         </div>
@@ -1152,7 +1238,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       <ul className="space-y-1 text-xs font-sans text-zinc-700 dark:text-zinc-200">
                         {item.lessonsLearned.map((lesson, idx) => (
                           <li key={idx} className="flex items-start gap-2">
-                            <span className="font-mono text-zinc-400 mt-0.5">
+                            <span className="font-sans text-zinc-400 mt-0.5">
                               •
                             </span>
                             <span>{lesson}</span>
@@ -1174,7 +1260,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             key={pid}
                             type="button"
                             onClick={() => onInspectRun(pid)}
-                            className={`px-2 py-0.5 font-mono font-semibold rounded-[4px] border transition-colors cursor-pointer ${
+                            className={`px-2 py-0.5 font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
                               isDark
                                 ? 'border-[#27272A] bg-[#09090B] text-zinc-200 hover:bg-zinc-800'
                                 : 'border-[#E4E4E7] bg-zinc-50 text-zinc-800 hover:bg-zinc-200'
@@ -1193,10 +1279,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         href={item.sourceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:underline truncate"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-sans text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:underline truncate"
                       >
                         <span className="truncate">
-                          Official Source: {item.sourceUrl}
+                          Official Reference: {item.sourceDisplayUrl}
                         </span>
                         <ExternalLink className="w-3 h-3 shrink-0" />
                       </a>

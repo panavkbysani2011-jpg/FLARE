@@ -1,10 +1,16 @@
 export type ThemeMode = 'normal' | 'light' | 'dark';
 
+export type SidebarState = 'expanded' | 'compact' | 'hidden';
+
 export type WorkspaceView =
-  | 'overview'
+  | 'virtual-lab'
   | 'comparator'
+  | 'visual-studio'
+  | 'model-console'
   | 'investigations'
   | 'experiment-runs'
+  | 'researchers-guide'
+  | 'mission-spinoffs'
   | 'import-sync'
   | 'investigation-detail';
 
@@ -31,7 +37,9 @@ export type VizMode =
   | 'step-chart'
   | 'timeline-progression'
   | 'contour-surface'
-  | 'polar-radial';
+  | 'polar-radial'
+  | 'density-strip'
+  | 'residual-deviation';
 
 export type VizFamilyId =
   | 'comparisons'
@@ -42,9 +50,16 @@ export type VizFamilyId =
 
 export type VizAvailabilityStatus = 'recommended' | 'available' | 'unavailable';
 
-export type DatasetScope =
-  | 'selected-sim'
+export type StudioDatasetSource =
   | 'full-archive'
+  | 'selected-comparison'
+  | 'virtual-lab-output'
+  | 'material-qualification'
+  | 'imported-custom';
+
+export type DatasetScope =
+  | StudioDatasetSource
+  | 'selected-sim'
   | 'single-focus'
   | 'static-runs';
 
@@ -103,7 +118,7 @@ export interface PsiRun {
   psiId: string;
   investigationTitle: string;
   runCode: string;
-  facility: 'CIR' | 'MSG' | 'Cygnus' | 'FSL';
+  facility: 'CIR' | 'MSG' | 'Cygnus' | 'FSL' | 'Virtual';
   material: string;
   O2_pct: number;
   P_psi: number;
@@ -117,6 +132,24 @@ export interface PsiRun {
   outcome: HazardOutcome;
   notes: string;
   isCustom?: boolean;
+  isVirtual?: boolean;
+}
+
+export type CandidateMaterialCode =
+  | 'PMMA'
+  | 'SIBAL'
+  | 'Cotton-Fiberglass'
+  | 'PTFE'
+  | 'Nomex';
+
+export interface VirtualTestConfig {
+  O2_pct: number;
+  P_psi: number;
+  Flow_ms: number;
+  g_eff: number;
+  Thickness_mm: number;
+  material: CandidateMaterialCode;
+  ignitionFlux_Wm2: number;
 }
 
 export interface SimulationRequest {
@@ -125,10 +158,56 @@ export interface SimulationRequest {
   Flow_ms: number;
   g_eff: number;
   Thickness_mm: number;
+  material?: CandidateMaterialCode | string;
+  ignitionFlux_Wm2?: number;
   forecast_10s?: boolean;
   material_check?: boolean;
   question?: string;
   selectedRunIds?: string[];
+  consoleMode?: ConsoleMode;
+  activeChartContext?: DecodedChartContext;
+}
+
+export interface ModelConfidenceSummary {
+  confidencePct: number;
+  validatedRunCount: number;
+  nearestDeltaSummary: string;
+  physicalTestingRecommendation: 'Avoidable' | 'Recommended';
+  rationale: string;
+}
+
+export type ConsoleMode = 'decoder' | 'what-if' | 'literature' | 'risk-audit';
+
+export interface DecodedChartContext {
+  datasetLabel: string;
+  techniqueName: string;
+  xAxisLabel: string;
+  yAxisLabel: string;
+  colorByLabel: string;
+  runCount: number;
+  anomalies: string[];
+  summaryHeadline: string;
+}
+
+export interface WhatIfScenarioResult {
+  id: string;
+  label: string;
+  O2_pct: number;
+  P_psi: number;
+  Flow_ms: number;
+  g_eff: number;
+  Thickness_mm: number;
+  material: CandidateMaterialCode;
+  ignitionFlux_Wm2: number;
+  flameSpread_mms: number;
+  minSafeThickness_mm: number;
+  outcome: HazardOutcome;
+}
+
+export interface PsiApiEndpointConfig {
+  baseUrl: string;
+  apiKeyHeader: 'X-API-Key' | 'Authorization';
+  apiKeyValue: string;
 }
 
 export interface TimelinePoint {
@@ -166,6 +245,7 @@ export interface SimulationResponse {
     passed: boolean;
     margin_mm: number;
   };
+  modelConfidence?: ModelConfidenceSummary;
   nearestRuns: Array<{
     run: PsiRun;
     similarityPct: number;
@@ -181,6 +261,8 @@ export interface SimulationResponse {
     steps: string[];
     citations: string[];
     suggestedVizMode?: VizMode;
+    recommendedParams?: Partial<VirtualTestConfig>;
+    whatIfRows?: WhatIfScenarioResult[];
   };
 }
 
@@ -188,7 +270,7 @@ export interface SyncChangelogEntry {
   id: string;
   psiId: string;
   title: string;
-  facility: 'CIR' | 'MSG' | 'Cygnus' | 'FSL';
+  facility: PsiRun['facility'];
   runsAdded: number;
   syncedAt: string;
   summary: string;
@@ -199,10 +281,14 @@ export interface AssistantMessage {
   id: string;
   role: 'user' | 'assistant';
   timestamp: string;
+  mode?: ConsoleMode;
   text?: string;
   steps?: string[];
   citations?: string[];
   suggestedVizMode?: VizMode;
+  recommendedParams?: Partial<VirtualTestConfig>;
+  whatIfRows?: WhatIfScenarioResult[];
+  chartContext?: DecodedChartContext;
 }
 
 export type DataArchiveTab =
@@ -220,7 +306,7 @@ export interface PsiInvestigationRecord {
   psiId: string;
   acronym: string;
   title: string;
-  facility: 'CIR' | 'MSG' | 'Cygnus' | 'FSL';
+  facility: PsiRun['facility'];
   hardwareRaw: string;
   flightPlatform: string;
   managingCenter: string;
@@ -245,6 +331,9 @@ export interface PsiInvestigationRecord {
   dominantOutcome: HazardOutcome;
   representativeRun: PsiRun;
   psiSourceUrl: string;
+  psiPortalLabel?: string;
+  hardwareLink?: string;
+  doiUrl?: string;
 }
 
 export interface LiteratureChunk {

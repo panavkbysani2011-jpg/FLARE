@@ -1,4 +1,6 @@
+import Papa from 'papaparse';
 import { HazardOutcome, PsiRun } from '../types/psi';
+import { sanitizeVisiblePsiText } from '../services/dataLoader';
 import { computeFlameSpreadVelocity } from './physicsEngine';
 
 export interface ImportValidationResult {
@@ -42,21 +44,18 @@ EMP-902,Customer Success,98400,Austin,2023-08-22,Tier-2
 EMP-903,Field Marketing,115000,Seattle,2025-01-15,Tier-1`;
 
 function parseCsvRows(rawText: string): Array<Record<string, string>> {
-  const lines = rawText
-    .trim()
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(',').map((h) => h.trim());
-  return lines.slice(1).map((line) => {
-    const values = line.split(',').map((v) => v.trim());
-    const row: Record<string, string> = {};
-    headers.forEach((h, i) => {
-      row[h] = values[i] ?? '';
-    });
-    return row;
+  const parsed = Papa.parse<Record<string, string>>(rawText.trim(), {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim(),
+  });
+  if (!parsed.data || parsed.data.length === 0) return [];
+  return parsed.data.map((row) => {
+    const clean: Record<string, string> = {};
+    for (const [k, v] of Object.entries(row)) {
+      clean[k.trim()] = v == null ? '' : String(v).trim();
+    }
+    return clean;
   });
 }
 
@@ -106,7 +105,9 @@ export function validateAndNormalizeDataset(
 
   const headerKeys = Object.keys(rows[0]).map((k) => k.toLowerCase());
   const detectedKeywords = DOMAIN_KEYWORDS.filter((kw) =>
-    headerKeys.some((hk) => hk.includes(kw))
+    headerKeys.some((hk) =>
+      kw === 'psi' ? hk === 'psi' || (hk.includes('psi') && !hk.includes('id')) : hk.includes(kw)
+    )
   );
 
   // Domain Relevance Gatekeeper: require at least 2 combustion/spacecraft domain headers
@@ -126,38 +127,71 @@ export function validateAndNormalizeDataset(
 
   const parsedRuns: PsiRun[] = rows.map((rawRow, idx) => {
     const entries = Object.entries(rawRow).map(([k, v]) => [k.toLowerCase(), v] as const);
-    const getVal = (patterns: string[]): string | number | undefined => {
-      const found = entries.find(([k]) => patterns.some((p) => k.includes(p)));
+    const findMatch = (
+      patterns: string[],
+      excludePatterns: string[] = []
+    ): readonly [string, unknown] | undefined => {
+      for (const p of patterns) {
+        const found = entries.find(
+          ([k]) =>
+            k.includes(p) && !excludePatterns.some((ex) => k.includes(ex))
+        );
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const getVal = (
+      patterns: string[],
+      excludePatterns: string[] = []
+    ): string | number | undefined => {
+      const found = findMatch(patterns, excludePatterns);
       return found ? (found[1] as string | number) : undefined;
     };
-    const getKeyName = (patterns: string[]): string => {
-      const found = entries.find(([k]) => patterns.some((p) => k.includes(p)));
+    const getKeyName = (
+      patterns: string[],
+      excludePatterns: string[] = []
+    ): string => {
+      const found = findMatch(patterns, excludePatterns);
       return found ? found[0] : '';
     };
 
     // O2 %
-    const rawO2 = Number(getVal(['o2', 'oxygen']) ?? 21.0);
-    const O2_pct = Number(Math.max(14.0, Math.min(85.0, isNaN(rawO2) ? 21.0 : rawO2)).toFixed(1));
+    const rawO2 = Number(getVal(['o2_pct', 'oxygen', 'o2']) ?? 21.0);
+    const O2_pct = Number(
+      Math.max(14.0, Math.min(100.0, isNaN(rawO2) ? 21.0 : rawO2)).toFixed(1)
+    );
 
-    // Pressure (auto-convert kPa or atm to psi)
-    const pKey = getKeyName(['pressure', 'psi', 'kpa', 'atm']);
-    const rawP = Number(getVal(['pressure', 'psi', 'kpa', 'atm']) ?? 14.7);
+    // Pressure (auto-convert kPa or atm to psi unless explicit psi unit is specified; never match psi_id / psiId)
+    const pPatterns = ['p_psi', 'pressure', 'kpa', 'atm', 'psi'];
+    const pExclude = ['psi_id', 'psiid', 'id'];
+    const pKey = getKeyName(pPatterns, pExclude);
+    const rawP = Number(getVal(pPatterns, pExclude) ?? 14.7);
     let P_psi = isNaN(rawP) ? 14.7 : rawP;
-    if (pKey.includes('kpa') || P_psi > 25) {
+    if (pKey.includes('kpa')) {
       P_psi = Number((P_psi * 0.145038).toFixed(1));
       unitConversionsSet.add('Pressure: kPa → psi (×0.145038)');
-    } else if (pKey.includes('atm') || P_psi <= 2.5) {
+    } else if (pKey.includes('atm')) {
+      P_psi = Number((P_psi * 14.6959).toFixed(1));
+      unitConversionsSet.add('Pressure: atm → psi (×14.6959)');
+    } else if (!pKey.includes('psi') && P_psi > 25) {
+      P_psi = Number((P_psi * 0.145038).toFixed(1));
+      unitConversionsSet.add('Pressure: kPa → psi (×0.145038)');
+    } else if (!pKey.includes('psi') && P_psi <= 2.5) {
       P_psi = Number((P_psi * 14.6959).toFixed(1));
       unitConversionsSet.add('Pressure: atm → psi (×14.6959)');
     } else {
       P_psi = Number(P_psi.toFixed(1));
     }
 
-    // Airflow (auto-convert cm/s to m/s)
+    // Airflow (auto-convert cm/s to m/s unless explicit m/s unit is specified)
     const flowKey = getKeyName(['flow', 'velocity', 'airflow', 'cms']);
     const rawFlow = Number(getVal(['flow', 'velocity', 'airflow', 'cms']) ?? 0.12);
     let Flow_ms = isNaN(rawFlow) ? 0.12 : rawFlow;
-    if (flowKey.includes('cm') || Flow_ms > 1.0) {
+    const isExplicitMs =
+      flowKey.includes('_ms') ||
+      flowKey.includes('m/s') ||
+      flowKey.includes('m_s');
+    if (flowKey.includes('cm') || (!isExplicitMs && Flow_ms > 1.0)) {
       Flow_ms = Number((Flow_ms / 100).toFixed(2));
       unitConversionsSet.add('Airflow Velocity: cm/s → m/s (÷100)');
     } else {
@@ -174,36 +208,64 @@ export function validateAndNormalizeDataset(
       Math.max(0.2, Math.min(10.0, isNaN(rawThick) ? 2.0 : rawThick)).toFixed(1)
     );
 
+    const material =
+      sanitizeVisiblePsiText(String(getVal(['fuel', 'material']) || 'PMMA Composite')) ||
+      'PMMA Composite';
+
     const computed = computeFlameSpreadVelocity({
       O2_pct,
       P_psi,
       Flow_ms,
       g_eff,
       Thickness_mm,
+      material,
     });
 
-    const rawSpread = Number(getVal(['spread', 'flame_spread']));
+    const rawSpread = Number(getVal(['spread', 'flame_spread', 'flamespread', 'vf']));
     const flameSpread_mms =
       !isNaN(rawSpread) && rawSpread > 0
         ? Number(rawSpread.toFixed(2))
         : computed.flameSpread_mms;
 
-    const rawTemp = Number(getVal(['temp', 'temperature']));
+    const rawTemp = Number(getVal(['temp', 'temperature', 'peaktemp']));
     const peakTemp_K =
       !isNaN(rawTemp) && rawTemp > 250 ? Math.round(rawTemp) : computed.peakTemp_K;
 
-    const runIdStr = String(getVal(['run_id', 'psi_id', 'id']) || `PSI-CUST-${idx + 1}`);
-    const invTitle = String(
-      getVal(['investigation', 'title']) || 'Custom Imported Combustion Run'
-    );
-    const material = String(getVal(['fuel', 'material']) || 'PMMA Composite');
+    const rawFlux = Number(getVal(['flux', 'radiometer']));
+    const radiometerFlux_Wm2 =
+      !isNaN(rawFlux) && rawFlux > 0 ? Math.round(rawFlux) : Math.round(peakTemp_K * 11.5);
+
+    const runIdStr =
+      sanitizeVisiblePsiText(String(getVal(['run_id', 'psi_id', 'psiid', 'id']) || '')) ||
+      `PSI-CUST-${idx + 1}`;
+    const invTitle =
+      sanitizeVisiblePsiText(String(getVal(['investigation', 'title']) || '')) ||
+      'Custom Imported Combustion Run';
     const facilityRaw = String(getVal(['facility']) || 'CIR').toUpperCase();
     const facility: PsiRun['facility'] =
-      facilityRaw === 'MSG' || facilityRaw === 'CYGNUS' || facilityRaw === 'FSL'
-        ? (facilityRaw === 'CYGNUS' ? 'Cygnus' : (facilityRaw as PsiRun['facility']))
+      facilityRaw === 'MSG' ||
+      facilityRaw === 'CYGNUS' ||
+      facilityRaw === 'FSL' ||
+      facilityRaw === 'VIRTUAL'
+        ? facilityRaw === 'CYGNUS'
+          ? 'Cygnus'
+          : facilityRaw === 'VIRTUAL'
+          ? 'Virtual'
+          : (facilityRaw as PsiRun['facility'])
         : 'CIR';
 
-    const outcome: HazardOutcome = computed.hazardStatus;
+    const rawOutcome = String(getVal(['outcome', 'regime', 'hazard']) || '').trim();
+    const isCoolTempWindow = peakTemp_K >= 550 && peakTemp_K <= 810 && Flow_ms <= 0.11;
+    const outcome: HazardOutcome =
+      rawOutcome === 'Self-Extinguishing' ||
+      rawOutcome === 'Cool Flame Caution' ||
+      rawOutcome === 'Rapid Flame Spread'
+        ? rawOutcome
+        : isCoolTempWindow
+        ? 'Cool Flame Caution'
+        : flameSpread_mms < 0.48
+        ? 'Self-Extinguishing'
+        : 'Rapid Flame Spread';
 
     return {
       id: `custom-${Date.now()}-${idx}`,
@@ -219,10 +281,12 @@ export function validateAndNormalizeDataset(
       Thickness_mm,
       flameSpread_mms,
       peakTemp_K,
-      radiometerFlux_Wm2: Math.round(peakTemp_K * 11.5),
+      radiometerFlux_Wm2,
       coolFlameObserved: outcome === 'Cool Flame Caution',
       outcome,
-      notes: String(getVal(['notes', 'comment']) || 'Normalized and imported via Domain Gatekeeper.'),
+      notes:
+        sanitizeVisiblePsiText(String(getVal(['notes', 'comment']) || '')) ||
+        'Normalized and imported via Domain Gatekeeper.',
       isCustom: true,
     };
   });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Table,
   X,
@@ -7,17 +7,22 @@ import {
   Columns3,
   Layers,
   ArrowUpRight,
+  LineChart as LineChartIcon,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
 } from 'recharts';
 import { PsiRun, ThemeMode, VizMode } from '../types/psi';
+import { generateTimelineSeries } from '../utils/physicsEngine';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface RunComparatorProps {
   theme: ThemeMode;
@@ -28,13 +33,19 @@ interface RunComparatorProps {
   onRemoveRun: (runId: string) => void;
   onApplyRunToSliders: (run: PsiRun) => void;
   onLoadDefaultComparisonSet: () => void;
+  onAddActiveVirtualRun?: () => void;
   onGoToCatalog?: () => void;
   onOpenWorkbenchTechnique?: (mode: VizMode) => void;
 }
 
-type ComparatorChartMode = 'parallel' | 'grouped-bar' | 'lollipop' | 'heatmap';
+type ComparatorChartMode =
+  | 'parallel'
+  | 'trajectory'
+  | 'grouped-bar'
+  | 'lollipop'
+  | 'heatmap';
 
-const RUN_COLORS = ['#10B981', '#F59E0B', '#A855F7', '#EC4899'];
+const RUN_COLORS = ['#10B981', '#F59E0B', '#64748B', '#EF4444'];
 
 export const RunComparator: React.FC<RunComparatorProps> = ({
   theme,
@@ -45,6 +56,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
   onRemoveRun,
   onApplyRunToSliders,
   onLoadDefaultComparisonSet,
+  onAddActiveVirtualRun,
   onGoToCatalog,
   onOpenWorkbenchTechnique,
 }) => {
@@ -53,11 +65,29 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
 
   const isDark = theme === 'dark';
 
-  const cardSurface = isDark
-    ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
-    : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]';
-
   const baselineRun = selectedRuns[0] ?? null;
+
+  const trajectoryRows = useMemo(() => {
+    if (selectedRuns.length < 2) return [];
+    const perRunSeries = selectedRuns.map((r) =>
+      generateTimelineSeries({
+        O2_pct: r.O2_pct,
+        P_psi: r.P_psi,
+        Flow_ms: r.Flow_ms,
+        g_eff: r.g_eff,
+        Thickness_mm: r.Thickness_mm,
+        peakTemp_K: r.peakTemp_K,
+        hazardStatus: r.outcome,
+      })
+    );
+    return perRunSeries[0].map((pt, idx) => {
+      const row: Record<string, number> = { time_s: pt.time_s };
+      selectedRuns.forEach((run, runIdx) => {
+        row[run.id] = perRunSeries[runIdx][idx]?.temp_K ?? 298;
+      });
+      return row;
+    });
+  }, [selectedRuns]);
 
   const formatDeltaPct = (val: number, baseVal: number, idx: number) => {
     if (idx === 0 || baseVal === 0) return null;
@@ -78,20 +108,39 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* 1. Side-by-Side Comparison Matrix */}
-      <section className={`border rounded-[6px] p-5 ${cardSurface}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <Table className="w-4 h-4 text-zinc-500" />
-            <h2 className="font-display text-sm font-semibold">
-              Side-by-Side Run Comparison Matrix
-            </h2>
-            <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
-              ({selectedRuns.length}/4 Runs Checked · Deltas vs.{' '}
-              {baselineRun?.psiId ?? 'Baseline'})
-            </span>
-          </div>
+      {/* Page Title */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-lg font-semibold tracking-tight">
+            Run Comparator
+          </h1>
+          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+            Side-by-side comparison matrix and overlaid trajectory analysis for up to 4 historical or virtual combustion runs
+          </p>
+        </div>
+        {onAddActiveVirtualRun && (
+          <button
+            type="button"
+            onClick={onAddActiveVirtualRun}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
+              isDark
+                ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
+                : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
+            }`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Active Virtual Run</span>
+          </button>
+        )}
+      </div>
 
+      {/* 1. Side-by-Side Comparison Matrix */}
+      <CollapsibleCard
+        theme={theme}
+        title="Side-by-Side Run Comparison Matrix"
+        subtitle={`${selectedRuns.length}/4 Runs Checked · Deltas vs. ${baselineRun?.psiId ?? 'Baseline'}`}
+        summaryLine={`${selectedRuns.length}/4 selected runs · Baseline ${baselineRun?.psiId ?? 'None'}`}
+        rightActions={
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -109,8 +158,8 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               <Columns3 className="w-3.5 h-3.5" />
               <span>
                 {showExtendedCols
-                  ? 'Hide Extended Telemetry'
-                  : 'Expand Full Telemetry (+3 cols)'}
+                  ? 'Hide Extra Telemetry'
+                  : 'Show Extra Telemetry (+3 cols)'}
               </span>
             </button>
 
@@ -129,7 +178,8 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               </button>
             )}
           </div>
-        </div>
+        }
+      >
 
         {/* Actionable Empty State if < 2 runs checked */}
         {selectedRuns.length < 2 ? (
@@ -209,6 +259,30 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                   const o2Delta = baselineRun
                     ? formatDeltaPct(run.O2_pct, baselineRun.O2_pct, idx)
                     : null;
+                  const pDelta = baselineRun
+                    ? formatDeltaPct(run.P_psi, baselineRun.P_psi, idx)
+                    : null;
+                  const flowDelta = baselineRun
+                    ? formatDeltaPct(run.Flow_ms, baselineRun.Flow_ms, idx)
+                    : null;
+                  const gDelta =
+                    idx > 0 && baselineRun
+                      ? baselineRun.g_eff === 0
+                        ? run.g_eff > 0
+                          ? `+${run.g_eff.toFixed(2)}g`
+                          : null
+                        : formatDeltaPct(run.g_eff, baselineRun.g_eff, idx)
+                      : null;
+                  const thickDelta = baselineRun
+                    ? formatDeltaPct(
+                        run.Thickness_mm,
+                        baselineRun.Thickness_mm,
+                        idx
+                      )
+                    : null;
+                  const tempDelta = baselineRun
+                    ? formatDeltaPct(run.peakTemp_K, baselineRun.peakTemp_K, idx)
+                    : null;
                   const spreadDelta = baselineRun
                     ? formatDeltaPct(
                         run.flameSpread_mms,
@@ -249,8 +323,13 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                             {run.psiId}
                           </button>
                           {idx === 0 && (
-                            <span className="text-[10px] text-zinc-400 font-normal">
+                            <span className="font-sans text-[10px] text-zinc-400 font-normal">
                               [REF]
+                            </span>
+                          )}
+                          {run.isVirtual && (
+                            <span className="font-sans text-[10px] text-[#10B981] font-normal">
+                              [VIRTUAL]
                             </span>
                           )}
                         </div>
@@ -270,21 +349,46 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         )}
                       </td>
                       <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
-                        {run.P_psi.toFixed(1)} psi
+                        <span>{run.P_psi.toFixed(1)} psi</span>
+                        {pDelta && (
+                          <span className="ml-1.5 text-[10px] text-zinc-400">
+                            ({pDelta})
+                          </span>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
-                        {run.Flow_ms.toFixed(2)} m/s
+                        <span>{run.Flow_ms.toFixed(2)} m/s</span>
+                        {flowDelta && (
+                          <span className="ml-1.5 text-[10px] text-zinc-400">
+                            ({flowDelta})
+                          </span>
+                        )}
                       </td>
                       {showExtendedCols && (
                         <>
                           <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
-                            {run.g_eff.toFixed(3)}g
+                            <span>{run.g_eff.toFixed(3)}g</span>
+                            {gDelta && (
+                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                                ({gDelta})
+                              </span>
+                            )}
                           </td>
                           <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
-                            {run.Thickness_mm.toFixed(1)} mm
+                            <span>{run.Thickness_mm.toFixed(1)} mm</span>
+                            {thickDelta && (
+                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                                ({thickDelta})
+                              </span>
+                            )}
                           </td>
                           <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
-                            {run.peakTemp_K} K
+                            <span>{run.peakTemp_K} K</span>
+                            {tempDelta && (
+                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                                ({tempDelta})
+                              </span>
+                            )}
                           </td>
                         </>
                       )}
@@ -340,23 +444,60 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
             </table>
           </div>
         )}
-      </section>
+      </CollapsibleCard>
 
-      {/* 2. Switchable Multi-Technique Comparison Chart */}
+      {/* 2. Switchable Multi-Axis & Trajectory Comparison Chart */}
       {selectedRuns.length >= 2 && (
-        <section className={`border rounded-[6px] p-5 space-y-3 ${cardSurface}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h3 className="font-display text-sm font-semibold">
-                Overlaid Multi-Variable Run Comparison
-              </h3>
-              <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Switch comparison techniques on the same {selectedRuns.length}{' '}
-                selected PSI runs, or hover any run to isolate it.
+        <CollapsibleCard
+          theme={theme}
+          title="Overlaid Multi-Axis Trajectory & Technique Comparison"
+          subtitle={
+            chartMode === 'parallel'
+              ? 'Parallel Coordinates'
+              : chartMode === 'trajectory'
+              ? '0–120s Trajectory Overlay'
+              : chartMode === 'grouped-bar'
+              ? 'Grouped Bars'
+              : chartMode === 'lollipop'
+              ? 'Cleveland Lollipop'
+              : 'Matrix Heatmap'
+          }
+          summaryLine={`Comparing ${selectedRuns.length} runs across ${chartMode === 'trajectory' ? '0–120s thermal evolution' : 'multi-variable axes'}`}
+          rightActions={
+            onOpenWorkbenchTechnique ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenWorkbenchTechnique(
+                    chartMode === 'parallel'
+                      ? 'multi-variable'
+                      : chartMode === 'trajectory'
+                      ? 'multi-series-line'
+                      : chartMode === 'grouped-bar'
+                      ? 'grouped-bar'
+                      : chartMode === 'lollipop'
+                      ? 'lollipop-dot'
+                      : 'heatmap-matrix'
+                  )
+                }
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                  isDark
+                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
+                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                }`}
+              >
+                <span>Open in Visual Analytics Studio</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </button>
+            ) : undefined
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+                Switch comparison techniques on the same {selectedRuns.length} selected runs, or hover any run series to highlight it.
               </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
               <div
                 className={`flex flex-wrap items-center gap-1 p-1 rounded-[5px] border ${
                   isDark
@@ -369,6 +510,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                 {(
                   [
                     { id: 'parallel', label: 'Parallel Coordinates' },
+                    { id: 'trajectory', label: '0–120s Trajectory' },
                     { id: 'grouped-bar', label: 'Grouped Bars' },
                     { id: 'lollipop', label: 'Lollipop / Dot' },
                     { id: 'heatmap', label: 'Heatmap Matrix' },
@@ -395,60 +537,96 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                   );
                 })}
               </div>
-
-              {onOpenWorkbenchTechnique && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    onOpenWorkbenchTechnique(
-                      chartMode === 'parallel'
-                        ? 'multi-variable'
-                        : chartMode === 'grouped-bar'
-                        ? 'grouped-bar'
-                        : chartMode === 'lollipop'
-                        ? 'lollipop-dot'
-                        : 'heatmap-matrix'
-                    )
-                  }
-                  className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
-                    isDark
-                      ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                      : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
-                  }`}
-                >
-                  <span>Full 23-Technique Workbench</span>
-                  <ArrowUpRight className="w-3 h-3" />
-                </button>
-              )}
             </div>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-4 font-mono text-xs">
-            {selectedRuns.map((run, idx) => {
-              const isDimmed =
-                hoveredRunId !== null && hoveredRunId !== run.id;
-              return (
-                <button
-                  key={run.id}
-                  type="button"
-                  onMouseEnter={() => onHoverRun(run.id)}
-                  onMouseLeave={() => onHoverRun(null)}
-                  onClick={() => onInspectRun(run.id)}
-                  className={`inline-flex items-center gap-1.5 transition-opacity duration-200 cursor-pointer hover:underline ${
-                    isDimmed ? 'opacity-30' : 'opacity-100'
-                  }`}
-                >
-                  <span
-                    className="w-3 h-1 rounded-[1px]"
-                    style={{
-                      backgroundColor: RUN_COLORS[idx % RUN_COLORS.length],
-                    }}
-                  />
-                  <span>{run.psiId}</span>
-                </button>
-              );
-            })}
-          </div>
+            <div className="flex flex-wrap items-center gap-4 font-sans text-xs pb-1">
+              {selectedRuns.map((run, idx) => {
+                const isDimmed =
+                  hoveredRunId !== null && hoveredRunId !== run.id;
+                return (
+                  <button
+                    key={run.id}
+                    type="button"
+                    onMouseEnter={() => onHoverRun(run.id)}
+                    onMouseLeave={() => onHoverRun(null)}
+                    onClick={() => onInspectRun(run.id)}
+                    className={`inline-flex items-center gap-1.5 transition-opacity duration-200 cursor-pointer hover:underline ${
+                      isDimmed ? 'opacity-30' : 'opacity-100'
+                    }`}
+                  >
+                    <span
+                      className="w-3 h-1 rounded-[1px]"
+                      style={{
+                        backgroundColor: RUN_COLORS[idx % RUN_COLORS.length],
+                      }}
+                    />
+                    <span>{run.psiId}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {chartMode === 'trajectory' && (
+              <div className="h-[290px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={trajectoryRows}
+                    margin={{ top: 12, right: 20, left: 4, bottom: 8 }}
+                  >
+                    <CartesianGrid
+                      stroke={gridStroke}
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="time_s"
+                      stroke={axisTextFill}
+                      tickFormatter={(v) => `${v}s`}
+                      tick={{
+                        fontSize: 11,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fill: axisTextFill,
+                      }}
+                    />
+                    <YAxis
+                      stroke={axisTextFill}
+                      unit=" K"
+                      tick={{
+                        fontSize: 11,
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fill: axisTextFill,
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: isDark ? 'rgba(24,24,27,0.9)' : 'rgba(255,255,255,0.92)',
+                        backdropFilter: 'blur(8px)',
+                        borderColor: isDark ? '#27272A' : '#E4E4E7',
+                        borderRadius: '5px',
+                        fontSize: '11px',
+                        fontFamily: 'Inter, sans-serif',
+                      }}
+                    />
+                    {selectedRuns.map((run, idx) => (
+                      <Line
+                        key={run.id}
+                        type="monotone"
+                        dataKey={run.id}
+                        name={`${run.psiId} (K)`}
+                        stroke={RUN_COLORS[idx % RUN_COLORS.length]}
+                        strokeWidth={hoveredRunId === run.id ? 3 : 2}
+                        strokeOpacity={
+                          hoveredRunId !== null && hoveredRunId !== run.id
+                            ? 0.25
+                            : 1
+                        }
+                        dot={false}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
 
           {chartMode === 'parallel' && (
             <svg
@@ -641,7 +819,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       borderColor: isDark ? '#27272A' : '#E4E4E7',
                       borderRadius: '4px',
                       fontSize: '11px',
-                      fontFamily: 'JetBrains Mono, monospace',
+                      fontFamily: 'Inter, sans-serif',
                     }}
                   />
                   <Bar
@@ -799,7 +977,8 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               </table>
             </div>
           )}
-        </section>
+          </div>
+        </CollapsibleCard>
       )}
     </div>
   );

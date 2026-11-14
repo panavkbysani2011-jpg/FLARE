@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { HazardOutcome, PsiRun, ThemeMode } from '../types/psi';
+import { CollapsibleCard } from './CollapsibleCard';
 
 interface ExperimentRunsViewProps {
   theme: ThemeMode;
@@ -144,27 +145,33 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Search, Filter & Comparison Selection Bar */}
-      <section className={`border rounded-[6px] p-4 space-y-3 ${cardSurface}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="font-display text-sm font-semibold">
-              Granular Experiment Run Catalog
-            </h2>
-            <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Search individual calibrated runs, sort telemetry parameters, and
-              check up to 4 runs for side-by-side comparison.
-            </p>
-          </div>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="font-display text-lg font-bold tracking-tight">
+          Experiment Runs Catalog ({runs.length.toLocaleString()})
+        </h1>
+        <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+          Calibrated multi-investigation run telemetry
+        </span>
+      </div>
 
+      {/* Search, Filter & Comparison Selection Bar */}
+      <CollapsibleCard
+        theme={theme}
+        title="Granular Experiment Run Catalog"
+        subtitle={`${filteredAndSortedRuns.length.toLocaleString()} matching runs`}
+        summaryLine={`${filteredAndSortedRuns.length.toLocaleString()} matching runs · Facility: ${facilityFilter} · Regime: ${outcomeFilter} · ${selectedRunIds.length}/4 Selected`}
+        rightActions={
           <div className="flex items-center gap-2.5">
-            <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
-              {selectedRunIds.length}/4 Selected
+            <span className="font-sans text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="font-mono tabular-nums">
+                {selectedRunIds.length}/4
+              </span>{' '}
+              Selected
             </span>
             <button
               type="button"
               onClick={onGoToComparator}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
                 isDark
                   ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                   : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -174,85 +181,92 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
-        </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+            Search individual calibrated runs, sort telemetry parameters, and check up to 4 runs for side-by-side comparison.
+          </p>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by run code (e.g. SAF2-M07), PSI ID, fuel, or notes..."
-              aria-label="Search experiment runs"
-              className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by run code (e.g. SAF2-M07), PSI ID, fuel, or notes..."
+                aria-label="Search experiment runs"
+                className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                }`}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear run search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={facilityFilter}
+              onChange={(e) => setFacilityFilter(e.target.value)}
+              aria-label="Filter runs by hardware facility"
+              className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
                 isDark
-                  ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                  ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
               }`}
-            />
-            {searchQuery && (
+            >
+              <option value="ALL">All Facilities</option>
+              <option value="CIR">CIR</option>
+              <option value="MSG">MSG</option>
+              <option value="Cygnus">Cygnus</option>
+              <option value="FSL">FSL</option>
+              <option value="Virtual">Virtual</option>
+            </select>
+
+            <select
+              value={outcomeFilter}
+              onChange={(e) => setOutcomeFilter(e.target.value)}
+              aria-label="Filter runs by safety regime outcome"
+              className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
+                isDark
+                  ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
+              }`}
+            >
+              <option value="ALL">All Safety Regimes</option>
+              <option value="Rapid Flame Spread">Rapid Flame Spread</option>
+              <option value="Cool Flame Caution">Cool Flame Caution</option>
+              <option value="Self-Extinguishing">Self-Extinguishing</option>
+            </select>
+
+            {(searchQuery !== '' ||
+              facilityFilter !== 'ALL' ||
+              outcomeFilter !== 'ALL') && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label="Clear run search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                onClick={() => {
+                  setSearchQuery('');
+                  setFacilityFilter('ALL');
+                  setOutcomeFilter('ALL');
+                }}
+                className="px-2.5 py-1.5 text-xs font-sans text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 underline cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" />
+                Reset
               </button>
             )}
           </div>
-
-          <select
-            value={facilityFilter}
-            onChange={(e) => setFacilityFilter(e.target.value)}
-            aria-label="Filter runs by hardware facility"
-            className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
-              isDark
-                ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
-                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
-            }`}
-          >
-            <option value="ALL">All Facilities</option>
-            <option value="CIR">CIR</option>
-            <option value="MSG">MSG</option>
-            <option value="Cygnus">Cygnus</option>
-            <option value="FSL">FSL</option>
-          </select>
-
-          <select
-            value={outcomeFilter}
-            onChange={(e) => setOutcomeFilter(e.target.value)}
-            aria-label="Filter runs by safety regime outcome"
-            className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
-              isDark
-                ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
-                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
-            }`}
-          >
-            <option value="ALL">All Safety Regimes</option>
-            <option value="Rapid Flame Spread">Rapid Flame Spread</option>
-            <option value="Cool Flame Caution">Cool Flame Caution</option>
-            <option value="Self-Extinguishing">Self-Extinguishing</option>
-          </select>
-
-          {(searchQuery !== '' ||
-            facilityFilter !== 'ALL' ||
-            outcomeFilter !== 'ALL') && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setFacilityFilter('ALL');
-                setOutcomeFilter('ALL');
-              }}
-              className="px-2.5 py-1.5 text-xs font-sans text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 underline cursor-pointer"
-            >
-              Reset
-            </button>
-          )}
         </div>
-      </section>
+      </CollapsibleCard>
 
       {/* Granular Run-Level Table */}
       <section className={`border rounded-[6px] overflow-hidden ${cardSurface}`}>
@@ -433,22 +447,33 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
         <div
           className={`px-4 py-2.5 border-t flex flex-wrap items-center justify-between gap-2 text-xs ${dividerBorder}`}
         >
-          <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums">
+          <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
             Showing{' '}
-            {filteredAndSortedRuns.length === 0
-              ? 0
-              : (safePage - 1) * PAGE_SIZE + 1}
+            <span className="font-mono tabular-nums">
+              {filteredAndSortedRuns.length === 0
+                ? 0
+                : (safePage - 1) * PAGE_SIZE + 1}
+            </span>
             –
-            {Math.min(
-              safePage * PAGE_SIZE,
-              filteredAndSortedRuns.length
-            )}{' '}
-            of {filteredAndSortedRuns.length.toLocaleString()} runs (
-            {runs.length.toLocaleString()} total in catalog)
+            <span className="font-mono tabular-nums">
+              {Math.min(
+                safePage * PAGE_SIZE,
+                filteredAndSortedRuns.length
+              )}
+            </span>{' '}
+            of{' '}
+            <span className="font-mono tabular-nums">
+              {filteredAndSortedRuns.length.toLocaleString()}
+            </span>{' '}
+            runs (
+            <span className="font-mono tabular-nums">
+              {runs.length.toLocaleString()}
+            </span>{' '}
+            total in catalog)
           </span>
 
           {totalPages > 1 && (
-            <div className="flex items-center gap-1.5 font-mono text-xs">
+            <div className="flex items-center gap-1.5 font-sans text-xs">
               <button
                 type="button"
                 disabled={safePage <= 1}
@@ -462,8 +487,11 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                 <ChevronLeft className="w-3.5 h-3.5" />
                 <span>Prev</span>
               </button>
-              <span className="px-2 tabular-nums">
-                Page {safePage} / {totalPages}
+              <span className="px-2">
+                Page{' '}
+                <span className="font-mono tabular-nums">
+                  {safePage} / {totalPages}
+                </span>
               </span>
               <button
                 type="button"

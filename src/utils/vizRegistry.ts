@@ -2,6 +2,7 @@ import {
   DatasetScope,
   PsiRun,
   SimulationResponse,
+  StudioDatasetSource,
   VizCompatibilityResult,
   VizDatasetContext,
   VizFamilyId,
@@ -16,36 +17,254 @@ export interface VizFamilyMeta {
   description: string;
 }
 
+export type NumericAxisKey =
+  | 'O2_pct'
+  | 'P_psi'
+  | 'Flow_ms'
+  | 'g_eff'
+  | 'Thickness_mm'
+  | 'flameSpread_mms'
+  | 'peakTemp_K'
+  | 'radiometerFlux_Wm2';
+
+export type CategoricalGroupKey = 'outcome' | 'facility' | 'material' | 'psiId';
+
+export type AxisVariableKey = NumericAxisKey | CategoricalGroupKey;
+
+export interface AxisColumnMeta {
+  key: AxisVariableKey;
+  label: string;
+  shortLabel: string;
+  unit?: string;
+  kind: 'numeric' | 'categorical';
+  min?: number;
+  max?: number;
+  format?: (val: number) => string;
+}
+
+export const STUDIO_NUMERIC_COLUMNS: Array<
+  AxisColumnMeta & {
+    key: NumericAxisKey;
+    kind: 'numeric';
+    min: number;
+    max: number;
+    format: (v: number) => string;
+  }
+> = [
+  {
+    key: 'O2_pct',
+    label: 'O₂ Concentration',
+    shortLabel: 'O₂ %',
+    unit: '%',
+    kind: 'numeric',
+    min: 14,
+    max: 100,
+    format: (v) => v.toFixed(1),
+  },
+  {
+    key: 'P_psi',
+    label: 'Cabin Pressure',
+    shortLabel: 'Pressure psi',
+    unit: 'psi',
+    kind: 'numeric',
+    min: 4.3,
+    max: 20.0,
+    format: (v) => v.toFixed(1),
+  },
+  {
+    key: 'Flow_ms',
+    label: 'Forced Airflow',
+    shortLabel: 'Airflow m/s',
+    unit: 'm/s',
+    kind: 'numeric',
+    min: 0.0,
+    max: 0.5,
+    format: (v) => v.toFixed(2),
+  },
+  {
+    key: 'g_eff',
+    label: 'Gravity Level',
+    shortLabel: 'Gravity g',
+    unit: 'g',
+    kind: 'numeric',
+    min: 0.0,
+    max: 1.0,
+    format: (v) => v.toFixed(3),
+  },
+  {
+    key: 'Thickness_mm',
+    label: 'Material Thickness',
+    shortLabel: 'Thickness mm',
+    unit: 'mm',
+    kind: 'numeric',
+    min: 0.2,
+    max: 10.0,
+    format: (v) => v.toFixed(1),
+  },
+  {
+    key: 'peakTemp_K',
+    label: 'Peak Gas Temperature',
+    shortLabel: 'Peak Temp K',
+    unit: 'K',
+    kind: 'numeric',
+    min: 300,
+    max: 1900,
+    format: (v) => `${Math.round(v)}`,
+  },
+  {
+    key: 'radiometerFlux_Wm2',
+    label: 'IR Radiometer Flux',
+    shortLabel: 'IR Flux W/m²',
+    unit: 'W/m²',
+    kind: 'numeric',
+    min: 0,
+    max: 25000,
+    format: (v) => `${Math.round(v)}`,
+  },
+  {
+    key: 'flameSpread_mms',
+    label: 'Flame Spread Rate',
+    shortLabel: 'Flame Spread mm/s',
+    unit: 'mm/s',
+    kind: 'numeric',
+    min: 0.0,
+    max: 5.5,
+    format: (v) => v.toFixed(2),
+  },
+];
+
+export const STUDIO_CATEGORICAL_COLUMNS: Array<
+  AxisColumnMeta & { key: CategoricalGroupKey; kind: 'categorical' }
+> = [
+  { key: 'outcome', label: 'Safety Regime', shortLabel: 'Safety Regime', kind: 'categorical' },
+  { key: 'facility', label: 'Hardware Facility', shortLabel: 'Facility', kind: 'categorical' },
+  { key: 'material', label: 'Material Substrate', shortLabel: 'Material', kind: 'categorical' },
+  { key: 'psiId', label: 'PSI Investigation ID', shortLabel: 'PSI ID', kind: 'categorical' },
+];
+
+export const ALL_STUDIO_AXIS_COLUMNS: AxisColumnMeta[] = [
+  ...STUDIO_NUMERIC_COLUMNS,
+  ...STUDIO_CATEGORICAL_COLUMNS,
+];
+
+export function isNumericAxisKey(key: AxisVariableKey): key is NumericAxisKey {
+  return STUDIO_NUMERIC_COLUMNS.some((c) => c.key === key);
+}
+
+export function getAxisMeta(key: AxisVariableKey): AxisColumnMeta {
+  return (
+    ALL_STUDIO_AXIS_COLUMNS.find((c) => c.key === key) ??
+    STUDIO_NUMERIC_COLUMNS[0]
+  );
+}
+
+export function getDefaultAxesForTechnique(vizMode: VizMode): {
+  xAxis: AxisVariableKey;
+  yAxis: NumericAxisKey;
+  colorBy: CategoricalGroupKey;
+} {
+  switch (vizMode) {
+    case 'safety-map':
+      return { xAxis: 'O2_pct', yAxis: 'Flow_ms', colorBy: 'outcome' };
+    case 'contour-surface':
+      return { xAxis: 'P_psi', yAxis: 'Thickness_mm', colorBy: 'outcome' };
+    case 'scatter-plot':
+    case 'bubble-plot':
+    case 'density-strip':
+      return { xAxis: 'O2_pct', yAxis: 'flameSpread_mms', colorBy: 'outcome' };
+    case 'residual-deviation':
+      return { xAxis: 'O2_pct', yAxis: 'flameSpread_mms', colorBy: 'material' };
+    case 'grouped-bar':
+    case 'stacked-bar':
+    case 'material-safety':
+    case 'frequency-distribution':
+      return { xAxis: 'material', yAxis: 'flameSpread_mms', colorBy: 'outcome' };
+    case 'horizontal-ranked-bar':
+    case 'lollipop-dot':
+    case 'range-interval-bar':
+      return { xAxis: 'psiId', yAxis: 'flameSpread_mms', colorBy: 'outcome' };
+    case 'histogram':
+    case 'box-quartile':
+      return { xAxis: 'flameSpread_mms', yAxis: 'flameSpread_mms', colorBy: 'outcome' };
+    case 'correlation-matrix':
+    case 'heatmap-matrix':
+      return { xAxis: 'O2_pct', yAxis: 'flameSpread_mms', colorBy: 'facility' };
+    case 'sensor-timeline':
+    case 'multi-series-line':
+    case 'area-chart':
+    case 'stacked-area':
+    case 'step-chart':
+    case 'timeline-progression':
+      return { xAxis: 'O2_pct', yAxis: 'peakTemp_K', colorBy: 'outcome' };
+    case 'multi-variable':
+    case 'polar-radial':
+    default:
+      return { xAxis: 'O2_pct', yAxis: 'flameSpread_mms', colorBy: 'outcome' };
+  }
+}
+
+export const STUDIO_DATASET_SOURCES: Array<{
+  id: StudioDatasetSource;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: 'full-archive',
+    label: 'Full PSI Archive',
+    description: 'All calibrated runs across 18 PSI investigations',
+  },
+  {
+    id: 'selected-comparison',
+    label: 'Selected Comparison Runs',
+    description: 'Active runs staged for side-by-side Run Comparator evaluation',
+  },
+  {
+    id: 'virtual-lab-output',
+    label: 'Virtual Test Lab Output',
+    description: 'Predicted chamber run + nearest validated archive neighbors + 120s sensor stream',
+  },
+  {
+    id: 'material-qualification',
+    label: 'Material Qualification Dataset',
+    description: 'Standardized candidate substrates (PMMA, SIBAL, Cotton-Fiberglass, PTFE, Nomex)',
+  },
+  {
+    id: 'imported-custom',
+    label: 'Imported Custom CSV/JSON',
+    description: 'User-uploaded experimental runs normalized to PSI telemetry units',
+  },
+];
+
 export const VIZ_FAMILIES: VizFamilyMeta[] = [
   {
     id: 'comparisons',
     label: 'Comparisons & Rankings',
     shortLabel: 'Comparisons',
-    description: 'Side-by-side run metrics, stacked hazard loads, ranks, targets, and multi-axis profiles',
+    description: 'Side-by-side bars, stacked indices, ranks, target bullets, and parallel coordinate axes',
   },
   {
     id: 'distributions',
     label: 'Distributions & Ranges',
     shortLabel: 'Distributions',
-    description: 'Binned histograms, regime/facility frequencies, confidence spans, and quartile summaries',
+    description: 'Binned histograms, frequency bars, confidence spans, density strips, and quartile plots',
   },
   {
     id: 'relationships',
     label: 'Relationships & Multi-Variable',
     shortLabel: 'Relationships',
-    description: 'Bivariate scatter, 4D bubble projections, Pearson correlation grids, and normalized matrices',
+    description: 'Bivariate scatter, multi-metric bubbles, residual plots, Pearson grids, and normalized matrices',
   },
   {
     id: 'time-series',
     label: 'Time & Sequential Progression',
     shortLabel: 'Time & Sequence',
-    description: '0–120s sensor timelines, multi-run curves, stacked emission areas, and 10s forecasts',
+    description: 'Dual-axis sensor lines, multi-series curves, stacked emission areas, step charts, and forecasts',
   },
   {
     id: 'spatial-regime',
     label: 'Spatial, Regime & Multi-Dimensional',
     shortLabel: 'Regime & Spatial',
-    description: '2D O₂/airflow maps, pressure-thickness quenching contours, and radial profiles',
+    description: '2D regime heatmaps, bivariate contour density maps, and polar radial profiles',
   },
 ];
 
@@ -53,64 +272,67 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   // 1. SPATIAL, REGIME & MULTI-DIMENSIONAL
   {
     id: 'safety-map',
-    name: 'Oxygen vs. Airflow Safety Regime Map',
-    shortName: 'O₂ vs. Airflow Map',
+    name: '2D Regime Heatmap',
+    shortName: '2D Heatmap',
     familyId: 'spatial-regime',
     familyLabel: 'Spatial, Regime & Multi-Dimensional',
-    description: 'Interactive 2D O₂ % × Airflow (m/s) boundary-layer heatmap with 0.05–0.20 m/s replenishment zone and archive markers.',
-    keywords: ['heatmap', 'grid', 'safety map', 'oxygen', 'airflow', 'regime', '2d', 'spatial', 'interactive'],
-    requirementsSummary: 'Requires 2D O₂ × Airflow boundary-layer parameter grid',
+    description:
+      'Continuous 2D parameter grid colored by modeled safety regime with clickable coordinate sampling and overlaid archive points.',
+    keywords: ['heatmap', '2d', 'regime', 'grid', 'contour', 'spatial', 'interactive'],
+    requirementsSummary: 'Requires continuous 2D numeric X × Y parameter grid',
     evaluateCompatibility: (ctx) =>
       ctx.has2DGrid
         ? {
             status: 'recommended',
-            reason: 'Recommended: Best match for 2D boundary-layer O₂ vs. airflow safety mapping.',
+            reason: 'Recommended: Direct 2D numeric grid mapping with overlaid dataset points.',
           }
         : {
             status: 'unavailable',
-            reason: 'Unavailable: Requires 2D O₂ × Airflow parameter grid.',
+            reason: 'Unavailable: Requires a 2D numeric parameter grid.',
             missingRequirement: '2D Parameter Grid',
           },
   },
   {
     id: 'contour-surface',
-    name: 'Pressure vs. Thickness Quenching Contour',
-    shortName: 'P vs. δ Contour',
+    name: 'Contour Density Map',
+    shortName: 'Contour Map',
     familyId: 'spatial-regime',
     familyLabel: 'Spatial, Regime & Multi-Dimensional',
-    description: '2D Cabin Pressure (psi) × Substrate Thickness (mm) contour heatmap identifying the conductive quenching boundary.',
-    keywords: ['contour', 'surface', 'heatmap', 'pressure', 'thickness', 'quenching', '2d'],
-    requirementsSummary: 'Requires 2D Pressure × Thickness physics sweep grid',
+    description:
+      '2D response contour map resolving boundary transitions across two user-selected continuous variables.',
+    keywords: ['contour', 'density', 'surface', 'heatmap', '2d', 'boundary', 'threshold'],
+    requirementsSummary: 'Requires continuous 2D numeric X × Y sweep grid',
     evaluateCompatibility: (ctx) => {
       if (!ctx.has2DGrid) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Requires 2D Pressure × Thickness physics sweep grid.',
+          reason: 'Unavailable: Requires a continuous 2D numeric parameter grid.',
           missingRequirement: '2D Parameter Grid',
         };
       }
       return ctx.activeRuns.length >= 4
         ? {
             status: 'recommended',
-            reason: 'Recommended: Maps conductive quenching contours alongside active archive runs.',
+            reason: 'Recommended: Resolves boundary contours alongside active dataset runs.',
           }
         : {
             status: 'available',
-            reason: 'Available: Renders Pressure vs. Thickness quenching surface at current O₂ and airflow.',
+            reason: 'Available: Renders continuous X × Y contour surface for active test state.',
           };
     },
   },
   {
     id: 'polar-radial',
-    name: 'Polar / Radial Multi-Parameter Profile',
+    name: 'Polar Radial Profile',
     shortName: 'Polar Profile',
     familyId: 'spatial-regime',
     familyLabel: 'Spatial, Regime & Multi-Dimensional',
-    description: 'Radial polygon comparing normalized 6-axis cabin telemetry against active runs.',
+    description:
+      'Normalized multi-axis radial polygon comparing telemetry shapes across records with explicit quadratic area caveat.',
     keywords: ['polar', 'radial', 'radar', 'spider', 'multi-dimensional', 'envelope'],
-    requirementsSummary: 'Requires ≥1 run and ≥4 numeric dimensions (includes analytical distortion caveat)',
+    requirementsSummary: 'Requires ≥1 run and ≥4 numeric dimensions',
     caveatNote:
-      'Analytical Caveat: Radial polygon area scales quadratically with radius and depends on axis ordering. Prefer Parallel Coordinates or Bullet Bars for strict quantitative reading.',
+      'Analytical Caveat: Radial polygon area scales quadratically with radius and depends on axis ordering. Prefer Parallel Coordinates or Bullet Target Chart for strict quantitative comparison.',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 1 || ctx.numericColumnCount < 4) {
         return {
@@ -121,7 +343,7 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
       }
       return {
         status: 'available',
-        reason: 'Available: Polar radial profile ready (see area-distortion caveat before quantitative inference).',
+        reason: 'Available: Polar radial profile ready (see area-distortion caveat).',
       };
     },
   },
@@ -129,13 +351,14 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   // 2. COMPARISONS & RANKINGS
   {
     id: 'multi-variable',
-    name: 'Parallel Coordinates / Multi-Axis Profiles',
-    shortName: 'Parallel Axes',
+    name: 'Parallel Coordinates',
+    shortName: 'Parallel Coords',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: 'Overlays selected PSI runs and active simulation across 5 normalized combustion telemetry axes.',
-    keywords: ['parallel coordinates', 'multi-variable', 'multi-axis', 'profile', 'compare', 'trajectory'],
-    requirementsSummary: 'Requires ≥2 active runs to compare across 5 telemetry axes',
+    description:
+      'Multi-axis vertical polyline overlay comparing multiple normalized numeric dimensions simultaneously.',
+    keywords: ['parallel coordinates', 'multi-variable', 'multi-axis', 'profile', 'compare'],
+    requirementsSummary: 'Requires ≥2 active runs to compare across telemetry axes',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2) {
         return {
@@ -144,137 +367,142 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
           missingRequirement: '≥2 Active Runs',
         };
       }
-      return ctx.activeRuns.length <= 6
+      return ctx.activeRuns.length <= 8
         ? {
             status: 'recommended',
-            reason: `Recommended: Ideal multi-axis profile density for ${ctx.activeRuns.length} active runs + simulator.`,
+            reason: `Recommended: High-clarity parallel coordinate density for ${ctx.activeRuns.length} runs.`,
           }
         : {
             status: 'available',
-            reason: `Available: Overlays ${ctx.activeRuns.length} active runs across 5 normalized telemetry axes.`,
+            reason: `Available: Overlays representative runs across 5 normalized telemetry axes.`,
           };
     },
   },
   {
     id: 'material-safety',
-    name: 'Bullet / Target Comparison Bars (Material Safety)',
-    shortName: 'Material Bullet Bars',
+    name: 'Bullet Target Chart',
+    shortName: 'Bullet Chart',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: '4-panel horizontal bullet target bars + sortable qualification matrix evaluating PMMA, SIBAL, PTFE, and Nomex.',
-    keywords: ['bullet', 'target', 'material', 'loi', 'smoke', 'cool flame', 'quench', 'matrix'],
-    requirementsSummary: 'Requires spacecraft substrate material metrics & cabin LOI thresholds',
+    description:
+      'Multi-panel horizontal bullet bars against threshold markers plus sortable numeric qualification matrix.',
+    keywords: ['bullet', 'target', 'threshold', 'benchmark', 'qualification', 'matrix'],
+    requirementsSummary: 'Requires target qualification metrics in active scope',
     evaluateCompatibility: (ctx) =>
       ctx.hasMaterialMetrics
         ? {
             status: 'recommended',
-            reason: 'Recommended: Bullet target bars compare 5 spacecraft materials against active cabin limits.',
+            reason: 'Recommended: Horizontal bullet target bars compare candidates against safety thresholds.',
           }
         : {
             status: 'unavailable',
-            reason: 'Unavailable: Requires candidate substrate material metrics.',
-            missingRequirement: 'Material Metrics',
+            reason: 'Unavailable: Requires target benchmark metrics.',
+            missingRequirement: 'Target Benchmark Metrics',
           },
   },
   {
     id: 'grouped-bar',
-    name: 'Grouped Bar Comparison',
-    shortName: 'Grouped Bars',
+    name: 'Grouped Bar Chart',
+    shortName: 'Grouped Bar',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: 'Side-by-side grouped bars comparing O₂ %, Pressure (psi), and Flame Spread across runs.',
-    keywords: ['grouped bar', 'bar chart', 'comparison', 'oxygen', 'pressure', 'flame spread'],
-    requirementsSummary: 'Requires ≥2 active runs for side-by-side grouped bar comparison',
+    description:
+      'Side-by-side multi-metric bar clusters grouped by run or chosen categorical column.',
+    keywords: ['grouped bar', 'bar chart', 'comparison', 'cluster', 'categories'],
+    requirementsSummary: 'Requires ≥2 active runs for side-by-side grouped comparison',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Select 2 or more runs to compare side-by-side grouped bars.',
-          missingRequirement: '≥2 Active Runs',
+          reason: 'Unavailable: Needs at least 2 active records for side-by-side grouped bars.',
+          missingRequirement: '≥2 Active Records',
         };
       }
-      return ctx.activeRuns.length <= 8
+      return ctx.activeRuns.length <= 12
         ? {
             status: 'recommended',
-            reason: `Recommended: Clear side-by-side grouped comparison across ${ctx.activeRuns.length} runs + simulator.`,
+            reason: `Recommended: Clear side-by-side grouped comparison across ${ctx.activeRuns.length} records.`,
           }
         : {
             status: 'available',
-            reason: `Available: Compares top runs and active simulation across grouped telemetry bars.`,
+            reason: 'Available: Aggregates grouped metrics across top categories or runs.',
           };
     },
   },
   {
     id: 'stacked-bar',
-    name: 'Stacked Hazard Load Bar Chart',
-    shortName: 'Stacked Bars',
+    name: 'Stacked Bar Chart',
+    shortName: 'Stacked Bar',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: 'Decomposes composite fire-risk index (Spread, Smoke Clumping, Toxic Gas, Cool-Flame Risk) across substrates.',
-    keywords: ['stacked bar', 'composite', 'material', 'smoke', 'toxic', 'hazard', 'breakdown'],
-    requirementsSummary: 'Requires candidate material risk indices or ≥2 active runs',
+    description:
+      'Part-to-whole stacked bar decomposition across normalized multi-component hazard indices.',
+    keywords: ['stacked bar', 'composite', 'part-to-whole', 'breakdown', 'components'],
+    requirementsSummary: 'Requires multi-component metrics or ≥2 active records',
     evaluateCompatibility: (ctx) => {
       if (!ctx.hasMaterialMetrics && ctx.activeRuns.length < 2) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Requires material metrics or at least 2 active runs.',
-          missingRequirement: 'Material Metrics or ≥2 Runs',
+          reason: 'Unavailable: Requires multi-component metrics or ≥2 active records.',
+          missingRequirement: 'Component Metrics or ≥2 Records',
         };
       }
       return {
         status: 'available',
-        reason: 'Available: Breaks down multi-factor fire hazard loads across candidate materials.',
+        reason: 'Available: Decomposes stacked multi-factor component loads.',
       };
     },
   },
   {
     id: 'horizontal-ranked-bar',
-    name: 'Horizontal Ranked Spread Bars',
-    shortName: 'Ranked Bars',
+    name: 'Horizontal Ranked Bar Chart',
+    shortName: 'Ranked Bar',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: 'Ranks active PSI runs and simulator state from highest to lowest flame spread against the 0.48 mm/s quench threshold.',
-    keywords: ['horizontal', 'ranked', 'ranking', 'bar', 'leaderboard', 'sort', 'threshold'],
-    requirementsSummary: 'Requires ≥1 active run with numeric flame spread velocity',
+    description:
+      'Sorted horizontal ranking bars ordering records by the selected Y-axis metric against benchmark thresholds.',
+    keywords: ['horizontal', 'ranked', 'ranking', 'bar', 'leaderboard', 'sort'],
+    requirementsSummary: 'Requires ≥1 record with numeric metric values',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 1) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Requires at least 1 active run to rank.',
-          missingRequirement: '≥1 Active Run',
+          reason: 'Unavailable: Requires at least 1 active record to rank.',
+          missingRequirement: '≥1 Active Record',
         };
       }
       return ctx.activeRuns.length >= 4
         ? {
             status: 'recommended',
-            reason: `Recommended: Ranks ${ctx.activeRuns.length} active runs + simulation against 0.48 mm/s quench bound.`,
+            reason: `Recommended: Ranks ${ctx.activeRuns.length} records on the mapped metric axis.`,
           }
         : {
             status: 'available',
-            reason: `Available: Ranks ${ctx.activeRuns.length} selected runs + active simulation by flame spread rate.`,
+            reason: `Available: Ranks ${ctx.activeRuns.length} active records against reference state.`,
           };
     },
   },
   {
     id: 'lollipop-dot',
-    name: 'Lollipop / Dot Delta Comparison',
-    shortName: 'Lollipop Dots',
+    name: 'Cleveland Lollipop Plot',
+    shortName: 'Lollipop Plot',
     familyId: 'comparisons',
     familyLabel: 'Comparisons & Rankings',
-    description: 'High-precision Cleveland lollipop plot showing run deviations relative to the active simulator baseline.',
-    keywords: ['lollipop', 'dot plot', 'cleveland', 'delta', 'comparison', 'baseline'],
-    requirementsSummary: 'Requires ≥2 active runs to compare telemetry deltas',
+    description:
+      'Precision stem-and-dot delta plot measuring deviation from the mean or active virtual test baseline.',
+    keywords: ['lollipop', 'dot plot', 'cleveland', 'delta', 'deviation', 'baseline'],
+    requirementsSummary: 'Requires ≥2 active records to compare baseline deltas',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Select 2 or more runs to compare baseline deltas.',
-          missingRequirement: '≥2 Active Runs',
+          reason: 'Unavailable: Needs 2 or more records to plot baseline deltas.',
+          missingRequirement: '≥2 Active Records',
         };
       }
       return {
         status: 'available',
-        reason: `Available: Visualizes parameter deltas across ${ctx.activeRuns.length} runs vs. simulator.`,
+        reason: `Available: Plots precision deltas relative to active test reference.`,
       };
     },
   },
@@ -282,13 +510,14 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   // 3. DISTRIBUTIONS & RANGES
   {
     id: 'histogram',
-    name: 'Telemetry Distribution Histogram',
+    name: 'Telemetry Histogram',
     shortName: 'Histogram',
     familyId: 'distributions',
     familyLabel: 'Distributions & Ranges',
-    description: 'Binned frequency histogram of Flame Spread, O₂ %, Peak Temp, or Airflow across the active dataset.',
-    keywords: ['histogram', 'bins', 'distribution', 'density', 'spread', 'frequency'],
-    requirementsSummary: 'Needs at least 4 numeric samples for meaningful distribution bins',
+    description:
+      'Equal-width binned frequency histogram for any mapped numeric variable with mean/median & test-state overlay.',
+    keywords: ['histogram', 'bins', 'distribution', 'density', 'frequency'],
+    requirementsSummary: 'Needs at least 4 numeric samples for distribution bins',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 4) {
         return {
@@ -300,72 +529,75 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
       return ctx.activeRuns.length >= 10
         ? {
             status: 'recommended',
-            reason: `Recommended: Reveals distribution clustering across ${ctx.activeRuns.length} archive runs.`,
+            reason: `Recommended: Reveals distribution clustering across ${ctx.activeRuns.length} samples.`,
           }
         : {
             status: 'available',
-            reason: `Available: Bins ${ctx.activeRuns.length} active numeric samples into intervals.`,
+            reason: `Available: Bins ${ctx.activeRuns.length} active samples into intervals.`,
           };
     },
   },
   {
     id: 'frequency-distribution',
-    name: 'Regime & Facility Frequency Bars',
+    name: 'Frequency Distribution Bars',
     shortName: 'Frequency Bars',
     familyId: 'distributions',
     familyLabel: 'Distributions & Ranges',
-    description: 'Categorical frequency distribution of Hazard Outcomes and Orbital Hardware Facilities (CIR, MSG, Cygnus).',
-    keywords: ['frequency', 'categorical', 'count', 'regime', 'facility', 'distribution'],
-    requirementsSummary: 'Needs at least 3 runs to summarize categorical frequency counts',
+    description:
+      'Categorical count distribution broken down by the mapped Group-By variable and primary category.',
+    keywords: ['frequency', 'categorical', 'count', 'group', 'distribution'],
+    requirementsSummary: 'Needs at least 3 records to summarize categorical frequencies',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 3) {
         return {
           status: 'unavailable',
-          reason: `Unavailable: Needs at least 3 runs to summarize outcome and facility frequencies (${ctx.activeRuns.length} active).`,
+          reason: `Unavailable: Needs at least 3 runs to summarize categorical counts (${ctx.activeRuns.length} active).`,
           missingRequirement: '≥3 Active Runs',
         };
       }
       return ctx.activeRuns.length >= 10
         ? {
             status: 'recommended',
-            reason: `Recommended: Summarizes hazard regime and facility counts across ${ctx.activeRuns.length} runs.`,
+            reason: `Recommended: Summarizes category & group frequencies across ${ctx.activeRuns.length} records.`,
           }
         : {
             status: 'available',
-            reason: `Available: Displays regime and facility frequency bars for ${ctx.activeRuns.length} active runs.`,
+            reason: `Available: Displays categorical count bars for ${ctx.activeRuns.length} records.`,
           };
     },
   },
   {
     id: 'range-interval-bar',
-    name: 'Range & Uncertainty Interval Bars',
-    shortName: 'Range / 95% CI',
+    name: 'Confidence Interval Range Plot',
+    shortName: 'CI Range Plot',
     familyId: 'distributions',
     familyLabel: 'Distributions & Ranges',
-    description: 'Displays flame spread ±95% confidence bounds and thermal cool-flame (550K–800K) operating intervals.',
-    keywords: ['range', 'interval', 'confidence', 'ci', 'error bar', 'span', 'temperature'],
-    requirementsSummary: 'Requires ≥1 active run with numeric telemetry bounds',
+    description:
+      'Horizontal range bars displaying point estimates and ±95% uncertainty spans alongside threshold bounds.',
+    keywords: ['range', 'interval', 'confidence', 'ci', 'error bar', 'span', 'uncertainty'],
+    requirementsSummary: 'Requires ≥1 active record with numeric telemetry',
     evaluateCompatibility: (ctx) =>
       ctx.activeRuns.length < 1
         ? {
             status: 'unavailable',
-            reason: 'Unavailable: Requires at least 1 active run to plot confidence intervals.',
-            missingRequirement: '≥1 Active Run',
+            reason: 'Unavailable: Requires at least 1 active record to plot confidence spans.',
+            missingRequirement: '≥1 Active Record',
           }
         : {
             status: 'available',
-            reason: 'Available: Plots spread ±95% confidence intervals and peak temperature spans.',
+            reason: 'Available: Plots spread ±95% confidence bounds and thermal intervals.',
           },
   },
   {
     id: 'box-quartile',
-    name: 'Box & Quartile Summary Plot',
-    shortName: 'Box / Quartile',
+    name: 'Box & Quartile Distribution',
+    shortName: 'Box Plot',
     familyId: 'distributions',
     familyLabel: 'Distributions & Ranges',
-    description: '5-number summary (Min, Q1, Median, Q3, Max) with jittered sample points across combustion parameters.',
+    description:
+      'Five-number summary (Min, Q1, Median, Q3, Max) across telemetry columns with active virtual test markers.',
     keywords: ['box plot', 'quartile', 'iqr', 'median', 'whisker', 'distribution', 'outliers'],
-    requirementsSummary: 'Needs at least 5 numeric samples to compute robust quartiles (Q1–Q3)',
+    requirementsSummary: 'Needs at least 5 numeric samples to compute quartiles (Q1–Q3)',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 5) {
         return {
@@ -385,71 +617,98 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
           };
     },
   },
+  {
+    id: 'density-strip',
+    name: 'Bivariate Density Strip Plot',
+    shortName: 'Density Strip',
+    familyId: 'distributions',
+    familyLabel: 'Distributions & Ranges',
+    description:
+      'Grouped dot/strip distribution showing every observation grouped by category along any mapped numeric metric.',
+    keywords: ['strip plot', 'dot distribution', 'jitter', 'beeswarm', 'density', 'category'],
+    requirementsSummary: 'Requires ≥4 records across ≥1 category',
+    evaluateCompatibility: (ctx) => {
+      if (ctx.activeRuns.length < 4) {
+        return {
+          status: 'unavailable',
+          reason: `Unavailable: Needs at least 4 observations for strip density (${ctx.activeRuns.length} active).`,
+          missingRequirement: '≥4 Records',
+        };
+      }
+      return {
+        status: ctx.activeRuns.length >= 12 ? 'recommended' : 'available',
+        reason: `Plots all individual records grouped by category along mapped numeric axis.`,
+      };
+    },
+  },
 
   // 4. RELATIONSHIPS & MULTI-VARIABLE VIEWS
   {
     id: 'scatter-plot',
-    name: 'Bivariate Parameter Scatter Plot',
+    name: 'Multi-Axis Scatter Plot',
     shortName: 'Scatter Plot',
     familyId: 'relationships',
     familyLabel: 'Relationships & Multi-Variable',
-    description: 'Interactive X/Y scatter plot with configurable physical axes (O₂, Pressure, Airflow, Thickness, Spread, Temp).',
-    keywords: ['scatter', 'xy', 'bivariate', 'relationship', 'correlation', 'regression'],
+    description:
+      'Interactive X vs. Y scatter plot with user-mapped axes, categorical color encoding, and click-to-inspect markers.',
+    keywords: ['scatter', 'xy', 'bivariate', 'multi-axis', 'relationship', 'correlation'],
     requirementsSummary: 'Requires ≥2 active runs and ≥2 numeric columns',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2 || ctx.numericColumnCount < 2) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Select 2 or more runs with at least 2 numeric columns for scatter analysis.',
-          missingRequirement: '≥2 Runs & ≥2 Numeric Columns',
+          reason: 'Unavailable: Needs 2 or more records with ≥2 numeric columns.',
+          missingRequirement: '≥2 Records & ≥2 Numeric Columns',
         };
       }
       return ctx.activeRuns.length >= 6
         ? {
             status: 'recommended',
-            reason: `Recommended: Explores bivariate trends across ${ctx.activeRuns.length} runs + simulator marker.`,
+            reason: `Recommended: Explores bivariate trends across ${ctx.activeRuns.length} runs.`,
           }
         : {
             status: 'available',
-            reason: `Available: Plots configurable X/Y telemetry for ${ctx.activeRuns.length} active runs.`,
+            reason: `Available: Plots configurable X/Y telemetry for ${ctx.activeRuns.length} records.`,
           };
     },
   },
   {
     id: 'bubble-plot',
-    name: '4-Variable Radiative Bubble Plot',
+    name: 'Bubble Multi-Metric Plot',
     shortName: 'Bubble Plot',
     familyId: 'relationships',
     familyLabel: 'Relationships & Multi-Variable',
-    description: 'Encodes O₂ % (X), Airflow m/s (Y), IR Radiometer Flux W/m² (radius), and Hazard Outcome (color).',
-    keywords: ['bubble', '4d', 'multi-variable', 'ir flux', 'oxygen', 'airflow', 'scatter'],
-    requirementsSummary: 'Requires ≥2 active runs and ≥3 numeric dimensions (X, Y, Z radius)',
+    description:
+      '4-dimensional scatter projection encoding X-axis, Y-axis, area radius (IR Flux / Spread), and color group.',
+    keywords: ['bubble', '4d', 'multi-variable', 'multi-metric', 'scatter', 'size'],
+    requirementsSummary: 'Requires ≥2 active records and ≥3 numeric dimensions',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2 || ctx.numericColumnCount < 3) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Requires at least 2 runs and 3 numeric variables (X, Y, and flux radius).',
-          missingRequirement: '≥2 Runs & ≥3 Numeric Columns',
+          reason: 'Unavailable: Requires at least 2 records and 3 numeric variables.',
+          missingRequirement: '≥2 Records & ≥3 Numeric Columns',
         };
       }
       return ctx.activeRuns.length >= 4
         ? {
             status: 'recommended',
-            reason: 'Recommended: Projects O₂, Airflow, IR Flux, and Hazard Outcome simultaneously.',
+            reason: 'Recommended: Projects X, Y, size-encoded flux, and category simultaneously.',
           }
         : {
             status: 'available',
-            reason: 'Available: Renders 4-variable radiative bubble view on active selection.',
+            reason: 'Available: Renders 4-metric bubble projection on active scope.',
           };
     },
   },
   {
     id: 'correlation-matrix',
-    name: 'Pairwise Pearson Correlation Matrix',
+    name: 'Correlation Matrix',
     shortName: 'Correlation Matrix',
     familyId: 'relationships',
     familyLabel: 'Relationships & Multi-Variable',
-    description: '6×6 symmetric Pearson r correlation grid across O₂, Pressure, Airflow, Thickness, Temp, and Spread.',
+    description:
+      '6×6 symmetric Pearson r correlation heatmap quantifying linear coupling across numeric telemetry variables.',
     keywords: ['correlation', 'matrix', 'pearson', 'covariance', 'grid', 'relationships'],
     requirementsSummary: 'Needs at least 4 active runs and ≥3 numeric columns for Pearson r',
     evaluateCompatibility: (ctx) => {
@@ -473,18 +732,19 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   },
   {
     id: 'heatmap-matrix',
-    name: 'Run × Parameter Normalized Heatmap',
-    shortName: 'Heatmap Matrix',
+    name: 'Normalized Matrix Heatmap',
+    shortName: 'Matrix Heatmap',
     familyId: 'relationships',
     familyLabel: 'Relationships & Multi-Variable',
-    description: 'Tabular intensity matrix normalizing 6 physical telemetry variables per run alongside the active simulation.',
+    description:
+      'Row × column normalized intensity table comparing 6 physical telemetry variables across active records.',
     keywords: ['heatmap', 'matrix', 'table', 'normalized', 'intensity', 'multi-variable'],
     requirementsSummary: 'Requires ≥2 active runs and ≥3 numeric columns',
     evaluateCompatibility: (ctx) => {
       if (ctx.activeRuns.length < 2 || ctx.numericColumnCount < 3) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Select 2 or more runs to build a normalized parameter heatmap.',
+          reason: 'Unavailable: Select 2 or more runs to build a normalized matrix heatmap.',
           missingRequirement: '≥2 Runs & ≥3 Numeric Columns',
         };
       }
@@ -495,41 +755,67 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
           }
         : {
             status: 'available',
-            reason: `Available: Normalized parameter intensity matrix across ${ctx.activeRuns.length} active runs.`,
+            reason: `Available: Normalized parameter matrix across ${ctx.activeRuns.length} runs.`,
           };
+    },
+  },
+  {
+    id: 'residual-deviation',
+    name: 'Residual Spread Deviation Plot',
+    shortName: 'Residual Plot',
+    familyId: 'relationships',
+    familyLabel: 'Relationships & Multi-Variable',
+    description:
+      'Model-vs-observed residual plot displaying signed error between empirical archive runs and physics predictions.',
+    keywords: ['residual', 'error', 'deviation', 'model fit', 'validation', 'calibration'],
+    requirementsSummary: 'Requires ≥3 records to evaluate model residuals',
+    evaluateCompatibility: (ctx) => {
+      if (ctx.activeRuns.length < 3) {
+        return {
+          status: 'unavailable',
+          reason: `Unavailable: Needs at least 3 runs to evaluate model residuals (${ctx.activeRuns.length} active).`,
+          missingRequirement: '≥3 Active Runs',
+        };
+      }
+      return {
+        status: ctx.activeRuns.length >= 8 ? 'recommended' : 'available',
+        reason: `Evaluates physics model error distribution across ${ctx.activeRuns.length} archive records.`,
+      };
     },
   },
 
   // 5. TIME & SEQUENTIAL PROGRESSION
   {
     id: 'sensor-timeline',
-    name: 'Temperature & Sensor Line Timeline',
-    shortName: 'Sensor Timeline',
+    name: 'Dual-Axis Sensor Line Chart',
+    shortName: 'Sensor Line',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: '0–120s multi-sensor timeline tracking Gas Temp (K), IR Flux (W/m²), and Visible Emission (%) across cool-flame zones.',
-    keywords: ['line chart', 'timeline', 'sensor', 'temperature', 'ir flux', 'cool flame', 'time series'],
+    description:
+      '0–120s sequential sensor curves tracking gas temperature, IR radiometer flux, and optical visibility.',
+    keywords: ['line chart', 'dual-axis', 'timeline', 'sensor', 'time series'],
     requirementsSummary: 'Requires sequential 0–120s time-series sensor stream',
     evaluateCompatibility: (ctx) =>
       ctx.hasTimeSeries
         ? {
             status: 'recommended',
-            reason: 'Recommended: Best view for tracking 550K–800K non-luminous cool-flame sensor divergence.',
+            reason: 'Recommended: Tracks synchronized thermal, IR, and optical time series.',
           }
         : {
             status: 'unavailable',
-            reason: 'Unavailable: Requires sequential time-series data (disabled in Static Archive Snapshot scope).',
+            reason: 'Unavailable: Requires sequential time-series data (disabled in Static Snapshot / Material scopes).',
             missingRequirement: 'Sequential Time-Series Data',
           },
   },
   {
     id: 'multi-series-line',
-    name: 'Multi-Run Thermal Trajectory Line Chart',
+    name: 'Multi-Series Line Chart',
     shortName: 'Multi-Series Line',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: 'Overlays simulated 0–120s gas temperature trajectories for each active PSI run alongside the current simulation.',
-    keywords: ['multi-series', 'line chart', 'burn curve', 'trajectory', 'time series', 'compare'],
+    description:
+      'Multi-run 0–120s sequential curves overlaying multiple records against the active modeled state.',
+    keywords: ['multi-series', 'line chart', 'trajectory', 'time series', 'compare'],
     requirementsSummary: 'Requires sequential time-series data and ≥2 active runs',
     evaluateCompatibility: (ctx) => {
       if (!ctx.hasTimeSeries) {
@@ -542,35 +828,36 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
       if (ctx.activeRuns.length < 2) {
         return {
           status: 'unavailable',
-          reason: 'Unavailable: Select 2 or more runs to overlay multi-run burn trajectories.',
+          reason: 'Unavailable: Select 2 or more runs to overlay multi-series trajectories.',
           missingRequirement: '≥2 Active Runs',
         };
       }
       return ctx.activeRuns.length <= 6
         ? {
             status: 'recommended',
-            reason: `Recommended: Compares 0–120s thermal evolution across ${ctx.activeRuns.length} active runs.`,
+            reason: `Recommended: Overlays sequential trajectories across ${ctx.activeRuns.length} runs.`,
           }
         : {
             status: 'available',
-            reason: 'Available: Overlays representative run thermal curves against active simulation.',
+            reason: 'Available: Overlays representative run trajectories against active test.',
           };
     },
   },
   {
     id: 'area-chart',
-    name: 'Radiative Flux & CO Accumulation Area Chart',
+    name: 'Area Progression Chart',
     shortName: 'Area Chart',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: 'Filled area progression of IR Radiometer Flux (W/m²) and Carbon Monoxide yield (ppm) over 0–120s.',
-    keywords: ['area chart', 'ir flux', 'co yield', 'radiation', 'time series', 'accumulation'],
+    description:
+      'Dual-axis filled area progression tracking cumulative radiative IR flux and gas evolution over 0–120s.',
+    keywords: ['area chart', 'progression', 'accumulation', 'time series'],
     requirementsSummary: 'Requires sequential 0–120s time-series telemetry',
     evaluateCompatibility: (ctx) =>
       ctx.hasTimeSeries
         ? {
             status: 'available',
-            reason: 'Available: Tracks continuous IR flux and CO yield envelopes over 120s burn.',
+            reason: 'Available: Tracks continuous flux and emission envelopes over 120s.',
           }
         : {
             status: 'unavailable',
@@ -580,18 +867,19 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   },
   {
     id: 'stacked-area',
-    name: 'Stacked Thermal & Emission Regime Area',
+    name: 'Stacked Area Chart',
     shortName: 'Stacked Area',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: 'Stacked normalized contributions of Gas Heating, Radiative IR Load, and CO Toxicity across burn duration.',
-    keywords: ['stacked area', 'cumulative', 'thermal', 'emission', 'co', 'time series'],
+    description:
+      'Part-to-whole stacked normalized progression of thermal, radiative, and toxic gas channels over duration.',
+    keywords: ['stacked area', 'cumulative', 'time series', 'proportion'],
     requirementsSummary: 'Requires sequential 0–120s time-series telemetry',
     evaluateCompatibility: (ctx) =>
       ctx.hasTimeSeries
         ? {
             status: 'available',
-            reason: 'Available: Visualizes stacked normalized sensor indices across 0–120s duration.',
+            reason: 'Available: Visualizes stacked normalized channel proportions over 0–120s.',
           }
         : {
             status: 'unavailable',
@@ -601,18 +889,19 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   },
   {
     id: 'step-chart',
-    name: 'Combustion Regime Transition Step Chart',
+    name: 'Step Transition Chart',
     shortName: 'Step Chart',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: 'Discrete step-after progression highlighting phase transitions (Ignition → Hot Flame → Cool-Flame NTC → Quench).',
-    keywords: ['step chart', 'step', 'regime', 'state', 'transition', 'discrete', 'time series'],
+    description:
+      'Discrete step-after progression isolating regime state jumps across burn duration.',
+    keywords: ['step chart', 'step', 'state transition', 'discrete', 'time series'],
     requirementsSummary: 'Requires sequential 0–120s time-series state transitions',
     evaluateCompatibility: (ctx) =>
       ctx.hasTimeSeries
         ? {
             status: 'available',
-            reason: 'Available: Captures discrete combustion state transitions and stepped temperature plateaus.',
+            reason: 'Available: Captures discrete regime step transitions and plateaus.',
           }
         : {
             status: 'unavailable',
@@ -622,18 +911,19 @@ export const VIZ_TECHNIQUE_REGISTRY: VizTechniqueDefinition[] = [
   },
   {
     id: 'timeline-progression',
-    name: '10-Second Flame Radius & Pressure Forecast',
-    shortName: '10s Progression',
+    name: 'Forecast Progression Chart',
+    shortName: 'Forecast Chart',
     familyId: 'time-series',
     familyLabel: 'Time & Sequential Progression',
-    description: 'Second-by-second 0–10s cabin growth projection plotting flame front radius (mm) and cabin pressure rise (kPa).',
-    keywords: ['progression', 'forecast', '10s', 'radius', 'pressure rise', 'timeline', 'growth'],
-    requirementsSummary: 'Requires active time-stepped 10s growth forecast stream',
+    description:
+      '10-second growth forecast plotting expanding flame radius alongside modeled cabin pressure delta.',
+    keywords: ['progression', 'forecast', '10s', 'growth', 'line', 'area'],
+    requirementsSummary: 'Requires active time-stepped forecast stream',
     evaluateCompatibility: (ctx) =>
       ctx.hasTimeSeries
         ? {
             status: 'available',
-            reason: 'Available: Projects second-by-second flame radius growth and cabin pressure rise over 10s.',
+            reason: 'Available: Projects 0–10s forward radius and pressure delta curves.',
           }
         : {
             status: 'unavailable',
@@ -657,11 +947,42 @@ export function buildDatasetContext(
   if (scope === 'full-archive') {
     activeRuns = catalogRuns;
   } else if (scope === 'single-focus') {
-    activeRuns = selectedRuns.length > 0 ? [selectedRuns[0]] : catalogRuns.slice(0, 1);
+    activeRuns =
+      selectedRuns.length > 0 ? [selectedRuns[0]] : catalogRuns.slice(0, 1);
   } else if (scope === 'static-runs') {
     activeRuns = selectedRuns.length > 0 ? selectedRuns : catalogRuns.slice(0, 3);
     hasTimeSeries = false;
+  } else if (scope === 'virtual-lab-output') {
+    activeRuns = simulation.nearestRuns.map((n) => n.run);
+  } else if (scope === 'material-qualification') {
+    activeRuns = simulation.materialRankings.map((m, idx) => ({
+      id: `mat-${m.code.toLowerCase()}`,
+      psiId: m.code,
+      investigationTitle: `${m.name} Qualification Profile`,
+      runCode: `MAT-${idx + 1}`,
+      facility: idx % 2 === 0 ? 'CIR' : 'MSG',
+      material: m.name,
+      O2_pct: m.limitingO2_pct,
+      P_psi: 14.7,
+      Flow_ms: 0.12,
+      g_eff: 0.166,
+      Thickness_mm: simulation.safeMaterialCheck.minSafeThickness_mm,
+      flameSpread_mms: m.flameSpread_mms,
+      peakTemp_K: Math.round(700 + m.flameSpreadIndex * 10),
+      radiometerFlux_Wm2: Math.round(4000 + m.coolFlameRiskIndex * 140),
+      coolFlameObserved: m.coolFlameRiskIndex >= 65,
+      outcome: m.status,
+      notes: `Material qualification row (LOI ${m.limitingO2_pct.toFixed(1)}% O2)`,
+    }));
+    hasTimeSeries = false;
+    has2DGrid = false;
+  } else if (scope === 'imported-custom') {
+    activeRuns = catalogRuns.filter((r) => Boolean(r.isCustom));
+    hasTimeSeries = false;
+    has2DGrid = activeRuns.length > 0;
+    hasMaterialMetrics = false;
   } else {
+    // 'selected-sim' or 'selected-comparison'
     activeRuns = selectedRuns;
   }
 
@@ -670,7 +991,7 @@ export function buildDatasetContext(
     activeRuns,
     selectedRuns,
     catalogRuns,
-    numericColumnCount: 8, // O2_pct, P_psi, Flow_ms, g_eff, Thickness_mm, flameSpread_mms, peakTemp_K, radiometerFlux_Wm2
+    numericColumnCount: 8,
     hasTimeSeries,
     has2DGrid,
     hasMaterialMetrics,
@@ -707,7 +1028,10 @@ export function filterTechniques(
       return false;
     }
 
-    if (opts.statusFilter === 'recommended' && compatibility.status !== 'recommended') {
+    if (
+      opts.statusFilter === 'recommended' &&
+      compatibility.status !== 'recommended'
+    ) {
       return false;
     }
     if (
@@ -716,7 +1040,10 @@ export function filterTechniques(
     ) {
       return false;
     }
-    if (opts.statusFilter === 'unavailable' && compatibility.status !== 'unavailable') {
+    if (
+      opts.statusFilter === 'unavailable' &&
+      compatibility.status !== 'unavailable'
+    ) {
       return false;
     }
 
@@ -748,59 +1075,83 @@ export function getTechniqueHeadline(
     g_eff: number;
     Thickness_mm: number;
   },
-  activeRuns: PsiRun[]
+  activeRuns: PsiRun[],
+  axes?: { xAxisLabel?: string; yAxisLabel?: string; colorByLabel?: string }
 ): string {
-  const coreTakeaway = (simulation.headlineTakeaway as Record<string, string>)[vizMode];
-  if (coreTakeaway) return coreTakeaway;
+  const axisSuffix =
+    axes?.xAxisLabel && axes?.yAxisLabel
+      ? ` [${axes.xAxisLabel} vs. ${axes.yAxisLabel}${
+          axes.colorByLabel ? ` · Grouped by ${axes.colorByLabel}` : ''
+        }]`
+      : '';
+
+  if (!axes?.xAxisLabel && (simulation.headlineTakeaway as Record<string, string>)[vizMode]) {
+    return (simulation.headlineTakeaway as Record<string, string>)[vizMode];
+  }
 
   const avgSpread =
     activeRuns.length > 0
-      ? activeRuns.reduce((acc, r) => acc + r.flameSpread_mms, 0) / activeRuns.length
+      ? activeRuns.reduce((acc, r) => acc + r.flameSpread_mms, 0) /
+        activeRuns.length
       : simulation.flameSpread_mms;
-  const maxRun = [...activeRuns].sort((a, b) => b.flameSpread_mms - a.flameSpread_mms)[0];
+  const maxRun = [...activeRuns].sort(
+    (a, b) => b.flameSpread_mms - a.flameSpread_mms
+  )[0];
 
   switch (vizMode) {
+    case 'safety-map':
+      return `2D Regime Heatmap${axisSuffix}: Virtual state yields ${simulation.flameSpread_mms.toFixed(2)} mm/s (${simulation.hazardStatus}) across ${activeRuns.length} mapped dataset points.`;
+    case 'contour-surface':
+      return `Contour Density Map${axisSuffix}: Minimum safe quenching thickness ≥ ${simulation.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (${sliders.Thickness_mm.toFixed(1)} mm active: ${simulation.safeMaterialCheck.passed ? 'PASS' : 'FAIL'}).`;
     case 'grouped-bar':
-      return `Grouped bar comparison across ${activeRuns.length} active runs vs. simulator (${simulation.flameSpread_mms.toFixed(2)} mm/s at ${sliders.O2_pct.toFixed(1)}% O₂, ${sliders.P_psi.toFixed(1)} psi).`;
+      return `Grouped Bar Chart${axisSuffix}: Comparing ${activeRuns.length} records against virtual state (${simulation.flameSpread_mms.toFixed(2)} mm/s at ${sliders.O2_pct.toFixed(1)}% O₂).`;
     case 'stacked-bar':
-      return `Composite hazard index stacks Flame Spread, Smoke Clumping, Toxic Gas Yield, and Cool-Flame Risk for 5 candidate substrates under ${sliders.O2_pct.toFixed(1)}% O₂.`;
+      return `Stacked Bar Chart: Composite hazard index across 5 candidate substrates under ${sliders.O2_pct.toFixed(1)}% O₂ and ${sliders.P_psi.toFixed(1)} psi.`;
     case 'horizontal-ranked-bar':
       return maxRun
-        ? `${maxRun.psiId} leads active ranking at ${maxRun.flameSpread_mms.toFixed(2)} mm/s vs. simulator ${simulation.flameSpread_mms.toFixed(2)} mm/s (quench limit: 0.48 mm/s).`
-        : `Active simulator flame spread is ${simulation.flameSpread_mms.toFixed(2)} mm/s against the 0.48 mm/s self-extinguishing threshold.`;
+        ? `Horizontal Ranked Bar Chart${axisSuffix}: ${maxRun.psiId} peaks at ${maxRun.flameSpread_mms.toFixed(2)} mm/s vs. active virtual test (${simulation.flameSpread_mms.toFixed(2)} mm/s).`
+        : `Horizontal Ranked Bar Chart: Active flame spread is ${simulation.flameSpread_mms.toFixed(2)} mm/s against 0.48 mm/s quench threshold.`;
     case 'lollipop-dot':
-      return `Lollipop delta profile anchors active runs to current simulator prediction (${simulation.flameSpread_mms.toFixed(2)} mm/s, mean archive ${avgSpread.toFixed(2)} mm/s).`;
+      return `Cleveland Lollipop Plot${axisSuffix}: Signed deltas anchored to active test state (${simulation.flameSpread_mms.toFixed(2)} mm/s; dataset mean ${avgSpread.toFixed(2)} mm/s).`;
     case 'histogram':
-      return `Distribution histogram bins ${activeRuns.length} numeric samples (mean spread ${avgSpread.toFixed(2)} mm/s) alongside active simulation at ${simulation.flameSpread_mms.toFixed(2)} mm/s.`;
+      return `Telemetry Histogram${axisSuffix}: Binned frequency distribution over n = ${activeRuns.length} samples relative to current operating point.`;
     case 'frequency-distribution':
-      return `Categorical frequency breakdown across ${activeRuns.length} active runs highlights regime distribution (Rapid Spread, Cool Flame, Self-Quench) by orbital test facility.`;
+      return `Frequency Distribution Bars: Categorical distribution across n = ${activeRuns.length} records grouped by ${axes?.colorByLabel ?? 'Safety Regime'}.`;
     case 'range-interval-bar':
-      return `Active simulator carries ±${simulation.confidenceInterval_mms.toFixed(2)} mm/s 95% confidence bounds at ${simulation.peakTemp_K}K peak gas temperature.`;
+      return `Confidence Interval Range Plot: Active state carries ±${simulation.confidenceInterval_mms.toFixed(2)} mm/s 95% confidence bounds at ${simulation.peakTemp_K} K peak temperature.`;
     case 'box-quartile':
-      return `Quartile summary across ${activeRuns.length} samples computes Min, Q1, Median, Q3, and Max dispersion across normalized combustion variables.`;
+      return `Box & Quartile Distribution: Five-number dispersion summary (Min, Q1, Median, Q3, Max) over n = ${activeRuns.length} records.`;
+    case 'density-strip':
+      return `Bivariate Density Strip Plot${axisSuffix}: Displays individual sample dispersion per category across n = ${activeRuns.length} records.`;
     case 'scatter-plot':
-      return `Bivariate scatter across ${activeRuns.length} runs + active operating point (${sliders.O2_pct.toFixed(1)}% O₂ → ${simulation.flameSpread_mms.toFixed(2)} mm/s) isolates parameter sensitivity.`;
+      return `Multi-Axis Scatter Plot${axisSuffix}: Exploring n = ${activeRuns.length} records alongside current virtual state (${simulation.flameSpread_mms.toFixed(2)} mm/s).`;
     case 'bubble-plot':
-      return `4-variable bubble projection maps O₂ %, Airflow, Radiometer IR Flux (radius), and Hazard Outcome across ${activeRuns.length} runs and current simulation.`;
+      return `Bubble Multi-Metric Plot${axisSuffix}: Projects mapped X/Y dimensions, radiative flux magnitude (area), and category across n = ${activeRuns.length} records.`;
     case 'correlation-matrix':
-      return `Pairwise Pearson r matrix across ${activeRuns.length} runs quantifies linear coupling among O₂ %, Pressure, Airflow, Thickness, Peak Temp, and Flame Spread.`;
+      return `Correlation Matrix: Symmetric pairwise Pearson r grid across n = ${activeRuns.length} active records.`;
     case 'heatmap-matrix':
-      return `Normalized Run × Parameter intensity matrix compares ${activeRuns.length} active runs and current simulation (${sliders.O2_pct.toFixed(1)}% O₂, ${sliders.Flow_ms.toFixed(2)} m/s) across 6 telemetry columns.`;
+      return `Normalized Matrix Heatmap: Compares normalized telemetry columns across ${activeRuns.length} runs and active virtual output.`;
+    case 'residual-deviation':
+      return `Residual Spread Deviation Plot${axisSuffix}: Evaluates signed error between empirical archive runs and predicted combustion rates.`;
+    case 'sensor-timeline':
+      return `Dual-Axis Sensor Line Chart: Synchronized 0–120s thermal (K), IR flux (W/m²), and visible emission (%) curves across cool-flame regimes.`;
     case 'multi-series-line':
-      return `Multi-run 0–120s thermal trajectories compare peak temperatures and 550K–800K cool-flame plateaus across ${activeRuns.length} active runs.`;
+      return `Multi-Series Line Chart: Overlays 0–120s modeled thermal trajectories across ${activeRuns.length} active records.`;
     case 'area-chart':
-      return `0–120s radiative flux and CO accumulation envelopes highlight sustained infrared output and toxic off-gassing even when visible flame dims.`;
+      return `Area Progression Chart: Tracks cumulative 0–120s radiometer flux and CO emission progression.`;
     case 'stacked-area':
-      return `Stacked normalized thermal, radiative, and CO emission profiles illustrate phase shifts from luminous pyrolysis to low-temperature oxidation.`;
+      return `Stacked Area Chart: Relative proportions of thermal, radiative, and CO emission load over 0–120s.`;
     case 'step-chart':
-      return `Discrete step transition profile segments Ignition Ramp, Hot Spread, NTC Cool-Flame Plateau (550K–800K), and Quench phases.`;
+      return `Step Transition Chart: Discrete regime transitions (Ignition → Hot Flame → 550K–800K Cool-Flame NTC → Quench).`;
     case 'timeline-progression':
-      return `10-second growth progression forecasts ${simulation.forecast10s.radius_mm.toFixed(1)} mm flame front radius and +${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin pressure rise.`;
-    case 'contour-surface':
-      return `Pressure × Thickness quenching contour shows minimum safe substrate thickness ≥ ${simulation.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (current ${sliders.Thickness_mm.toFixed(1)} mm: ${simulation.safeMaterialCheck.passed ? 'PASS' : 'FAIL'}).`;
+      return `Forecast Progression Chart: 10s growth projection yields ${simulation.forecast10s.radius_mm.toFixed(1)} mm radius and +${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa cabin rise.`;
     case 'polar-radial':
-      return `Polar 6-axis envelope compares normalized cabin parameters (note quadratic radial area scaling caveat; use Parallel Axes for exact linear reading).`;
+      return `Polar Radial Profile: Multi-axis normalized envelope (note quadratic area caveat; prefer Parallel Coordinates for quantitative reading).`;
+    case 'multi-variable':
+      return `Parallel Coordinates: Normalized multi-dimensional overlay across ${activeRuns.length} active records and virtual test state.`;
+    case 'material-safety':
+      return `Bullet Target Chart: Evaluates 5 spacecraft substrates against current LOI, smoke, toxic yield, and cool-flame thresholds.`;
     default:
-      return `Active simulation predicts ${simulation.flameSpread_mms.toFixed(2)} mm/s flame spread (${simulation.hazardStatus}).`;
+      return `Active model predicts ${simulation.flameSpread_mms.toFixed(2)} mm/s flame spread (${simulation.hazardStatus}).`;
   }
 }
