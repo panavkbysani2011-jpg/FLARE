@@ -22,6 +22,46 @@
   }
 }
 
+/* Smooth continuous whole-image microgravity flame breathing (no slicing, no blur) */
+@keyframes heroFlameAmbient {
+  0%, 100% {
+    transform: translate3d(0px, 0px, 0) scale(1);
+    opacity: 0.94;
+  }
+  50% {
+    transform: translate3d(-4px, -3px, 0) scale(1.03);
+    opacity: 1;
+  }
+}
+
+@keyframes heroFlameHaloPulse {
+  0%, 100% {
+    transform: scale(0.98);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.85;
+  }
+}
+
+.hero-flame-ambient {
+  animation: heroFlameAmbient 11s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-flame-halo {
+  animation: heroFlameHaloPulse 9s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-flame-ambient,
+  .hero-flame-halo {
+    animation: none;
+  }
+}
+
 /* Custom subtle scrollbars for analytical tables and catalog lists */
 ::-webkit-scrollbar {
   width: 6px;
@@ -39,27 +79,4 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.55);
-}
-
-/* Subtle breathing animation for the Landing Page microgravity spherical flame orb */
-@keyframes sphericalFlamePulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.92;
-  }
-  50% {
-    transform: scale(1.045);
-    opacity: 1;
-  }
-}
-
-.spherical-flame-pulse {
-  animation: sphericalFlamePulse 7s ease-in-out infinite;
-  transform-origin: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spherical-flame-pulse {
-    animation: none;
-  }
 }

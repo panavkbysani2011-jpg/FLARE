@@ -1,7 +1,18 @@
-import React from 'react';
-import { Download, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  Download,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { PsiRun, SidebarState, ThemeMode, WorkspaceView } from '../types/psi';
 import { getCanonicalPsiId } from '../utils/investigationArtifacts';
+import {
+  HEADER_EXPORT_SECTION_OPTIONS,
+  HeaderExportFormat,
+  HeaderExportSectionId,
+} from '../utils/exportHelpers';
 
 interface HeaderBarProps {
   theme: ThemeMode;
@@ -10,7 +21,10 @@ interface HeaderBarProps {
   inspectedRun?: PsiRun | null;
   sidebarState: SidebarState;
   onHeaderToggleSidebar: () => void;
-  onExportBrief: () => void;
+  onExportBundle: (
+    sections: HeaderExportSectionId[],
+    format: HeaderExportFormat
+  ) => void;
 }
 
 const VIEW_BREADCRUMBS: Record<WorkspaceView, { section: string; subPage?: string }> = {
@@ -40,10 +54,50 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   inspectedRun,
   sidebarState,
   onHeaderToggleSidebar,
-  onExportBrief,
+  onExportBundle,
 }) => {
   const isDark = theme === 'dark';
   const crumb = VIEW_BREADCRUMBS[activeView];
+
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<
+    HeaderExportSectionId[]
+  >(HEADER_EXPORT_SECTION_OPTIONS.map((o) => o.id));
+  const [exportFormat, setExportFormat] = useState<HeaderExportFormat>('md');
+  const exportPopoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (
+        exportPopoverRef.current &&
+        !exportPopoverRef.current.contains(e.target as Node)
+      ) {
+        setExportMenuOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExportMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [exportMenuOpen]);
+
+  const toggleSection = (id: HeaderExportSectionId) => {
+    setSelectedSections((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleDownloadSelected = () => {
+    if (selectedSections.length === 0) return;
+    onExportBundle(selectedSections, exportFormat);
+    setExportMenuOpen(false);
+  };
 
   const topBarSurface = isDark
     ? 'bg-[#09090B]/95 border-[#27272A] text-[#FAFAFA]'
@@ -138,22 +192,163 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </nav>
       </div>
 
-      {/* Right: Export Safety Brief Outline Button + 3-Mode Theme Toggle */}
+      {/* Right: Tier 1 Multi-Select Export Dropdown + 3-Mode Theme Toggle */}
       <div className="flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={onExportBrief}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
-            isDark
-              ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800'
-              : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
-          }`}
-          title="Download Markdown safety brief for current virtual test and selected runs"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Export Safety Brief</span>
-          <span className="sm:hidden">Export Brief</span>
-        </button>
+        <div className="relative" ref={exportPopoverRef}>
+          <button
+            type="button"
+            onClick={() => setExportMenuOpen((prev) => !prev)}
+            aria-expanded={exportMenuOpen}
+            aria-haspopup="dialog"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
+              exportMenuOpen
+                ? isDark
+                  ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'
+                  : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B]'
+                : isDark
+                ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800'
+                : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
+            }`}
+            title="Select sections and format to bundle into a custom report"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export</span>
+            <ChevronDown
+              className={`w-3 h-3 transition-transform duration-150 ${
+                exportMenuOpen ? 'rotate-180' : ''
+              }`}
+            />
+          </button>
+
+          {exportMenuOpen && (
+            <div
+              role="dialog"
+              aria-label="Custom Multi-Section Export"
+              className={`absolute right-0 mt-2 w-[320px] sm:w-[356px] rounded-lg border shadow-lg p-3.5 z-50 space-y-3 ${
+                isDark
+                  ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
+                  : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#E4E4E7] dark:border-[#27272A]">
+                <div>
+                  <div className="font-display text-xs font-semibold">
+                    Custom Report Bundle
+                  </div>
+                  <div className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+                    Choose sections to include ({selectedSections.length}/
+                    {HEADER_EXPORT_SECTION_OPTIONS.length})
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedSections(
+                      selectedSections.length ===
+                        HEADER_EXPORT_SECTION_OPTIONS.length
+                        ? []
+                        : HEADER_EXPORT_SECTION_OPTIONS.map((o) => o.id)
+                    )
+                  }
+                  className="text-[11px] font-sans font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 underline cursor-pointer"
+                >
+                  {selectedSections.length ===
+                  HEADER_EXPORT_SECTION_OPTIONS.length
+                    ? 'Clear All'
+                    : 'Select All'}
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                {HEADER_EXPORT_SECTION_OPTIONS.map((option) => {
+                  const checked = selectedSections.includes(option.id);
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => toggleSection(option.id)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md border text-left text-xs font-sans transition-colors cursor-pointer ${
+                        checked
+                          ? isDark
+                            ? 'bg-[#18181B] border-zinc-600 text-[#FAFAFA]'
+                            : 'bg-zinc-50 border-zinc-400 text-[#18181B]'
+                          : isDark
+                          ? 'bg-transparent border-[#27272A] text-zinc-400 hover:text-zinc-200'
+                          : 'bg-transparent border-[#E4E4E7] text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      <span
+                        className={`w-4 h-4 rounded-[3px] border flex items-center justify-center shrink-0 ${
+                          checked
+                            ? isDark
+                              ? 'bg-[#FAFAFA] border-[#FAFAFA] text-[#09090B]'
+                              : 'bg-[#18181B] border-[#18181B] text-[#FFFFFF]'
+                            : isDark
+                            ? 'border-zinc-600 bg-transparent'
+                            : 'border-zinc-300 bg-white'
+                        }`}
+                      >
+                        {checked && <Check className="w-3 h-3 stroke-[2.5]" />}
+                      </span>
+                      <span className="leading-snug">{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Format Selector inside Dropdown */}
+              <div className="pt-2 border-t border-[#E4E4E7] dark:border-[#27272A] space-y-2">
+                <div className="text-[11px] font-sans font-semibold text-zinc-500 dark:text-zinc-400">
+                  File Format
+                </div>
+                <div
+                  className={`grid grid-cols-2 gap-1 p-1 rounded-md border ${
+                    isDark
+                      ? 'bg-[#09090B] border-[#27272A]'
+                      : 'bg-zinc-100 border-[#E4E4E7]'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('md')}
+                    className={`px-2 py-1.5 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
+                      exportFormat === 'md'
+                        ? activeMonochrome
+                        : inactiveMonochrome
+                    }`}
+                  >
+                    Markdown (.md)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportFormat('json')}
+                    className={`px-2 py-1.5 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
+                      exportFormat === 'json'
+                        ? activeMonochrome
+                        : inactiveMonochrome
+                    }`}
+                  >
+                    JSON Data (.json)
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={selectedSections.length === 0}
+                  onClick={handleDownloadSelected}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-sans font-semibold rounded-lg transition-all active:scale-[0.98] disabled:opacity-45 cursor-pointer ${
+                    isDark
+                      ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                      : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                  }`}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Selected</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div
           className={`flex items-center p-0.5 rounded-lg border ${groupSurface}`}

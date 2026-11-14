@@ -12,7 +12,9 @@ import {
   AlertTriangle,
   Flame,
   ExternalLink,
+  Download,
 } from 'lucide-react';
+import { exportVirtualTestReport } from '../utils/exportHelpers';
 import {
   CandidateMaterialCode,
   EnvironmentPreset,
@@ -561,6 +563,17 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
         title="Virtual Test Results & Model Accuracy Report"
         subtitle={`${confidence.confidencePct.toFixed(1)}% Model Confidence`}
         summaryLine={`${simulation.hazardStatus} · ${simulation.flameSpread_mms.toFixed(2)} ± ${simulation.confidenceInterval_mms.toFixed(2)} mm/s · Confidence ${confidence.confidencePct.toFixed(1)}% (${confidence.physicalTestingRecommendation === 'Avoidable' ? 'Physical test avoidable' : 'Physical test recommended'})`}
+        rightActions={
+          <button
+            type="button"
+            onClick={() => exportVirtualTestReport(config, simulation)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
+            title="Download active chamber settings, flame spread prediction, confidence score, and nearest flight runs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Test Report</span>
+          </button>
+        }
       >
         <div className="space-y-4">
           {/* Primary Telemetry Metrics Grid */}

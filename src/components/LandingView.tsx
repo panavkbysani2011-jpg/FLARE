@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   ArrowRight,
   BarChart3,
+  ChevronDown,
   Flame,
   FlaskConical,
   TerminalSquare,
 } from 'lucide-react';
 import { QuickScenarioId, ThemeMode, WorkspaceView } from '../types/psi';
+import { HeroFlameCanvas } from './HeroFlameCanvas';
 
 interface LandingViewProps {
   theme: ThemeMode;
@@ -32,6 +34,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
   onStartQuickScenario,
 }) => {
   const isDark = theme === 'dark';
+  const heroSectionRef = useRef<HTMLElement | null>(null);
 
   const displayInvestigations =
     investigationCount > 0 ? investigationCount : 18;
@@ -53,104 +56,39 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
   return (
     <div className={`min-h-screen flex flex-col ${bodySurface}`}>
-      {/* Sleek Dark Hero Canvas (#09090B) — Full-Width Entry without Sidebar */}
-      <section className="relative bg-[#09090B] text-[#FAFAFA] border-b border-[#27272A] overflow-hidden">
-        {/* Right-Side Subtle Microgravity Spherical Flame Visual */}
+      {/* Full-Viewport Dark Hero Canvas (#09090B) — Uninterrupted First Screen */}
+      <section
+        ref={heroSectionRef}
+        className="relative min-h-screen flex flex-col justify-between bg-[#09090B] text-[#FAFAFA] border-b border-[#27272A] overflow-hidden"
+      >
+        {/* Right-Balanced Crisp Microgravity Flame + Interactive Luminous Particles */}
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 w-full md:w-[68%] lg:w-[58%] flex items-center justify-end overflow-hidden"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
           aria-hidden="true"
         >
-          <svg
-            viewBox="0 0 640 520"
-            className="w-[460px] sm:w-[560px] lg:w-[640px] h-full max-w-none translate-x-10 sm:translate-x-6 select-none"
-            role="presentation"
-          >
-            <defs>
-              <radialGradient id="sgHaloOuter" cx="56%" cy="50%" r="48%">
-                <stop offset="0%" stopColor="#1D4ED8" stopOpacity="0.30" />
-                <stop offset="48%" stopColor="#0EA5E9" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="#09090B" stopOpacity="0" />
-              </radialGradient>
-              <radialGradient id="sgBlueShell" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#E0F2FE" stopOpacity="0.88" />
-                <stop offset="30%" stopColor="#38BDF8" stopOpacity="0.62" />
-                <stop offset="65%" stopColor="#2563EB" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#1E3A8A" stopOpacity="0" />
-              </radialGradient>
-              <radialGradient id="sgAmberCore" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#FEF3C7" stopOpacity="0.95" />
-                <stop offset="45%" stopColor="#F59E0B" stopOpacity="0.65" />
-                <stop offset="80%" stopColor="#D97706" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#09090B" stopOpacity="0" />
-              </radialGradient>
-            </defs>
+          <HeroFlameCanvas heroContainerRef={heroSectionRef} />
 
-            {/* Broad ambient microgravity diffusion glow */}
-            <circle cx="385" cy="260" r="245" fill="url(#sgHaloOuter)" />
-
-            {/* Subtle concentric symmetry rings */}
-            <circle
-              cx="385"
-              cy="260"
-              r="182"
-              fill="none"
-              stroke="rgba(148, 163, 184, 0.10)"
-              strokeWidth="1"
-              strokeDasharray="4 6"
-            />
-            <circle
-              cx="385"
-              cy="260"
-              r="138"
-              fill="none"
-              stroke="rgba(56, 189, 248, 0.16)"
-              strokeWidth="1"
-            />
-            <line
-              x1="185"
-              y1="260"
-              x2="585"
-              y2="260"
-              stroke="rgba(148, 163, 184, 0.08)"
-              strokeWidth="1"
-            />
-            <line
-              x1="385"
-              y1="60"
-              x2="385"
-              y2="460"
-              stroke="rgba(148, 163, 184, 0.08)"
-              strokeWidth="1"
-            />
-
-            {/* Gently pulsing spherical 0g blue outer reaction shell + amber core */}
-            <g className="spherical-flame-pulse">
-              <circle cx="385" cy="260" r="118" fill="url(#sgBlueShell)" />
-              <circle
-                cx="385"
-                cy="260"
-                r="84"
-                fill="none"
-                stroke="rgba(125, 211, 252, 0.42)"
-                strokeWidth="1.25"
-              />
-              <circle cx="385" cy="260" r="46" fill="url(#sgAmberCore)" />
-              <circle cx="385" cy="260" r="14" fill="#FEF3C7" fillOpacity="0.72" />
-            </g>
-          </svg>
-
-          {/* Left dark gradient fade so text stays razor-sharp at any viewport */}
+          {/* Left-to-right dark gradient mask keeping white hero typography razor-sharp */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                'linear-gradient(90deg, #09090B 0%, rgba(9,9,11,0.94) 28%, rgba(9,9,11,0.52) 60%, rgba(9,9,11,0.08) 100%)',
+                'linear-gradient(90deg, #09090B 0%, rgba(9,9,11,0.95) 28%, rgba(9,9,11,0.54) 52%, rgba(9,9,11,0.03) 82%, rgba(9,9,11,0.62) 100%)',
+            }}
+          />
+
+          {/* Soft vertical top/bottom vignette blending cleanly into #09090B */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(9,9,11,0.62) 0%, transparent 18%, transparent 82%, #09090B 100%)',
             }}
           />
         </div>
 
         {/* Minimal Top Header Strip inside Hero */}
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pt-6 pb-2 flex items-center justify-between gap-4">
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-10 pt-6 pb-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
               <Flame className="w-3.5 h-3.5 text-[#FAFAFA]" />
@@ -175,47 +113,72 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
         </div>
 
-        {/* Main Hero Left Content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 py-14 sm:py-20 lg:py-24">
-          <div className="max-w-2xl space-y-5">
-            <p className="text-xs font-sans font-medium tracking-wide uppercase text-sky-400/90">
-              Spacecraft Fire Safety &amp; Microgravity Combustion
-            </p>
+        {/* Vertically Centered Hero Main Content */}
+        <div className="relative z-10 flex-1 flex items-center">
+          <div className="w-full max-w-6xl mx-auto px-6 sm:px-10 py-10">
+            <div className="max-w-2xl space-y-5">
+              <p className="text-xs font-sans font-medium tracking-wide uppercase text-sky-400/90">
+                Spacecraft Fire Safety &amp; Microgravity Combustion
+              </p>
 
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight text-white leading-[1.12]">
-              PSI Data Manager — Test &amp; Analyze Fire Behavior in Space
-            </h1>
+              <h1 className="font-display text-3xl sm:text-4xl lg:text-[44px] font-bold tracking-tight text-white leading-[1.12]">
+                PSI Data Manager — Test &amp; Analyze Fire Behavior in Space
+              </h1>
 
-            <p className="text-sm sm:text-base font-sans text-zinc-300 leading-relaxed max-w-xl">
-              See how materials ignite, spread flames, or self-extinguish inside
-              lunar habitats, spacecraft cabins, and low-airflow ducts before
-              running physical ground tests.
-            </p>
+              <p className="text-sm sm:text-base font-sans text-zinc-300 leading-relaxed max-w-xl">
+                See how materials ignite, spread flames, or self-extinguish inside
+                lunar habitats, spacecraft cabins, and low-airflow ducts before
+                running physical ground tests.
+              </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={onEnterWorkspace}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#FAFAFA] text-[#09090B] font-sans text-sm font-semibold shadow-md hover:bg-zinc-200 hover:-translate-y-0.5 transition-all duration-150 active:scale-[0.98] cursor-pointer"
-              >
-                <span>Open PSI Data Manager</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onEnterWorkspace}
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#FAFAFA] text-[#09090B] font-sans text-sm font-semibold shadow-md hover:bg-zinc-200 hover:-translate-y-0.5 transition-all duration-150 active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Open PSI Data Manager</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
 
-              <button
-                type="button"
-                onClick={() => onStartQuickScenario('lunar-cabin')}
-                className="inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-zinc-700 bg-[#18181B]/90 text-zinc-100 font-sans text-sm font-medium hover:bg-zinc-800 hover:border-zinc-500 transition-all duration-150 active:scale-[0.98] cursor-pointer"
-              >
-                <span>Try Lunar Cabin Scenario</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onStartQuickScenario('lunar-cabin')}
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-zinc-700 bg-[#18181B]/90 text-zinc-100 font-sans text-sm font-medium hover:bg-zinc-800 hover:border-zinc-500 transition-all duration-150 active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Try Lunar Cabin Scenario</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Subtle Bottom Anchor Keeping White Sections Strictly Below 100vh Fold */}
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-10 pb-6 pt-2 flex flex-wrap items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById('landing-data-overview')
+                ?.scrollIntoView({ behavior: 'smooth' })
+            }
+            className="inline-flex items-center gap-2 text-xs font-sans text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer"
+          >
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Scroll to explore flight datasets &amp; core workspace tools</span>
+          </button>
+
+          <span className="text-xs font-sans text-zinc-500">
+            Microgravity combustion archive · Ready offline
+          </span>
+        </div>
       </section>
 
-      {/* Below Hero: 4 Simple Metric Blocks + 3 Core Tool Cards */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 sm:px-10 py-10 space-y-10">
+      {/* Below Hero (Strictly Below the Initial 100vh Fold): 4 Metric Blocks + 3 Core Tool Cards */}
+      <main
+        id="landing-data-overview"
+        className="flex-1 max-w-6xl w-full mx-auto px-6 sm:px-10 py-12 space-y-10"
+      >
         {/* 4 Simple Static Metric Blocks */}
         <section aria-label="Included Spacecraft Fire Safety Data" className="space-y-3">
           <div className="flex items-baseline justify-between gap-2">

@@ -8,7 +8,9 @@ import {
   Layers,
   ArrowUpRight,
   LineChart as LineChartIcon,
+  Download,
 } from 'lucide-react';
+import { exportComparisonRunsCsv } from '../utils/exportHelpers';
 import {
   ResponsiveContainer,
   BarChart,
@@ -142,6 +144,21 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
         summaryLine={`${selectedRuns.length}/4 selected runs · Baseline ${baselineRun?.psiId ?? 'None'}`}
         rightActions={
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => exportComparisonRunsCsv(selectedRuns)}
+              disabled={selectedRuns.length === 0}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all disabled:opacity-45 cursor-pointer ${
+                isDark
+                  ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                  : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
+              }`}
+              title="Download selected comparison table rows as CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Comparison CSV</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setShowExtendedCols((prev) => !prev)}

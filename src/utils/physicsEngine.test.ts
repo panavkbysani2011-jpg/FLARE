@@ -20,6 +20,10 @@ import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
 import { PsiRun } from '../types/psi';
 import { getPsiSourceLink } from './investigationArtifacts';
 import {
+  buildCsvDocument,
+  HEADER_EXPORT_SECTION_OPTIONS,
+} from './exportHelpers';
+import {
   analyzeCombustionState,
   getApiEndpointConfig,
   runModelConsoleInference,
@@ -721,7 +725,48 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
   assert.ok(landingSrc.includes('979') && landingSrc.includes('Guide &amp; Report Sections'), 'LandingView must render 979 Guide & Report Sections stat');
   assert.ok(landingSrc.includes('missionCasesCount') && landingSrc.includes('Fire History &amp; Spin-Off Cases'), 'LandingView must render 8 Fire History & Spin-Off Cases stat');
   assert.ok(landingSrc.includes('Open PSI Data Manager') && landingSrc.includes('Try Lunar Cabin Scenario'), 'LandingView must include hero CTAs');
-  assert.ok(landingSrc.includes('spherical-flame-pulse') && landingSrc.includes('<svg'), 'LandingView hero must render microgravity spherical flame SVG');
+  assert.ok(
+    landingSrc.includes('<HeroFlameCanvas') &&
+      landingSrc.includes('min-h-screen') &&
+      landingSrc.includes('flex-col justify-between') &&
+      !landingSrc.includes('spherical-flame-pulse'),
+    'LandingView hero must fill min-h-screen with centered content and render HeroFlameCanvas'
+  );
+  assert.ok(
+    fs.existsSync(path.join(rootDir, 'public', 'images', 'hero-flame.png')),
+    'Hero flame photograph must exist at public/images/hero-flame.png'
+  );
+  const heroCanvasSrc = readFile('src', 'components', 'HeroFlameCanvas.tsx');
+  assert.ok(
+    heroCanvasSrc.includes('IMAGE_CANDIDATES') &&
+      heroCanvasSrc.includes('mix-blend-lighten') &&
+      heroCanvasSrc.includes('hero-flame-ambient') &&
+      heroCanvasSrc.includes('PARTICLE_COUNT = 54') &&
+      !heroCanvasSrc.includes('tileSrcW') &&
+      heroCanvasSrc.includes("removeEventListener('mousemove'"),
+    'HeroFlameCanvas must render crisp un-sliced whole flame image with ambient CSS motion and 54 cursor-reactive embers'
+  );
+
+  // Two-tier export system verification
+  assert.equal(HEADER_EXPORT_SECTION_OPTIONS.length, 5, 'Header Export checklist must offer 5 selectable sections');
+  const sampleCsv = buildCsvDocument(
+    ['Run', 'Notes'],
+    [['PSI-101', 'Microgravity "cool flame", steady']]
+  );
+  assert.equal(
+    sampleCsv,
+    'Run,Notes\nPSI-101,"Microgravity ""cool flame"", steady"',
+    'buildCsvDocument must RFC-4180 quote cells with commas or quotes'
+  );
+  const headerSrc = readFile('src', 'components', 'HeaderBar.tsx');
+  assert.ok(
+    headerSrc.includes('Download Selected') && !headerSrc.includes('Export Safety Brief'),
+    'HeaderBar must replace Export Safety Brief with interactive multi-select Export dropdown'
+  );
+  assert.ok(readFile('src', 'components', 'VirtualTestLab.tsx').includes('Export Test Report'));
+  assert.ok(readFile('src', 'components', 'RunComparator.tsx').includes('Export Comparison CSV'));
+  assert.ok(readFile('src', 'components', 'VisualAnalyticsStudio.tsx').includes('Export Chart Data'));
+  assert.ok(readFile('src', 'components', 'ExperimentRunsView.tsx').includes('Export Filtered Runs'));
 
   const overviewSrc = readFile('src', 'components', 'OverviewView.tsx');
   assert.ok(overviewSrc.includes('How to Use This Platform'), 'OverviewView must include 3-step guide section');

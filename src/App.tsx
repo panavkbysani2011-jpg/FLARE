@@ -45,6 +45,16 @@ import { ExperimentRunsView } from './components/ExperimentRunsView';
 import { RunComparator } from './components/RunComparator';
 import { ImportSyncView } from './components/ImportSyncView';
 import { PsiInvestigationDetailView } from './components/PsiInvestigationDetailView';
+import {
+  ActiveChartExportSnapshot,
+  exportHeaderBundle,
+  HeaderExportFormat,
+  HeaderExportSectionId,
+} from './utils/exportHelpers';
+import {
+  getTechniqueHeadline,
+  VIZ_TECHNIQUE_REGISTRY,
+} from './utils/vizRegistry';
 
 export default function App() {
   // 1. Theme State ('normal' default #F3F4F6, 'light' #FFFFFF, 'dark' #09090B)
@@ -110,8 +120,10 @@ export default function App() {
   const [lastVirtualRunTimestamp, setLastVirtualRunTimestamp] =
     useState<string | null>('Ready');
 
-  // 6. Visualization Mode
+  // 6. Visualization Mode & Active Export Snapshot
   const [vizMode, setVizMode] = useState<VizMode>('safety-map');
+  const [studioExportSnapshot, setStudioExportSnapshot] =
+    useState<ActiveChartExportSnapshot | null>(null);
 
   // 7. Live Public Archive Manifest & Session Ingestion Status
   const [manifestFiles, setManifestFiles] = useState<DataManifestFileRecord[]>(
@@ -462,47 +474,41 @@ export default function App() {
     navigateToInvestigationDetail(run);
   };
 
-  const handleExportBrief = () => {
-    const reportLines = [
-      `# PSI Data Manager — Microgravity Combustion Engineering Brief`,
-      `Generated: ${new Date().toISOString()}`,
-      ``,
-      `## 1. Active Virtual Test Chamber Parameters`,
-      `- Candidate Material: ${sliders.material}`,
-      `- Oxygen Concentration: ${sliders.O2_pct.toFixed(1)}% O2`,
-      `- Cabin Pressure: ${sliders.P_psi.toFixed(1)} psi`,
-      `- Forced Airflow Velocity: ${sliders.Flow_ms.toFixed(2)} m/s`,
-      `- Effective Gravity: ${sliders.g_eff.toFixed(3)}g`,
-      `- Substrate Thickness: ${sliders.Thickness_mm.toFixed(1)} mm`,
-      `- Ignition Heat Flux: ${sliders.ignitionFlux_Wm2.toLocaleString()} W/m2`,
-      ``,
-      `## 2. Computed Fire Safety Telemetry`,
-      `- Predicted Flame Spread Speed: ${simulation.flameSpread_mms.toFixed(2)} ± ${simulation.confidenceInterval_mms.toFixed(2)} mm/s (95% CI)`,
-      `- Hazard Status: ${simulation.hazardStatus} (Peak Temp: ${simulation.peakTemp_K} K)`,
-      `- 10s Growth Forecast: ${simulation.forecast10s.radius_mm.toFixed(1)} mm radius (+${simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa)`,
-      `- Minimum Safe Thickness: >= ${simulation.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm (${simulation.safeMaterialCheck.passed ? 'PASS' : 'FAIL'})`,
-      simulation.modelConfidence
-        ? `- Model Confidence: ${simulation.modelConfidence.confidencePct.toFixed(1)}% (${simulation.modelConfidence.validatedRunCount} nearby PSI runs · Physical Testing: ${simulation.modelConfidence.physicalTestingRecommendation})`
-        : `- Model Confidence: Calibrated baseline`,
-      ``,
-      `## 3. Selected PSI Archive Reference Runs`,
-      ...selectedRuns.map(
-        (r) =>
-          `- ${r.psiId} (${r.material}, ${r.facility}): ${r.O2_pct.toFixed(1)}% O2, ${r.P_psi.toFixed(1)} psi, ${r.Flow_ms.toFixed(2)} m/s -> Spread ${r.flameSpread_mms.toFixed(2)} mm/s [${r.outcome}]`
-      ),
-    ];
+  const resolvedActiveChart: ActiveChartExportSnapshot = useMemo(() => {
+    if (studioExportSnapshot && studioExportSnapshot.vizMode === vizMode) {
+      return studioExportSnapshot;
+    }
+    const technique = VIZ_TECHNIQUE_REGISTRY.find((t) => t.id === vizMode);
+    return {
+      vizMode,
+      techniqueName: technique?.name ?? '2D Regime Heatmap',
+      datasetLabel: 'Full PSI Archive',
+      xAxisKey: 'O2_pct',
+      xAxisLabel: 'O2 Concentration',
+      xAxisUnit: '%',
+      yAxisKey: 'flameSpread_mms',
+      yAxisLabel: 'Flame Spread Rate',
+      yAxisUnit: 'mm/s',
+      colorByKey: 'outcome',
+      colorByLabel: 'Fire Safety Result',
+      headline: getTechniqueHeadline(vizMode, simulation, sliders, catalogRuns),
+      plottedRuns: catalogRuns,
+    };
+  }, [studioExportSnapshot, vizMode, simulation, sliders, catalogRuns]);
 
-    const blob = new Blob([reportLines.join('\n')], {
-      type: 'text/markdown;charset=utf-8',
+  const handleExportBundle = (
+    sections: HeaderExportSectionId[],
+    format: HeaderExportFormat
+  ) => {
+    exportHeaderBundle({
+      sections,
+      format,
+      config: sliders,
+      simulation,
+      selectedRuns,
+      activeChart: resolvedActiveChart,
+      consoleMessages: messages,
     });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `psi-combustion-brief-${Date.now()}.md`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const handleSendPrompt = async (
@@ -747,7 +753,7 @@ export default function App() {
           inspectedRun={inspectedRun}
           sidebarState={sidebarState}
           onHeaderToggleSidebar={handleHeaderToggleSidebar}
-          onExportBrief={handleExportBrief}
+          onExportBundle={handleExportBundle}
         />
 
         <main className="flex-1 px-4 sm:px-6 pb-6 pt-4 max-w-[1720px] w-full">
@@ -797,6 +803,7 @@ export default function App() {
 
           {activeView === 'visual-studio' && (
             <VisualAnalyticsStudio
+              onExportSnapshotChange={setStudioExportSnapshot}
               theme={theme}
               vizMode={vizMode}
               onChangeVizMode={setVizMode}

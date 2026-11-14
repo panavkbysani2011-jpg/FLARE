@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   ChevronDown,
+  Download,
   Lock,
   RotateCcw,
   Search,
@@ -9,6 +10,10 @@ import {
   TerminalSquare,
   X,
 } from 'lucide-react';
+import {
+  ActiveChartExportSnapshot,
+  exportStudioChartData,
+} from '../utils/exportHelpers';
 import {
   DecodedChartContext,
   PsiRun,
@@ -61,6 +66,7 @@ interface VisualAnalyticsStudioProps {
   onInspectRun: (runId: string) => void;
   onGoToImportSync: () => void;
   onDecodeInModelConsole: (context: DecodedChartContext) => void;
+  onExportSnapshotChange?: (snapshot: ActiveChartExportSnapshot) => void;
 }
 
 export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
@@ -79,9 +85,13 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
   onInspectRun,
   onGoToImportSync,
   onDecodeInModelConsole,
+  onExportSnapshotChange,
 }) => {
   const isDark = theme === 'dark';
 
+  const [chartExportFormat, setChartExportFormat] = useState<'csv' | 'json'>(
+    'csv'
+  );
   const [datasetSource, setDatasetSource] =
     useState<StudioDatasetSource>('full-archive');
   const [axisMap, setAxisMap] = useState<{
@@ -186,6 +196,40 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
   const activeDatasetMeta =
     STUDIO_DATASET_SOURCES.find((s) => s.id === datasetSource) ??
     STUDIO_DATASET_SOURCES[0];
+
+  const chartExportSnapshot = useMemo<ActiveChartExportSnapshot>(
+    () => ({
+      vizMode,
+      techniqueName: activeTechnique.definition.name,
+      datasetLabel: activeDatasetMeta.label,
+      xAxisKey: xAxisMeta.key,
+      xAxisLabel: xAxisMeta.label,
+      xAxisUnit: xAxisMeta.unit,
+      yAxisKey: yAxisMeta.key,
+      yAxisLabel: yAxisMeta.label,
+      yAxisUnit: yAxisMeta.unit,
+      colorByKey: colorByMeta.key,
+      colorByLabel: colorByMeta.label,
+      headline,
+      plottedRuns: datasetContext.activeRuns,
+      getAxisValue: (run, key) =>
+        (run as unknown as Record<string, number | string>)[key] ?? '',
+    }),
+    [
+      vizMode,
+      activeTechnique,
+      activeDatasetMeta,
+      xAxisMeta,
+      yAxisMeta,
+      colorByMeta,
+      headline,
+      datasetContext.activeRuns,
+    ]
+  );
+
+  useEffect(() => {
+    onExportSnapshotChange?.(chartExportSnapshot);
+  }, [chartExportSnapshot, onExportSnapshotChange]);
 
   const handleDecodeView = () => {
     const runs = datasetContext.activeRuns;
@@ -681,12 +725,70 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
             </p>
           </div>
 
-          <div className="text-right shrink-0">
-            <div className="text-[10px] font-sans uppercase tracking-wider text-zinc-400">
-              Plotted Runs
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="text-right">
+              <div className="text-[10px] font-sans uppercase tracking-wider text-zinc-400">
+                Plotted Runs
+              </div>
+              <div className="font-mono text-sm font-semibold tabular-nums">
+                {datasetContext.activeRuns.length.toLocaleString()} runs
+              </div>
             </div>
-            <div className="font-mono text-sm font-semibold tabular-nums">
-              {datasetContext.activeRuns.length.toLocaleString()} runs
+
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`flex items-center p-0.5 rounded-md border ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A]'
+                    : 'bg-zinc-100 border-[#E4E4E7]'
+                }`}
+                role="group"
+                aria-label="Chart export format"
+              >
+                <button
+                  type="button"
+                  onClick={() => setChartExportFormat('csv')}
+                  className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] cursor-pointer transition-colors ${
+                    chartExportFormat === 'csv'
+                      ? activeMonoBtn
+                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartExportFormat('json')}
+                  className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] cursor-pointer transition-colors ${
+                    chartExportFormat === 'json'
+                      ? activeMonoBtn
+                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  JSON
+                </button>
+              </div>
+
+              <button
+                type="button"
+                disabled={isUnavailable}
+                onClick={() =>
+                  exportStudioChartData({
+                    snapshot: chartExportSnapshot,
+                    simulation,
+                    format: chartExportFormat,
+                  })
+                }
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] disabled:opacity-45 cursor-pointer ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
+                }`}
+                title="Download the currently plotted chart data and axis metadata"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Chart Data</span>
+              </button>
             </div>
           </div>
         </div>
