@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   ShieldAlert,
-  RefreshCw,
   Database,
   Server,
   Eye,
@@ -13,10 +12,12 @@ import {
   Activity,
 } from 'lucide-react';
 import {
+  DataManifestFileRecord,
   PsiApiEndpointConfig,
   PsiRun,
-  SyncChangelogEntry,
+  SessionIngestionEvent,
   ThemeMode,
+  WorkspaceView,
 } from '../types/psi';
 import {
   ImportValidationResult,
@@ -33,20 +34,32 @@ import { CollapsibleCard } from './CollapsibleCard';
 
 interface ImportSyncViewProps {
   theme: ThemeMode;
-  onImportSuccess: (newRuns: PsiRun[]) => void;
-  syncEntries: SyncChangelogEntry[];
-  hasSimulatedNewSync: boolean;
-  onSimulateNewSync: () => void;
-  onSelectRunFromSync: (psiId: string) => void;
+  onImportSuccess: (
+    newRuns: PsiRun[],
+    meta: { fileName: string; unitConversionsApplied: string[] }
+  ) => void;
+  manifestFiles: DataManifestFileRecord[];
+  sessionEvents: SessionIngestionEvent[];
+  isArchiveLoading: boolean;
+  onInspectRunFromManifest: (runId: string) => void;
+  onNavigateArchiveView: (view: WorkspaceView) => void;
+}
+
+function formatByteSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
   theme,
   onImportSuccess,
-  syncEntries,
-  hasSimulatedNewSync,
-  onSimulateNewSync,
-  onSelectRunFromSync,
+  manifestFiles,
+  sessionEvents,
+  isArchiveLoading,
+  onInspectRunFromManifest,
+  onNavigateArchiveView,
 }) => {
   const [rawText, setRawText] = useState<string>('');
   const [fileName, setFileName] = useState<string>('custom_dataset.csv');
@@ -153,7 +166,10 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
       validationResult.valid &&
       validationResult.parsedRuns.length > 0
     ) {
-      onImportSuccess(validationResult.parsedRuns);
+      onImportSuccess(validationResult.parsedRuns, {
+        fileName,
+        unitConversionsApplied: validationResult.unitConversionsApplied,
+      });
       setImportedCommitMessage(
         `Added ${validationResult.parsedRuns.length} normalized runs to Experiment Catalog & Simulator.`
       );
@@ -612,88 +628,151 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
         </div>
       </CollapsibleCard>
 
-      {/* Right 5 Columns: PSI Archive Sync Changelog Feed */}
+      {/* Right 5 Columns: Live Public Archive Manifest & Session Ingestion Log */}
       <CollapsibleCard
         theme={theme}
-        title="PSI Archive Sync Log"
-        subtitle="Schema v3.4"
-        summaryLine={`${syncEntries.length} sync events · ${hasSimulatedNewSync ? 'PSI-164 Synced' : 'Ready for PSI-164 sync test'}`}
+        title="Data Manifest &amp; Ingestion Status"
+        subtitle="Live Public Archive"
+        summaryLine={
+          isArchiveLoading
+            ? 'Loading public/data/nasa-space-apps/ assets...'
+            : `${manifestFiles.length} archive files loaded · ${sessionEvents.length} session ingestion events`
+        }
         className="xl:col-span-5"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-2 text-xs font-sans text-zinc-500">
-            <Database className="w-3.5 h-3.5" />
-            <span>Incremental investigation synchronization changelog</span>
+          <div className="flex items-center justify-between gap-2 text-xs font-sans text-zinc-500 dark:text-zinc-400">
+            <span className="inline-flex items-center gap-2">
+              <Database className="w-3.5 h-3.5" />
+              <span>
+                Files loaded from{' '}
+                <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                  public/data/nasa-space-apps/
+                </span>
+              </span>
+            </span>
           </div>
 
-        <button
-          type="button"
-          disabled={hasSimulatedNewSync}
-          onClick={onSimulateNewSync}
-          className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
-            hasSimulatedNewSync
-              ? 'border-[#10B981]/30 bg-[#10B981]/10 text-[#10B981] cursor-default'
-              : isDark
-              ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
-              : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
-          }`}
-        >
-          {hasSimulatedNewSync ? (
-            <>
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Synced PSI-164 SOFIE-MIST (31 Runs Added)</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Simulate Syncing New Investigation (PSI-164)</span>
-            </>
-          )}
-        </button>
-
-        <div className="space-y-3">
-          {syncEntries.map((entry) => (
-            <div
-              key={entry.id}
-              className={`p-3.5 rounded-[5px] border ${
-                isDark
-                  ? 'bg-[#09090B]/70 border-[#27272A]'
-                  : 'bg-zinc-50/80 border-[#E4E4E7]'
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs font-sans">
-                <span className="font-mono font-bold tabular-nums">{entry.psiId}</span>
-                <span className="text-zinc-400">{entry.syncedAt}</span>
-              </div>
-              <h3 className="mt-1 text-xs font-sans font-semibold">
-                {entry.title}
-              </h3>
-              <p className="mt-1 text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                {entry.summary}
-              </p>
-              <div
-                className={`mt-2.5 pt-2 border-t flex items-center justify-between text-[11px] text-zinc-500 ${
-                  isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
-                }`}
-              >
-                <span className="font-sans">
-                  Facility: {entry.facility} ·{' '}
-                  <span className="font-mono tabular-nums">
-                    +{entry.runsAdded}
-                  </span>{' '}
-                  Runs
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onSelectRunFromSync(entry.psiId)}
-                  className="font-sans font-semibold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer"
-                >
-                  Inspect Run Details →
-                </button>
-              </div>
+          {isArchiveLoading ? (
+            <div className={`p-3.5 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}>
+              Fetching and indexing archive JSON and CSV telemetry files...
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-2.5">
+              {manifestFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className={`p-3 rounded-[5px] border ${subSurface}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-semibold truncate">
+                      {file.fileName}
+                    </span>
+                    <div className="flex items-center gap-2 shrink-0 text-[11px] font-sans">
+                      <span
+                        className={`px-1.5 py-0.5 rounded-[4px] border text-[10px] font-medium ${
+                          isDark
+                            ? 'border-[#27272A] text-zinc-300'
+                            : 'border-[#E4E4E7] text-zinc-700'
+                        }`}
+                      >
+                        {file.format}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[#10B981] font-medium">
+                        <span className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981]" />
+                        <span>{file.status}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs font-sans text-zinc-600 dark:text-zinc-300">
+                    {file.recordLabel}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] font-mono tabular-nums text-zinc-500 dark:text-zinc-400">
+                    <span>{formatByteSize(file.sizeBytes)}</span>
+                    <span>{file.loadedAtUtc}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div
+            className={`pt-3 border-t space-y-2.5 ${
+              isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+            }`}
+          >
+            <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+              Session Ingestion Log
+            </div>
+
+            {sessionEvents.length === 0 ? (
+              <div className={`p-3 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}>
+                No archive loads or custom CSV/JSON uploads recorded in this session yet.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {sessionEvents.map((evt) => (
+                  <div
+                    key={evt.id}
+                    className={`p-3 rounded-[5px] border ${subSurface}`}
+                  >
+                    <div className="flex items-center justify-between gap-2 text-xs font-sans">
+                      <span className="inline-flex items-center gap-1.5 font-semibold truncate">
+                        <span
+                          className={`w-1.5 h-1.5 rounded-[2px] shrink-0 ${
+                            evt.eventType === 'archive-error'
+                              ? 'bg-[#EF4444]'
+                              : 'bg-[#10B981]'
+                          }`}
+                        />
+                        <span className="font-mono truncate">{evt.sourceName}</span>
+                      </span>
+                      <span className="font-mono text-[11px] tabular-nums text-zinc-500 shrink-0">
+                        {evt.timestampUtc}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      {evt.summary}
+                    </p>
+                    {evt.unitConversions && evt.unitConversions.length > 0 && (
+                      <div className="mt-1 text-[11px] font-sans text-zinc-500">
+                        Normalizations: {evt.unitConversions.join(' · ')}
+                      </div>
+                    )}
+                    <div
+                      className={`mt-2 pt-2 border-t flex items-center justify-between text-[11px] text-zinc-500 ${
+                        isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                      }`}
+                    >
+                      <span className="font-sans">
+                        <span className="font-mono tabular-nums font-semibold">
+                          +{evt.runsIndexed.toLocaleString()}
+                        </span>{' '}
+                        Runs Indexed
+                      </span>
+                      {evt.targetRunId ? (
+                        <button
+                          type="button"
+                          onClick={() => onInspectRunFromManifest(evt.targetRunId!)}
+                          className="font-sans font-semibold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer"
+                        >
+                          Inspect Imported Run →
+                        </button>
+                      ) : evt.targetView ? (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateArchiveView(evt.targetView!)}
+                          className="font-sans font-semibold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer"
+                        >
+                          Browse Experiment Runs →
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </CollapsibleCard>
       </div>

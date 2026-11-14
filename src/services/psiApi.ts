@@ -6,7 +6,6 @@ import {
   SimulationRequest,
   SimulationResponse,
 } from '../types/psi';
-import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
 import {
   AssistantArchiveContext,
   runLocalPhysicsSimulation,
@@ -210,7 +209,7 @@ function sanitizeRemoteSimulationPatch(
  */
 export async function analyzeCombustionState(
   request: SimulationRequest,
-  catalog: PsiRun[] = BASELINE_PSI_RUNS,
+  catalog: PsiRun[] = [],
   archiveContext?: AssistantArchiveContext
 ): Promise<SimulationResponse> {
   const config = getApiEndpointConfig();

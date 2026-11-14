@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import Papa from 'papaparse';
 import {
   buildAssistantReply,
   buildWhatIfSweep,
@@ -15,8 +16,8 @@ import {
   validateAndNormalizeDataset,
 } from './dataImporter';
 import { sanitizeVisiblePsiText } from '../services/dataLoader';
-import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
 import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
+import { PsiRun } from '../types/psi';
 import { getPsiSourceLink } from './investigationArtifacts';
 import {
   analyzeCombustionState,
@@ -36,6 +37,66 @@ import {
   filterTechniques,
   getDefaultAxesForTechnique,
 } from './vizRegistry';
+
+function loadRealTestRuns(limit = 25): PsiRun[] {
+  const csvPath = path.resolve(
+    process.cwd(),
+    'public/data/nasa-space-apps/master_psi_telemetry.csv'
+  );
+  const csvText = fs.readFileSync(csvPath, 'utf8');
+  const parsed = Papa.parse<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+  });
+  const picked: PsiRun[] = [];
+  const seenPsi = new Set<string>();
+  for (let i = 0; i < parsed.data.length && picked.length < limit; i++) {
+    const r = parsed.data[i];
+    const psiId = (r.psi_id || '').trim().toUpperCase();
+    if (!psiId) continue;
+    // First pass grabs diverse PSI campaigns across investigations; fallback fills to limit
+    if (picked.length < 15 && seenPsi.has(psiId)) continue;
+    seenPsi.add(psiId);
+    const o2 = Number(r.O2_pct) || 21;
+    const p = Number(r.P_psi) || 14.7;
+    const flow = Number(r.Flow_ms) || 0.12;
+    const g = Number(r.g_eff) || 0;
+    const thick = Number(r.Thickness_mm) || 2.0;
+    const phys = computeFlameSpreadVelocity({
+      O2_pct: o2,
+      P_psi: p,
+      Flow_ms: flow,
+      g_eff: g,
+      Thickness_mm: thick,
+    });
+    const vf = Number(r.Vf_mms) > 0 ? Number(r.Vf_mms) : phys.flameSpread_mms;
+    const tMax = Number(r.T_max_K) > 300 ? Math.round(Number(r.T_max_K)) : phys.peakTemp_K;
+    picked.push({
+      id: `${psiId.toLowerCase()}-t${picked.length}`,
+      psiId,
+      investigationTitle: `${psiId} Telemetry Test Record`,
+      runCode: `TST-${String(picked.length + 1).padStart(3, '0')}`,
+      facility: (['CIR', 'MSG', 'Cygnus', 'FSL'].includes(String(r.facility))
+        ? r.facility
+        : 'CIR') as PsiRun['facility'],
+      material: (r.fuel || 'PMMA').trim(),
+      O2_pct: o2,
+      P_psi: p,
+      Flow_ms: flow,
+      g_eff: g,
+      Thickness_mm: thick,
+      flameSpread_mms: Number(vf.toFixed(2)),
+      peakTemp_K: tMax,
+      radiometerFlux_Wm2: Math.round(tMax * 11.4),
+      coolFlameObserved: phys.hazardStatus === 'Cool Flame Caution',
+      outcome: phys.hazardStatus,
+      notes: 'Loaded from public/data/nasa-space-apps/master_psi_telemetry.csv',
+    });
+  }
+  return picked;
+}
+
+const REAL_SAMPLE_RUNS = loadRealTestRuns(25);
 
 test('computeFlameSpreadVelocity calculates lunar exploration risk and safe thickness accurately', () => {
   const lunarResult = computeFlameSpreadVelocity({
@@ -122,7 +183,7 @@ test('VIZ_TECHNIQUE_REGISTRY spans all 5 analytical families and evaluates compa
   });
 
   // 1) Default 3 selected runs: histogram/box/correlation are unavailable with clear messages
-  const ctx3 = buildDatasetContext('selected-sim', BASELINE_PSI_RUNS.slice(0, 3), BASELINE_PSI_RUNS, sim);
+  const ctx3 = buildDatasetContext('selected-sim', REAL_SAMPLE_RUNS.slice(0, 3), REAL_SAMPLE_RUNS, sim);
   const eval3 = evaluateAllTechniques(ctx3);
   const hist3 = eval3.find((e) => e.definition.id === 'histogram')!;
   const box3 = eval3.find((e) => e.definition.id === 'box-quartile')!;
@@ -132,8 +193,8 @@ test('VIZ_TECHNIQUE_REGISTRY spans all 5 analytical families and evaluates compa
   assert.equal(box3.compatibility.status, 'unavailable');
   assert.equal(map3.compatibility.status, 'recommended');
 
-  // 2) Full archive (19 runs): histogram/box/correlation unlock as recommended
-  const ctxFull = buildDatasetContext('full-archive', BASELINE_PSI_RUNS.slice(0, 3), BASELINE_PSI_RUNS, sim);
+  // 2) Full archive: histogram/box/correlation unlock as recommended
+  const ctxFull = buildDatasetContext('full-archive', REAL_SAMPLE_RUNS.slice(0, 3), REAL_SAMPLE_RUNS, sim);
   const evalFull = evaluateAllTechniques(ctxFull);
   const histFull = evalFull.find((e) => e.definition.id === 'histogram')!;
   const boxFull = evalFull.find((e) => e.definition.id === 'box-quartile')!;
@@ -143,14 +204,14 @@ test('VIZ_TECHNIQUE_REGISTRY spans all 5 analytical families and evaluates compa
   assert.equal(corrFull.compatibility.status, 'recommended');
 
   // 3) Single focus (1 run): multi-run axis comparisons become unavailable
-  const ctx1 = buildDatasetContext('single-focus', BASELINE_PSI_RUNS.slice(0, 1), BASELINE_PSI_RUNS, sim);
+  const ctx1 = buildDatasetContext('single-focus', REAL_SAMPLE_RUNS.slice(0, 1), REAL_SAMPLE_RUNS, sim);
   const eval1 = evaluateAllTechniques(ctx1);
   const parallel1 = eval1.find((e) => e.definition.id === 'multi-variable')!;
   assert.equal(parallel1.compatibility.status, 'unavailable');
   assert.ok(parallel1.compatibility.reason.includes('Select 2 or more runs'));
 
   // 4) Static archive scope (no sequential time-series): timeline techniques become unavailable
-  const ctxStatic = buildDatasetContext('static-runs', BASELINE_PSI_RUNS.slice(0, 3), BASELINE_PSI_RUNS, sim);
+  const ctxStatic = buildDatasetContext('static-runs', REAL_SAMPLE_RUNS.slice(0, 3), REAL_SAMPLE_RUNS, sim);
   const evalStatic = evaluateAllTechniques(ctxStatic);
   const timelineStatic = evalStatic.find((e) => e.definition.id === 'sensor-timeline')!;
   assert.equal(timelineStatic.compatibility.status, 'unavailable');
@@ -190,7 +251,7 @@ test('Virtual Test Lab accounts for material, ignition flux, and model confidenc
   const highFlux = computeFlameSpreadVelocity({ ...baseParams, material: 'PMMA', ignitionFlux_Wm2: 38000 });
   assert.ok(highFlux.flameSpread_mms > lowFlux.flameSpread_mms, 'Higher ignition flux must increase flame spread speed');
 
-  const nominalSim = runLocalPhysicsSimulation(baseParams, BASELINE_PSI_RUNS);
+  const nominalSim = runLocalPhysicsSimulation(baseParams, REAL_SAMPLE_RUNS);
   assert.ok(nominalSim.modelConfidence, 'nominalSim.modelConfidence must be populated');
   assert.ok(
     nominalSim.modelConfidence.confidencePct >= 40 && nominalSim.modelConfidence.confidencePct <= 99.5
@@ -207,7 +268,7 @@ test('Virtual Test Lab accounts for material, ignition flux, and model confidenc
       g_eff: 0.38,
       Thickness_mm: 0.3,
     },
-    BASELINE_PSI_RUNS
+    REAL_SAMPLE_RUNS
   );
   assert.ok(extremeSim.modelConfidence, 'extremeSim.modelConfidence must be populated');
   assert.ok(
@@ -233,7 +294,7 @@ test('Model Console supports all 4 operational modes and offline FastAPI health 
     g_eff: 0.166,
     Thickness_mm: 1.8,
   };
-  const sim = runLocalPhysicsSimulation(params, BASELINE_PSI_RUNS);
+  const sim = runLocalPhysicsSimulation(params, REAL_SAMPLE_RUNS);
 
   const sweep = buildWhatIfSweep(params, 'Test hypothetical 36% O2');
   assert.ok(sweep.length >= 4);
@@ -247,7 +308,7 @@ test('Model Console supports all 4 operational modes and offline FastAPI health 
       xAxisLabel: 'O₂ %',
       yAxisLabel: 'Airflow m/s',
       colorByLabel: 'Safety Regime',
-      runCount: BASELINE_PSI_RUNS.length,
+      runCount: REAL_SAMPLE_RUNS.length,
       anomalies: ['Cool-flame transition cluster at 0.04 m/s'],
       summaryHeadline: 'Test chart decode context',
     },
@@ -260,7 +321,7 @@ test('Model Console supports all 4 operational modes and offline FastAPI health 
     question: 'Test hypothetical 36% O2 vs 26% O2 sweep',
     mode: 'what-if',
     request: { ...params, consoleMode: 'what-if' },
-    catalog: BASELINE_PSI_RUNS,
+    catalog: REAL_SAMPLE_RUNS,
   });
   assert.ok(whatIfRes.assistantReply, 'whatIfRes.assistantReply must be populated');
   assert.ok((whatIfRes.assistantReply.whatIfRows?.length ?? 0) >= 4);
@@ -299,7 +360,7 @@ test('Studio datasets, dynamic axes, PSI links, and zero NASA/pill compliance ch
     assert.ok(caseItem.sourceUrl.startsWith('https://'));
   }
 
-  for (const run of BASELINE_PSI_RUNS.slice(0, 5)) {
+  for (const run of REAL_SAMPLE_RUNS.slice(0, 5)) {
     const portalLink = getPsiSourceLink(run);
     assert.equal(portalLink.href, 'https://psi.nasa.gov/');
     assert.ok(!/nasa/i.test(portalLink.displayPath));
@@ -475,12 +536,12 @@ test('psiApi remote HTTP endpoint adapter authenticates, validates schema, and f
       g_eff: 0.166,
       Thickness_mm: 2.0,
     };
-    const remoteRes = await analyzeCombustionState(reqParams, BASELINE_PSI_RUNS);
+    const remoteRes = await analyzeCombustionState(reqParams, REAL_SAMPLE_RUNS);
     assert.equal(remoteRes.flameSpread_mms, 4.32);
 
     mode = 'bad-json';
-    const localExpected = runLocalPhysicsSimulation(reqParams, BASELINE_PSI_RUNS);
-    const sanitizedRes = await analyzeCombustionState(reqParams, BASELINE_PSI_RUNS);
+    const localExpected = runLocalPhysicsSimulation(reqParams, REAL_SAMPLE_RUNS);
+    const sanitizedRes = await analyzeCombustionState(reqParams, REAL_SAMPLE_RUNS);
     assert.equal(sanitizedRes.flameSpread_mms, localExpected.flameSpread_mms);
     assert.equal(sanitizedRes.hazardStatus, localExpected.hazardStatus);
 
@@ -488,7 +549,7 @@ test('psiApi remote HTTP endpoint adapter authenticates, validates schema, and f
     const healthErr = await testApiEndpointHealth();
     assert.equal(healthErr.ok, false);
     assert.equal(healthErr.mode, 'offline-fallback');
-    const fallbackRes = await analyzeCombustionState(reqParams, BASELINE_PSI_RUNS);
+    const fallbackRes = await analyzeCombustionState(reqParams, REAL_SAMPLE_RUNS);
     assert.equal(fallbackRes.flameSpread_mms, localExpected.flameSpread_mms);
   } finally {
     if (origWindow === undefined) {
@@ -571,4 +632,57 @@ test('typography hierarchy avoids monospace on legends, prose, statuses, and ref
     assert.ok(fs.existsSync(absPath), `Missing public data asset: ${absPath}`);
     assert.ok(fs.statSync(absPath).size > 0, `Empty public data asset: ${absPath}`);
   }
+});
+
+test('zero hardcoded mock runs, simulated syncs, or fake UTC timestamps remain in app runtime', () => {
+  const rootDir = path.resolve(
+    import.meta.dirname ??
+      path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
+    '..',
+    '..'
+  );
+  assert.ok(
+    !fs.existsSync(path.join(rootDir, 'src', 'data', 'baselineRuns.ts')),
+    'src/data/baselineRuns.ts placeholder file must be deleted'
+  );
+
+  const srcFiles: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if ((full.endsWith('.ts') || full.endsWith('.tsx')) && !full.endsWith('.test.ts')) {
+        srcFiles.push(full);
+      }
+    }
+  };
+  walk(path.join(rootDir, 'src'));
+
+  const forbidden = [
+    /PSI-164/i,
+    /BASELINE_PSI_RUNS/,
+    /INITIAL_SYNC_CHANGELOG/,
+    /SIMULATED_NEW_SYNC_ENTRY/,
+    /Simulate Syncing New Investigation/i,
+    /Today,\s*06:40 UTC/,
+    /Yesterday,\s*19:15 UTC/,
+    /3 days ago/,
+    /data\/baselineRuns/,
+  ];
+
+  for (const file of srcFiles) {
+    const txt = fs.readFileSync(file, 'utf8');
+    for (const rx of forbidden) {
+      assert.ok(!rx.test(txt), `Forbidden mock/simulated pattern ${rx} found in ${file}`);
+    }
+  }
+
+  // Empty catalog fallback should remain finite and safe prior to async load completion
+  const emptySim = runLocalPhysicsSimulation(
+    { O2_pct: 34.0, P_psi: 8.2, Flow_ms: 0.12, g_eff: 0.166, Thickness_mm: 2.0 },
+    []
+  );
+  assert.ok(Number.isFinite(emptySim.flameSpread_mms));
+  assert.equal(emptySim.nearestRuns.length, 0);
+  assert.equal(emptySim.modelConfidence?.validatedRunCount, 0);
 });

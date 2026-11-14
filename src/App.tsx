@@ -3,6 +3,7 @@ import {
   AssistantMessage,
   CandidateMaterialCode,
   ConsoleMode,
+  DataManifestFileRecord,
   DecodedChartContext,
   EnvironmentPreset,
   EnvironmentPresetId,
@@ -11,22 +12,20 @@ import {
   PsiInvestigationRecord,
   PsiRun,
   ResearchersGuideTopic,
+  SessionIngestionEvent,
   SidebarState,
   SimulationResponse,
-  SyncChangelogEntry,
   ThemeMode,
   VirtualTestConfig,
   VizMode,
   WorkspaceView,
 } from './types/psi';
-import {
-  BASELINE_PSI_RUNS,
-  ENVIRONMENT_PRESETS,
-  INITIAL_SYNC_CHANGELOG,
-  SIMULATED_NEW_SYNC_ENTRY,
-} from './data/baselineRuns';
+import { ENVIRONMENT_PRESETS } from './data/environmentPresets';
 import { MISSION_AND_SPINOFF_CASES } from './data/missionAndSpinoffCases';
-import { loadPsiArchiveData } from './services/dataLoader';
+import {
+  formatUtcTimestamp,
+  loadPsiArchiveData,
+} from './services/dataLoader';
 import { runLocalPhysicsSimulation } from './utils/physicsEngine';
 import {
   analyzeCombustionState,
@@ -64,7 +63,7 @@ export default function App() {
   const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
 
   // 3. Catalog, Real Loaded Archive & Selected Runs
-  const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>(BASELINE_PSI_RUNS);
+  const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>([]);
   const [investigations, setInvestigations] = useState<
     PsiInvestigationRecord[]
   >([]);
@@ -110,36 +109,97 @@ export default function App() {
   // 6. Visualization Mode
   const [vizMode, setVizMode] = useState<VizMode>('safety-map');
 
-  // 7. Sync Feed State
-  const [syncEntries, setSyncEntries] = useState<SyncChangelogEntry[]>(
-    INITIAL_SYNC_CHANGELOG
+  // 7. Live Public Archive Manifest & Session Ingestion Status
+  const [manifestFiles, setManifestFiles] = useState<DataManifestFileRecord[]>(
+    []
   );
-  const [hasSimulatedNewSync, setHasSimulatedNewSync] = useState(false);
-  const [hasUnreadSync, setHasUnreadSync] = useState(true);
-  const [investigationCount, setInvestigationCount] = useState(18);
-  const [totalRunsCount, setTotalRunsCount] = useState(BASELINE_PSI_RUNS.length);
+  const [sessionEvents, setSessionEvents] = useState<SessionIngestionEvent[]>(
+    []
+  );
+  const [customUploadsCount, setCustomUploadsCount] = useState(0);
+  const [investigationCount, setInvestigationCount] = useState(0);
+  const [totalRunsCount, setTotalRunsCount] = useState(0);
 
-  // Load real sanitized PSI investigations, 1,611+ CSV runs, and ISS Researcher's Guide chunks at runtime
+  // Load real sanitized PSI investigations, CSV runs, and ISS Researcher's Guide chunks at runtime
   useEffect(() => {
     let active = true;
     loadPsiArchiveData()
       .then((loaded) => {
         if (!active) return;
-        if (loaded.runs.length > 0) {
-          setCatalogRuns((prev) => {
-            const customRuns = prev.filter((r) => r.isCustom);
-            return [...customRuns, ...loaded.runs];
-          });
-          setTotalRunsCount(loaded.runs.length);
-        }
+        setCatalogRuns((prev) => {
+          const customRuns = prev.filter((r) => r.isCustom || r.isVirtual);
+          return [...customRuns, ...loaded.runs];
+        });
+        setTotalRunsCount(loaded.runs.length);
         setInvestigations(loaded.investigations);
         setInvestigationCount(loaded.investigations.length);
         setGuideTopics(loaded.researchersGuideTopics);
         setLiteratureChunks(loaded.literatureChunks);
         setCorpusStats(loaded.corpusStats);
+        setManifestFiles(loaded.manifestFiles);
+
+        const loadedAtUtc =
+          loaded.manifestFiles[0]?.loadedAtUtc ?? formatUtcTimestamp(new Date());
+        setSessionEvents((prev) => {
+          const customEvents = prev.filter((e) => e.eventType === 'custom-upload');
+          return [
+            ...customEvents,
+            {
+              id: 'evt-archive-load',
+              sourceName: 'public/data/nasa-space-apps/',
+              eventType: 'archive-load',
+              timestampUtc: loadedAtUtc,
+              runsIndexed: loaded.runs.length,
+              summary: `Indexed ${loaded.investigations.length} PSI investigations, ${loaded.totalCsvRuns.toLocaleString()} calibrated CSV telemetry rows (${loaded.runs.length.toLocaleString()} total runs), and ${loaded.literatureChunks.length.toLocaleString()} literature chunks across ${loaded.manifestFiles.length} archive files.`,
+              targetView: 'experiment-runs',
+            },
+          ];
+        });
+
+        setMessages((prev) => {
+          if (prev.length !== 1 || prev[0]?.id !== 'msg-init') return prev;
+          const refreshed = runLocalPhysicsSimulation(
+            {
+              ...sliders,
+              consoleMode: 'decoder',
+              question:
+                'Decode active Lunar 0.166g Virtual Chamber telemetry step-by-step',
+            },
+            loaded.runs,
+            {
+              literatureChunks: loaded.literatureChunks,
+              investigations: loaded.investigations,
+              missionCases: MISSION_AND_SPINOFF_CASES,
+            }
+          ).assistantReply;
+
+          if (!refreshed) return prev;
+          return [
+            {
+              ...prev[0],
+              steps: refreshed.steps,
+              citations: refreshed.citations,
+              recommendedParams: refreshed.recommendedParams,
+              whatIfRows: refreshed.whatIfRows,
+            },
+          ];
+        });
       })
       .catch((err) => {
-        console.warn('PSI runtime archive fetch fallback active:', err);
+        if (!active) return;
+        const msg = err instanceof Error ? err.message : 'Unable to fetch archive assets.';
+        console.warn('PSI runtime archive fetch error:', err);
+        setSessionEvents((prev) => [
+          {
+            id: `evt-archive-err-${Date.now()}`,
+            sourceName: 'public/data/nasa-space-apps/',
+            eventType: 'archive-error',
+            timestampUtc: formatUtcTimestamp(new Date()),
+            runsIndexed: 0,
+            summary: msg,
+          },
+          ...prev,
+        ]);
       })
       .finally(() => {
         if (active) setIsArchiveLoading(false);
@@ -192,7 +252,7 @@ export default function App() {
         consoleMode: 'decoder',
         question: 'Decode active Lunar 0.166g Virtual Chamber telemetry step-by-step',
       },
-      BASELINE_PSI_RUNS
+      []
     ).assistantReply;
 
     return [
@@ -581,29 +641,33 @@ export default function App() {
     }));
   };
 
-  const handleImportSuccess = (newRuns: PsiRun[]) => {
+  const handleImportSuccess = (
+    newRuns: PsiRun[],
+    meta: { fileName: string; unitConversionsApplied: string[] }
+  ) => {
     setCatalogRuns((prev) => [...newRuns, ...prev]);
     setTotalRunsCount((prev) => prev + newRuns.length);
+    setCustomUploadsCount((prev) => prev + newRuns.length);
     const newIds = newRuns.map((r) => r.id).slice(0, 2);
     setSelectedRunIds((prev) => [...newIds, ...prev].slice(0, 4));
     if (newRuns[0]) {
       setHighlightedRunId(newRuns[0].id);
     }
-  };
-
-  const handleSimulateNewSync = () => {
-    if (hasSimulatedNewSync) return;
-    setHasSimulatedNewSync(true);
-    setHasUnreadSync(false);
-    setSyncEntries((prev) => [SIMULATED_NEW_SYNC_ENTRY, ...prev]);
-    setInvestigationCount((prev) => prev + 1);
-    setTotalRunsCount((prev) => prev + SIMULATED_NEW_SYNC_ENTRY.runsAdded);
-    if (SIMULATED_NEW_SYNC_ENTRY.sampleRun) {
-      const sample = SIMULATED_NEW_SYNC_ENTRY.sampleRun;
-      setCatalogRuns((prev) => [sample, ...prev]);
-      setSelectedRunIds((prev) => [sample.id, ...prev.slice(0, 3)]);
-      setHighlightedRunId(sample.id);
-    }
+    setSessionEvents((prev) => [
+      {
+        id: `evt-upload-${Date.now()}`,
+        sourceName: meta.fileName,
+        eventType: 'custom-upload',
+        timestampUtc: formatUtcTimestamp(new Date()),
+        runsIndexed: newRuns.length,
+        summary: `Validated and indexed ${newRuns.length} normalized run${
+          newRuns.length === 1 ? '' : 's'
+        } into active Experiment Catalog & Comparator.`,
+        targetRunId: newRuns[0]?.id,
+        unitConversions: meta.unitConversionsApplied,
+      },
+      ...prev,
+    ]);
   };
 
   const detailBackTarget: WorkspaceView =
@@ -666,19 +730,15 @@ export default function App() {
       <LeftSidebar
         theme={theme}
         activeView={activeView}
-        onSelectView={(view) => {
-          setActiveView(view);
-          if (view === 'import-sync') {
-            setHasUnreadSync(false);
-          }
-        }}
+        onSelectView={setActiveView}
         sidebarState={sidebarState}
         onCycleSidebarState={handleCycleSidebarState}
         selectedRunsCount={selectedRuns.length}
         investigationCount={investigationCount}
         totalRunsCount={totalRunsCount}
         missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
-        hasUnreadSync={hasUnreadSync}
+        isArchiveLoading={isArchiveLoading}
+        customUploadsCount={customUploadsCount}
         runs={catalogRuns}
         onQuickJumpRun={handleQuickJumpRun}
       />
@@ -852,12 +912,13 @@ export default function App() {
             <ImportSyncView
               theme={theme}
               onImportSuccess={handleImportSuccess}
-              syncEntries={syncEntries}
-              hasSimulatedNewSync={hasSimulatedNewSync}
-              onSimulateNewSync={handleSimulateNewSync}
-              onSelectRunFromSync={(psiId) => {
-                handleOpenInspector(psiId);
+              manifestFiles={manifestFiles}
+              sessionEvents={sessionEvents}
+              isArchiveLoading={isArchiveLoading}
+              onInspectRunFromManifest={(runId) => {
+                handleOpenInspector(runId);
               }}
+              onNavigateArchiveView={(view) => setActiveView(view)}
             />
           )}
 

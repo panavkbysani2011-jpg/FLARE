@@ -23,7 +23,7 @@ import {
   ThemeMode,
   VirtualTestConfig,
 } from '../types/psi';
-import { ENVIRONMENT_PRESETS } from '../data/baselineRuns';
+import { ENVIRONMENT_PRESETS } from '../data/environmentPresets';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface VirtualTestLabProps {

@@ -266,15 +266,28 @@ export interface SimulationResponse {
   };
 }
 
-export interface SyncChangelogEntry {
+export interface DataManifestFileRecord {
   id: string;
-  psiId: string;
-  title: string;
-  facility: PsiRun['facility'];
-  runsAdded: number;
-  syncedAt: string;
+  fileName: string;
+  filePath: string;
+  format: 'JSON' | 'CSV';
+  recordCount: number;
+  recordLabel: string;
+  sizeBytes: number;
+  loadedAtUtc: string;
+  status: 'Loaded' | 'Error';
+}
+
+export interface SessionIngestionEvent {
+  id: string;
+  sourceName: string;
+  eventType: 'archive-load' | 'custom-upload' | 'archive-error';
+  timestampUtc: string;
+  runsIndexed: number;
   summary: string;
-  sampleRun?: PsiRun;
+  targetRunId?: string;
+  targetView?: WorkspaceView;
+  unitConversions?: string[];
 }
 
 export interface AssistantMessage {

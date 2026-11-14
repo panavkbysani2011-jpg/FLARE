@@ -28,7 +28,8 @@ interface LeftSidebarProps {
   investigationCount: number;
   totalRunsCount: number;
   missionCasesCount: number;
-  hasUnreadSync: boolean;
+  isArchiveLoading?: boolean;
+  customUploadsCount?: number;
   runs: PsiRun[];
   onQuickJumpRun: (run: PsiRun) => void;
 }
@@ -51,7 +52,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   investigationCount,
   totalRunsCount,
   missionCasesCount,
-  hasUnreadSync,
+  isArchiveLoading = false,
+  customUploadsCount = 0,
   runs,
   onQuickJumpRun,
 }) => {
@@ -217,7 +219,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    {item.id === 'import-sync' && hasUnreadSync && (
+                    {item.id === 'import-sync' && customUploadsCount > 0 && (
                       <span
                         className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-[2px] bg-[#10B981]"
                         aria-hidden="true"
@@ -584,11 +586,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <RefreshCw className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">Data Import &amp; Sync</span>
               </span>
-              {hasUnreadSync && (
+              {customUploadsCount > 0 && (
                 <span
-                  className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981] shrink-0"
-                  aria-label="New sync data available"
-                />
+                  className={`font-mono text-[10px] tabular-nums shrink-0 ${countBadgeClass(
+                    activeView === 'import-sync'
+                  )}`}
+                >
+                  +{customUploadsCount}
+                </span>
               )}
             </button>
           </div>
@@ -603,16 +608,26 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       >
         <div className="flex items-center gap-1.5 text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate">
           <span
-            className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981] shrink-0"
+            className={`w-1.5 h-1.5 rounded-[2px] shrink-0 ${
+              isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+            }`}
             aria-hidden="true"
           />
           <span className="truncate">
-            <span className="font-mono tabular-nums">{investigationCount}</span>{' '}
-            PSI Investigations •{' '}
-            <span className="font-mono tabular-nums">
-              {totalRunsCount.toLocaleString()}
-            </span>{' '}
-            Runs • Ready
+            {isArchiveLoading ? (
+              'Loading PSI Archive...'
+            ) : (
+              <>
+                <span className="font-mono tabular-nums">
+                  {investigationCount}
+                </span>{' '}
+                PSI Investigations •{' '}
+                <span className="font-mono tabular-nums">
+                  {totalRunsCount.toLocaleString()}
+                </span>{' '}
+                Runs • Ready
+              </>
+            )}
           </span>
         </div>
       </div>

@@ -14,7 +14,6 @@ import {
   VizMode,
   WhatIfScenarioResult,
 } from '../types/psi';
-import { BASELINE_PSI_RUNS } from '../data/baselineRuns';
 import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
 
 export interface AssistantArchiveContext {
@@ -149,8 +148,9 @@ export function computeFlameSpreadVelocity(params: {
 
 export function findNearestPsiRuns(
   params: SimulationRequest,
-  catalog: PsiRun[] = BASELINE_PSI_RUNS
+  catalog: PsiRun[] = []
 ): Array<{ run: PsiRun; similarityPct: number }> {
+  if (catalog.length === 0) return [];
   const scored = catalog.map((run) => {
     const dO2 = Math.abs(run.O2_pct - params.O2_pct) / 40;
     const dP = Math.abs(run.P_psi - params.P_psi) / 10.4;
@@ -869,8 +869,18 @@ export function computeModelConfidence(
     hazardStatus: HazardOutcome;
     minSafeThickness_mm: number;
   },
-  catalog: PsiRun[] = BASELINE_PSI_RUNS
+  catalog: PsiRun[] = []
 ): ModelConfidenceSummary {
+  if (catalog.length === 0) {
+    return {
+      confidencePct: 0,
+      validatedRunCount: 0,
+      nearestDeltaSummary: 'Indexing PSI archive telemetry from public/data/nasa-space-apps/…',
+      physicalTestingRecommendation: 'Recommended',
+      rationale:
+        'Awaiting PSI archive telemetry load before anchoring against calibrated historical runs.',
+    };
+  }
   const scored = catalog
     .map((run) => {
       const dO2 = Math.abs(run.O2_pct - req.O2_pct) / 40;
@@ -935,7 +945,7 @@ export function computeModelConfidence(
 
 export function runLocalPhysicsSimulation(
   req: SimulationRequest,
-  catalog: PsiRun[] = BASELINE_PSI_RUNS,
+  catalog: PsiRun[] = [],
   archiveContext?: AssistantArchiveContext
 ): SimulationResponse {
   const core = computeFlameSpreadVelocity({

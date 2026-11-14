@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import {
+  DataManifestFileRecord,
   HazardOutcome,
   LiteratureChunk,
   LiteratureCorpusStats,
@@ -9,6 +10,10 @@ import {
   ResearchersGuideTopic,
 } from '../types/psi';
 import { computeFlameSpreadVelocity } from '../utils/physicsEngine';
+
+export function formatUtcTimestamp(date: Date = new Date()): string {
+  return date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+}
 
 export const DATA_BASE_PATH = '/data/nasa-space-apps';
 export const RESEARCHERS_GUIDE_PDF_URL = `${DATA_BASE_PATH}/np-2015-10-034-jsc_combustion_in_reduced_gravity-iss-mini-book-011116-508.pdf`;
@@ -82,6 +87,7 @@ export interface LoadedPsiArchive {
   literatureChunks: LiteratureChunk[];
   corpusStats: LiteratureCorpusStats;
   researchersGuideTopics: ResearchersGuideTopic[];
+  manifestFiles: DataManifestFileRecord[];
 }
 
 const GUIDE_SOURCE_FILE =
@@ -676,28 +682,45 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
   if (cachedPromise) return cachedPromise;
 
   cachedPromise = (async () => {
-    const [catalogRes, manifestRes, csvRes, chunksRes, summaryRes] =
+    const responses = await Promise.all([
+      fetch(`${DATA_BASE_PATH}/psi_runs_catalog.json`),
+      fetch(`${DATA_BASE_PATH}/psi_inventory_manifest.json`),
+      fetch(`${DATA_BASE_PATH}/master_psi_telemetry.csv`),
+      fetch(`${DATA_BASE_PATH}/psi_literature_chunks.json`),
+      fetch(`${DATA_BASE_PATH}/processed/psi_literature_summary.json`),
+    ]);
+    const [catalogRes, manifestRes, csvRes, chunksRes, summaryRes] = responses;
+    for (const res of responses) {
+      if (!res.ok) {
+        throw new Error(`Failed to load archive asset (${res.status}): ${res.url}`);
+      }
+    }
+
+    const [catalogText, manifestText, csvText, chunksText, summaryText] =
       await Promise.all([
-        fetch(`${DATA_BASE_PATH}/psi_runs_catalog.json`),
-        fetch(`${DATA_BASE_PATH}/psi_inventory_manifest.json`),
-        fetch(`${DATA_BASE_PATH}/master_psi_telemetry.csv`),
-        fetch(`${DATA_BASE_PATH}/psi_literature_chunks.json`),
-        fetch(`${DATA_BASE_PATH}/processed/psi_literature_summary.json`),
+        catalogRes.text(),
+        manifestRes.text(),
+        csvRes.text(),
+        chunksRes.text(),
+        summaryRes.text(),
       ]);
 
-    const catalogJson = (await catalogRes.json()) as {
+    const encoder = new TextEncoder();
+    const byteSizeOf = (txt: string): number => encoder.encode(txt).length;
+    const loadedAtUtc = formatUtcTimestamp(new Date());
+
+    const catalogJson = JSON.parse(catalogText) as {
       investigations: RawCatalogInvestigation[];
     };
-    const manifestJson = (await manifestRes.json()) as {
+    const manifestJson = JSON.parse(manifestText) as {
       investigations: Record<string, RawManifestInvestigation>;
     };
-    const csvText = await csvRes.text();
-    const rawChunks = (await chunksRes.json()) as LiteratureChunk[];
+    const rawChunks = JSON.parse(chunksText) as LiteratureChunk[];
     const literatureChunks = rawChunks.map((ch) => ({
       ...ch,
       text: sanitizeVisiblePsiText(ch.text),
     }));
-    const summaryJson = (await summaryRes.json()) as LiteratureCorpusStats;
+    const summaryJson = JSON.parse(summaryText) as LiteratureCorpusStats;
 
     const invTitleMap: Record<string, string> = {};
     for (const inv of catalogJson.investigations) {
@@ -964,13 +987,84 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
     );
     const researchersGuideTopics = buildGuideTopics(guideChunks);
 
+    const manifestEntries = Object.values(manifestJson.investigations);
+    const manifestSheetCount = manifestEntries.reduce(
+      (acc, entry) => acc + (entry.spreadsheets?.length ?? 0),
+      0
+    );
+    const manifestPdfCount = manifestEntries.reduce(
+      (acc, entry) => acc + (entry.pdfs?.length ?? 0),
+      0
+    );
+    const metadataBaselineCount = allRuns.length - csvRows.length;
+    const subcampaignCount = catalogJson.investigations.length - investigations.length;
+
+    const manifestFiles: DataManifestFileRecord[] = [
+      {
+        id: 'manifest-catalog',
+        fileName: 'psi_runs_catalog.json',
+        filePath: `${DATA_BASE_PATH}/psi_runs_catalog.json`,
+        format: 'JSON',
+        recordCount: catalogJson.investigations.length,
+        recordLabel: `${catalogJson.investigations.length} catalog records (${investigations.length} primary${subcampaignCount > 0 ? ` + ${subcampaignCount} sub-campaigns` : ''})`,
+        sizeBytes: byteSizeOf(catalogText),
+        loadedAtUtc,
+        status: 'Loaded',
+      },
+      {
+        id: 'manifest-csv',
+        fileName: 'master_psi_telemetry.csv',
+        filePath: `${DATA_BASE_PATH}/master_psi_telemetry.csv`,
+        format: 'CSV',
+        recordCount: csvRows.length,
+        recordLabel: `${csvRows.length.toLocaleString()} telemetry CSV rows (${metadataBaselineCount} metadata baselines → ${allRuns.length.toLocaleString()} indexed runs)`,
+        sizeBytes: byteSizeOf(csvText),
+        loadedAtUtc,
+        status: 'Loaded',
+      },
+      {
+        id: 'manifest-chunks',
+        fileName: 'psi_literature_chunks.json',
+        filePath: `${DATA_BASE_PATH}/psi_literature_chunks.json`,
+        format: 'JSON',
+        recordCount: literatureChunks.length,
+        recordLabel: `${literatureChunks.length.toLocaleString()} indexed chunks (${guideChunks.length} ISS Guide sections)`,
+        sizeBytes: byteSizeOf(chunksText),
+        loadedAtUtc,
+        status: 'Loaded',
+      },
+      {
+        id: 'manifest-inventory',
+        fileName: 'psi_inventory_manifest.json',
+        filePath: `${DATA_BASE_PATH}/psi_inventory_manifest.json`,
+        format: 'JSON',
+        recordCount: manifestEntries.length,
+        recordLabel: `${manifestEntries.length} file dossiers (${manifestSheetCount} spreadsheets · ${manifestPdfCount} PDFs)`,
+        sizeBytes: byteSizeOf(manifestText),
+        loadedAtUtc,
+        status: 'Loaded',
+      },
+      {
+        id: 'manifest-summary',
+        fileName: 'processed/psi_literature_summary.json',
+        filePath: `${DATA_BASE_PATH}/processed/psi_literature_summary.json`,
+        format: 'JSON',
+        recordCount: summaryJson.totalSourceDocuments,
+        recordLabel: `${summaryJson.totalSourceDocuments} source docs · ${summaryJson.totalRawChunks.toLocaleString()} summarized chunks`,
+        sizeBytes: byteSizeOf(summaryText),
+        loadedAtUtc,
+        status: 'Loaded',
+      },
+    ];
+
     return {
       investigations,
       runs: allRuns,
-      totalCsvRuns: allRuns.length,
+      totalCsvRuns: csvRows.length,
       literatureChunks,
       corpusStats: summaryJson,
       researchersGuideTopics,
+      manifestFiles,
     };
   })();
 
