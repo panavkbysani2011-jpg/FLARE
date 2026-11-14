@@ -875,10 +875,10 @@ export function computeModelConfidence(
     return {
       confidencePct: 0,
       validatedRunCount: 0,
-      nearestDeltaSummary: 'Indexing PSI archive telemetry from public/data/nasa-space-apps/…',
+      nearestDeltaSummary: 'Loading verified PSI telemetry and experiment archive…',
       physicalTestingRecommendation: 'Recommended',
       rationale:
-        'Awaiting PSI archive telemetry load before anchoring against calibrated historical runs.',
+        'Waiting for the verified PSI archive to finish loading before matching against historical spaceflight runs.',
     };
   }
   const scored = catalog

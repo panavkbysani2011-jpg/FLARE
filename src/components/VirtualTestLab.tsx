@@ -129,12 +129,12 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
     : 'bg-[#FAFAFA] border-[#E4E4E7]';
 
   const primaryButton = isDark
-    ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200 border-[#FAFAFA]'
-    : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800 border-[#18181B]';
+    ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200 border-[#FAFAFA] shadow-xs hover:shadow-sm active:scale-[0.98] transition-all'
+    : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800 border-[#18181B] shadow-xs hover:shadow-sm active:scale-[0.98] transition-all';
 
   const secondaryButton = isDark
-    ? 'bg-[#18181B] text-[#FAFAFA] border-[#27272A] hover:bg-zinc-800'
-    : 'bg-[#FFFFFF] text-[#18181B] border-[#E4E4E7] hover:bg-zinc-100';
+    ? 'bg-[#18181B] text-[#FAFAFA] border-[#27272A] hover:bg-zinc-800 hover:border-zinc-600 shadow-xs active:scale-[0.98] transition-all'
+    : 'bg-[#FFFFFF] text-[#18181B] border-[#E4E4E7] hover:bg-zinc-100 hover:border-zinc-300 shadow-xs active:scale-[0.98] transition-all';
 
   const regimeColorHex =
     simulation.hazardStatus === 'Rapid Flame Spread'
@@ -212,29 +212,26 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             Virtual Test Lab
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Pre-physical virtual combustion chamber testing &amp; model confidence validation against historical PSI archive runs
+            Test how materials burn under lunar, orbital, or custom cabin conditions and compare against historical spaceflight runs
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs font-sans">
+        <div className="flex flex-wrap items-center gap-4 text-xs font-sans">
           {lastRunId && (
-            <span
-              className={`px-2.5 py-1 rounded-[4px] border font-sans ${subSurface} text-zinc-600 dark:text-zinc-300`}
-            >
-              Run <span className="font-mono tabular-nums">{lastRunId}</span> ·{' '}
+            <span className="inline-flex items-center gap-1.5 font-sans text-zinc-500 dark:text-zinc-400">
+              <span className="w-1.5 h-1.5 rounded-[2px] bg-zinc-400 dark:bg-zinc-500" />
+              Run <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-200">{lastRunId}</span> ·{' '}
               <span className={/\d/.test(lastRunTimestamp ?? '') ? 'font-mono tabular-nums' : 'font-sans'}>
                 {lastRunTimestamp}
               </span>
             </span>
           )}
-          <span
-            className={`px-2.5 py-1 rounded-[4px] border ${subSurface} flex items-center gap-1.5`}
-          >
+          <span className="inline-flex items-center gap-1.5 font-sans">
             <span
               className="w-2 h-2 rounded-[2px]"
               style={{ backgroundColor: regimeColorHex }}
             />
-            <span className="font-sans font-medium">{simulation.hazardStatus}</span>
+            <span className="font-sans font-medium text-zinc-800 dark:text-zinc-200">{simulation.hazardStatus}</span>
           </span>
         </div>
       </div>
@@ -249,7 +246,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           <button
             type="button"
             onClick={onResetConfig}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${secondaryButton}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
           >
             <RotateCcw className="w-3 h-3" />
             <span>Reset Baseline</span>
@@ -260,7 +257,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           {/* Gravity Presets Row */}
           <div>
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
-              Mission Gravity &amp; Cabin Presets
+              Mission Cabin Presets
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {ENVIRONMENT_PRESETS.map((preset) => {
@@ -270,10 +267,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                     key={preset.id}
                     type="button"
                     onClick={() => onSelectPreset(preset)}
-                    className={`text-left p-3 rounded-[5px] border transition-colors cursor-pointer ${
+                    className={`text-left p-3 rounded-lg border cursor-pointer ${
                       isActive
                         ? primaryButton
-                        : `${subSurface} hover:border-zinc-400 dark:hover:border-zinc-600`
+                        : `${subSurface} shadow-xs hover:shadow-sm hover:border-zinc-400 dark:hover:border-zinc-600 active:scale-[0.98] transition-all`
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -549,10 +546,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               type="button"
               onClick={onRunVirtualTest}
               disabled={isRunningTest}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-sans font-semibold rounded-[5px] border transition-colors cursor-pointer disabled:opacity-60 ${primaryButton}`}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer disabled:opacity-60 ${primaryButton}`}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isRunningTest ? 'Executing Virtual Test...' : 'Run Virtual Test'}</span>
+              <span>{isRunningTest ? 'Running Virtual Test...' : 'Run Virtual Test'}</span>
             </button>
           </div>
         </div>
@@ -707,28 +704,28 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <button
                 type="button"
                 onClick={onInspectInVisualStudio}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${secondaryButton}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
-                <span>Inspect in Visual Analytics Studio</span>
+                <span>Open in Visual Analytics Studio</span>
               </button>
 
               <button
                 type="button"
                 onClick={onAnalyzeInModelConsole}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${secondaryButton}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
               >
                 <Terminal className="w-3.5 h-3.5" />
-                <span>Analyze Result in Model Console</span>
+                <span>Ask Model Console</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleAddToComparator}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${primaryButton}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${primaryButton}`}
               >
                 <GitCompareArrows className="w-3.5 h-3.5" />
-                <span>Add Virtual Run to Comparator</span>
+                <span>Add to Run Comparator</span>
               </button>
             </div>
           </div>
@@ -743,7 +740,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           {simulation.nearestRuns.length > 0 && (
             <div>
               <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
-                Nearest Calibrated Historical PSI Reference Runs
+                Closest Past Spaceflight Experiments
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 {simulation.nearestRuns.slice(0, 4).map(({ run, similarityPct }) => (
@@ -751,7 +748,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                     key={run.id}
                     type="button"
                     onClick={() => onInspectRun(run.id)}
-                    className={`text-left p-3 rounded-[5px] border transition-colors cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 ${subSurface}`}
+                    className={`text-left p-3 rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-500 ${subSurface}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-xs font-semibold">

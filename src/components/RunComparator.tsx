@@ -115,14 +115,14 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
             Run Comparator
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Side-by-side comparison matrix and overlaid trajectory analysis for up to 4 historical or virtual combustion runs
+            Compare up to 4 historical or virtual test runs side-by-side and inspect thermal trajectories together
           </p>
         </div>
         {onAddActiveVirtualRun && (
           <button
             type="button"
             onClick={onAddActiveVirtualRun}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
               isDark
                 ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
                 : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
@@ -137,22 +137,22 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
       {/* 1. Side-by-Side Comparison Matrix */}
       <CollapsibleCard
         theme={theme}
-        title="Side-by-Side Run Comparison Matrix"
-        subtitle={`${selectedRuns.length}/4 Runs Checked · Deltas vs. ${baselineRun?.psiId ?? 'Baseline'}`}
+        title="Side-by-Side Run Comparison Table"
+        subtitle={`${selectedRuns.length}/4 Runs Selected · Differences vs. ${baselineRun?.psiId ?? 'Baseline'}`}
         summaryLine={`${selectedRuns.length}/4 selected runs · Baseline ${baselineRun?.psiId ?? 'None'}`}
         rightActions={
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setShowExtendedCols((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                 showExtendedCols
                   ? isDark
                     ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold'
                     : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold'
                   : isDark
-                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
               <Columns3 className="w-3.5 h-3.5" />
@@ -167,10 +167,10 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               <button
                 type="button"
                 onClick={onGoToCatalog}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                   isDark
-                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -193,7 +193,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               <button
                 type="button"
                 onClick={onLoadDefaultComparisonSet}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
                   isDark
                     ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                     : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -206,7 +206,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                 <button
                   type="button"
                   onClick={onGoToCatalog}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                     isDark
                       ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
                       : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
@@ -223,7 +223,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
             }`}
           >
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-[11px] sm:text-xs">
               <thead>
                 <tr
                   className={`border-b font-sans text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 ${
@@ -232,22 +232,22 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       : 'bg-zinc-50 border-[#E4E4E7]'
                   }`}
                 >
-                  <th className="py-2.5 px-3">PSI ID</th>
-                  <th className="py-2.5 px-3">Material / Fuel</th>
-                  <th className="py-2.5 px-3">Facility</th>
-                  <th className="py-2.5 px-3">O₂ %</th>
-                  <th className="py-2.5 px-3">Pressure</th>
-                  <th className="py-2.5 px-3">Airflow</th>
+                  <th className="py-2 px-1.5">PSI ID</th>
+                  <th className="py-2 px-1.5">Material</th>
+                  <th className="py-2 px-1.5">Facility</th>
+                  <th className="py-2 px-1.5">O₂</th>
+                  <th className="py-2 px-1.5">Pressure</th>
+                  <th className="py-2 px-1.5">Airflow</th>
                   {showExtendedCols && (
                     <>
-                      <th className="py-2.5 px-3">Gravity</th>
-                      <th className="py-2.5 px-3">Thickness</th>
-                      <th className="py-2.5 px-3">Peak Temp</th>
+                      <th className="py-2 px-1.5">Gravity</th>
+                      <th className="py-2 px-1.5">Thick.</th>
+                      <th className="py-2 px-1.5">Temp</th>
                     </>
                   )}
-                  <th className="py-2.5 px-3">Flame Spread</th>
-                  <th className="py-2.5 px-3">Outcome</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2 px-1.5">Spread</th>
+                  <th className="py-2 px-1.5">Outcome</th>
+                  <th className="py-2 pr-2 pl-1 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody
@@ -306,97 +306,98 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                           : 'hover:bg-zinc-50/80'
                       }`}
                     >
-                      <td className="py-2.5 px-3 font-mono font-semibold whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                      <td className="py-2 px-1.5 font-mono font-semibold whitespace-nowrap">
+                        <div className="flex items-start gap-1.5">
                           <span
-                            className="w-2 h-2 rounded-[2px] shrink-0"
+                            className="w-2 h-2 rounded-[2px] shrink-0 mt-1"
                             style={{
                               backgroundColor:
                                 RUN_COLORS[idx % RUN_COLORS.length],
                             }}
                           />
-                          <button
-                            type="button"
-                            onClick={() => onInspectRun(run.id)}
-                            className="hover:underline cursor-pointer text-left"
-                          >
-                            {run.psiId}
-                          </button>
-                          {idx === 0 && (
-                            <span className="font-sans text-[10px] text-zinc-400 font-normal">
-                              [REF]
-                            </span>
-                          )}
-                          {run.isVirtual && (
-                            <span className="font-sans text-[10px] text-[#10B981] font-normal">
-                              [VIRTUAL]
-                            </span>
-                          )}
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => onInspectRun(run.id)}
+                              className="hover:underline cursor-pointer text-left leading-tight"
+                            >
+                              {run.psiId}
+                            </button>
+                            {(idx === 0 || run.isVirtual) && (
+                              <div className="font-sans text-[10px] font-normal leading-tight text-zinc-400">
+                                {idx === 0 ? 'Baseline' : ''}
+                                {idx === 0 && run.isVirtual ? ' · ' : ''}
+                                {run.isVirtual ? (
+                                  <span className="text-[#10B981]">Virtual</span>
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 font-sans text-zinc-700 dark:text-zinc-200">
+                      <td className="py-2 px-1.5 font-sans text-zinc-700 dark:text-zinc-200 max-w-[115px] truncate" title={run.material}>
                         {run.material}
                       </td>
-                      <td className="py-2.5 px-3 font-sans text-zinc-500">
+                      <td className="py-2 px-1.5 font-sans text-zinc-500 max-w-[82px] truncate" title={run.facility}>
                         {run.facility}
                       </td>
-                      <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                      <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                         <span>{run.O2_pct.toFixed(1)}%</span>
                         {o2Delta && (
-                          <span className="ml-1.5 text-[10px] text-zinc-400">
+                          <span className="ml-1 text-[10px] text-zinc-400">
                             ({o2Delta})
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                      <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                         <span>{run.P_psi.toFixed(1)} psi</span>
                         {pDelta && (
-                          <span className="ml-1.5 text-[10px] text-zinc-400">
+                          <span className="ml-1 text-[10px] text-zinc-400">
                             ({pDelta})
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                      <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                         <span>{run.Flow_ms.toFixed(2)} m/s</span>
                         {flowDelta && (
-                          <span className="ml-1.5 text-[10px] text-zinc-400">
+                          <span className="ml-1 text-[10px] text-zinc-400">
                             ({flowDelta})
                           </span>
                         )}
                       </td>
                       {showExtendedCols && (
                         <>
-                          <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                          <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                             <span>{run.g_eff.toFixed(3)}g</span>
                             {gDelta && (
-                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                              <span className="ml-1 text-[10px] text-zinc-400">
                                 ({gDelta})
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                          <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                             <span>{run.Thickness_mm.toFixed(1)} mm</span>
                             {thickDelta && (
-                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                              <span className="ml-1 text-[10px] text-zinc-400">
                                 ({thickDelta})
                               </span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap">
+                          <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
                             <span>{run.peakTemp_K} K</span>
                             {tempDelta && (
-                              <span className="ml-1.5 text-[10px] text-zinc-400">
+                              <span className="ml-1 text-[10px] text-zinc-400">
                                 ({tempDelta})
                               </span>
                             )}
                           </td>
                         </>
                       )}
-                      <td className="py-2.5 px-3 font-mono tabular-nums whitespace-nowrap font-bold">
+                      <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap font-bold">
                         <span>{run.flameSpread_mms.toFixed(2)} mm/s</span>
                         {spreadDelta && (
                           <span
-                            className={`ml-1.5 text-[10px] ${
+                            className={`ml-1 text-[10px] ${
                               spreadDelta.startsWith('+')
                                 ? 'text-[#EF4444]'
                                 : 'text-[#10B981]'
@@ -407,21 +408,21 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         )}
                       </td>
                       <td
-                        className={`py-2.5 px-3 font-sans font-semibold whitespace-nowrap ${outcomeStyle(
+                        className={`py-2 px-1.5 font-sans font-semibold whitespace-nowrap ${outcomeStyle(
                           run.outcome
                         )}`}
                       >
                         ● {run.outcome}
                       </td>
-                      <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
+                      <td className="py-2 pr-2 pl-1 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => onApplyRunToSliders(run)}
-                            className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans font-medium rounded-[3px] border transition-colors cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-1.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                               isDark
-                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                             }`}
                           >
                             <Sliders className="w-3 h-3" />
@@ -431,7 +432,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                             type="button"
                             onClick={() => onRemoveRun(run.id)}
                             aria-label={`Remove ${run.psiId} from comparison`}
-                            className="p-1 text-zinc-400 hover:text-[#EF4444] cursor-pointer"
+                            className="p-1 rounded-lg text-zinc-400 hover:text-[#EF4444] hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -480,10 +481,10 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       : 'heatmap-matrix'
                   )
                 }
-                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                   isDark
-                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                 }`}
               >
                 <span>Open in Visual Analytics Studio</span>
@@ -499,7 +500,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               </p>
 
               <div
-                className={`flex flex-wrap items-center gap-1 p-1 rounded-[5px] border ${
+                className={`flex flex-wrap items-center gap-1 p-1 rounded-lg border ${
                   isDark
                     ? 'bg-[#09090B] border-[#27272A]'
                     : 'bg-zinc-100 border-[#E4E4E7]'
@@ -522,7 +523,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setChartMode(tab.id)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 text-[11px] font-sans rounded-md transition-all cursor-pointer ${
                         active
                           ? isDark
                             ? 'bg-[#FAFAFA] text-[#09090B] font-semibold'

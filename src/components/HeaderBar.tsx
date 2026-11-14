@@ -14,6 +14,7 @@ interface HeaderBarProps {
 }
 
 const VIEW_BREADCRUMBS: Record<WorkspaceView, { section: string; subPage?: string }> = {
+  home: { section: 'Home' },
   'virtual-lab': { section: 'Virtual Test Lab' },
   comparator: { section: 'Virtual Test Lab', subPage: 'Run Comparator' },
   'visual-studio': { section: 'Visual Analytics Studio' },
@@ -85,10 +86,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           onClick={onHeaderToggleSidebar}
           title={sidebarBtnTitle}
           aria-label={sidebarBtnTitle}
-          className={`w-7 h-7 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+          className={`w-7 h-7 rounded-lg border shadow-xs flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
             isDark
-              ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:text-white hover:border-zinc-500'
-              : 'bg-white border-[#E4E4E7] text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100'
+              ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:text-white hover:border-zinc-500 hover:bg-zinc-800'
+              : 'bg-white border-[#E4E4E7] text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 hover:border-zinc-300'
           }`}
         >
           {sidebarState === 'expanded' ? (
@@ -137,17 +138,17 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </nav>
       </div>
 
-      {/* Right: Export Safety Brief Outline Button + 3-Mode Rectangular Theme Toggle */}
+      {/* Right: Export Safety Brief Outline Button + 3-Mode Theme Toggle */}
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={onExportBrief}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors duration-150 whitespace-nowrap cursor-pointer ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
             isDark
-              ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500'
-              : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+              ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800'
+              : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
           }`}
-          title="Download formatted Markdown Safety Brief of current virtual test and selected runs"
+          title="Download Markdown safety brief for current virtual test and selected runs"
         >
           <Download className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Export Safety Brief</span>
@@ -155,7 +156,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </button>
 
         <div
-          className={`flex items-center p-0.5 rounded-[5px] border ${groupSurface}`}
+          className={`flex items-center p-0.5 rounded-lg border ${groupSurface}`}
           role="group"
           aria-label="Theme Mode Switcher"
         >
@@ -167,8 +168,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                 key={mode}
                 type="button"
                 onClick={() => onThemeChange(mode)}
-                className={`px-2 py-0.5 text-xs font-sans rounded-[4px] transition-colors duration-150 whitespace-nowrap cursor-pointer ${
-                  active ? activeMonochrome : inactiveMonochrome
+                className={`px-2.5 py-0.5 text-xs font-sans rounded-md transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
+                  active ? activeMonochrome + ' shadow-xs' : inactiveMonochrome
                 }`}
               >
                 {label}

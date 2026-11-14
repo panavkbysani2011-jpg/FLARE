@@ -1046,7 +1046,7 @@ export async function loadPsiArchiveData(): Promise<LoadedPsiArchive> {
       },
       {
         id: 'manifest-summary',
-        fileName: 'processed/psi_literature_summary.json',
+        fileName: 'psi_literature_summary.json',
         filePath: `${DATA_BASE_PATH}/processed/psi_literature_summary.json`,
         format: 'JSON',
         recordCount: summaryJson.totalSourceDocuments,

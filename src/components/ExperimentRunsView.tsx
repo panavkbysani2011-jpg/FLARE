@@ -413,10 +413,10 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onInspectRun(run.id)}
-                            className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[3px] border transition-colors cursor-pointer ${
+                            className={`px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                               isDark
-                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                             }`}
                           >
                             Inspect
@@ -424,10 +424,10 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onApplyRunToSliders(run)}
-                            className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans font-medium rounded-[3px] border transition-colors cursor-pointer ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                               isDark
-                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                             }`}
                           >
                             <Sliders className="w-3 h-3" />
@@ -478,7 +478,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                 type="button"
                 disabled={safePage <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-[4px] border disabled:opacity-40 cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border shadow-xs active:scale-[0.98] transition-all disabled:opacity-40 cursor-pointer ${
                   isDark
                     ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
                     : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
@@ -497,7 +497,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                 type="button"
                 disabled={safePage >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className={`inline-flex items-center gap-1 px-2 py-1 rounded-[4px] border disabled:opacity-40 cursor-pointer ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border shadow-xs active:scale-[0.98] transition-all disabled:opacity-40 cursor-pointer ${
                   isDark
                     ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
                     : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'

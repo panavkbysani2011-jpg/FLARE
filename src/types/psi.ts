@@ -3,6 +3,7 @@ export type ThemeMode = 'normal' | 'light' | 'dark';
 export type SidebarState = 'expanded' | 'compact' | 'hidden';
 
 export type WorkspaceView =
+  | 'home'
   | 'virtual-lab'
   | 'comparator'
   | 'visual-studio'

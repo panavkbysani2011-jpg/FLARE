@@ -34,6 +34,7 @@ import {
 import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
 import { LeftSidebar } from './components/LeftSidebar';
+import { HomeView, QuickScenarioId } from './components/HomeView';
 import { VirtualTestLab } from './components/VirtualTestLab';
 import { VisualAnalyticsStudio } from './components/VisualAnalyticsStudio';
 import { ModelConsoleView } from './components/ModelConsoleView';
@@ -56,8 +57,8 @@ export default function App() {
     }
   }, [theme]);
 
-  // 2. Active Workspace View & Collapsible Sidebar State
-  const [activeView, setActiveView] = useState<WorkspaceView>('virtual-lab');
+  // 2. Active Workspace View & Collapsible Sidebar State (Home entry landing page first)
+  const [activeView, setActiveView] = useState<WorkspaceView>('home');
   const [previousView, setPreviousView] =
     useState<WorkspaceView>('investigations');
   const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
@@ -146,41 +147,12 @@ export default function App() {
             ...customEvents,
             {
               id: 'evt-archive-load',
-              sourceName: 'public/data/nasa-space-apps/',
+              sourceName: 'Verified Physical Science Informatics & ISS Reference Corpus',
               eventType: 'archive-load',
               timestampUtc: loadedAtUtc,
               runsIndexed: loaded.runs.length,
-              summary: `Indexed ${loaded.investigations.length} PSI investigations, ${loaded.totalCsvRuns.toLocaleString()} calibrated CSV telemetry rows (${loaded.runs.length.toLocaleString()} total runs), and ${loaded.literatureChunks.length.toLocaleString()} literature chunks across ${loaded.manifestFiles.length} archive files.`,
+              summary: `Loaded ${loaded.investigations.length} PSI investigations, ${loaded.totalCsvRuns.toLocaleString()} calibrated experiment rows (${loaded.runs.length.toLocaleString()} total runs), and ${loaded.literatureChunks.length.toLocaleString()} guide sections across ${loaded.manifestFiles.length} reference files.`,
               targetView: 'experiment-runs',
-            },
-          ];
-        });
-
-        setMessages((prev) => {
-          if (prev.length !== 1 || prev[0]?.id !== 'msg-init') return prev;
-          const refreshed = runLocalPhysicsSimulation(
-            {
-              ...sliders,
-              consoleMode: 'decoder',
-              question:
-                'Decode active Lunar 0.166g Virtual Chamber telemetry step-by-step',
-            },
-            loaded.runs,
-            {
-              literatureChunks: loaded.literatureChunks,
-              investigations: loaded.investigations,
-              missionCases: MISSION_AND_SPINOFF_CASES,
-            }
-          ).assistantReply;
-
-          if (!refreshed) return prev;
-          return [
-            {
-              ...prev[0],
-              steps: refreshed.steps,
-              citations: refreshed.citations,
-              recommendedParams: refreshed.recommendedParams,
-              whatIfRows: refreshed.whatIfRows,
             },
           ];
         });
@@ -192,7 +164,7 @@ export default function App() {
         setSessionEvents((prev) => [
           {
             id: `evt-archive-err-${Date.now()}`,
-            sourceName: 'public/data/nasa-space-apps/',
+            sourceName: 'Verified Physical Science Informatics & ISS Reference Corpus',
             eventType: 'archive-error',
             timestampUtc: formatUtcTimestamp(new Date()),
             runsIndexed: 0,
@@ -245,29 +217,7 @@ export default function App() {
   const [consoleMode, setConsoleMode] = useState<ConsoleMode>('decoder');
   const [activeChartContext, setActiveChartContext] =
     useState<DecodedChartContext | null>(null);
-  const [messages, setMessages] = useState<AssistantMessage[]>(() => {
-    const initReply = runLocalPhysicsSimulation(
-      {
-        ...sliders,
-        consoleMode: 'decoder',
-        question: 'Decode active Lunar 0.166g Virtual Chamber telemetry step-by-step',
-      },
-      []
-    ).assistantReply;
-
-    return [
-      {
-        id: 'msg-init',
-        role: 'assistant',
-        timestamp: 'Ready',
-        mode: 'decoder',
-        steps: initReply?.steps ?? [],
-        citations: initReply?.citations ?? ['PSI-99', 'PSI-25', 'PSI-69'],
-        recommendedParams: initReply?.recommendedParams,
-        whatIfRows: initReply?.whatIfRows,
-      },
-    ];
-  });
+  const [messages, setMessages] = useState<AssistantMessage[]>([]);
 
   const archiveContext = useMemo(
     () => ({
@@ -607,28 +557,43 @@ export default function App() {
   };
 
   const handleResetConsole = () => {
-    const initReply = runLocalPhysicsSimulation(
-      {
-        ...sliders,
-        consoleMode,
-        question: 'Decode active Virtual Test Chamber configuration and safety bounds',
-      },
-      catalogRuns,
-      archiveContext
-    ).assistantReply;
+    setMessages([]);
+  };
 
-    setMessages([
-      {
-        id: `msg-reset-${Date.now()}`,
-        role: 'assistant',
-        timestamp: 'Ready',
-        mode: consoleMode,
-        steps: initReply?.steps ?? [],
-        citations: initReply?.citations ?? ['PSI-99', 'PSI-25', 'PSI-69'],
-        recommendedParams: initReply?.recommendedParams,
-        whatIfRows: initReply?.whatIfRows,
-      },
-    ]);
+  const handleStartQuickScenario = (scenarioId: QuickScenarioId) => {
+    if (scenarioId === 'lunar-cabin') {
+      const lunarPreset = ENVIRONMENT_PRESETS.find((p) => p.id === 'lunar')!;
+      setActivePresetId(lunarPreset.id);
+      setSliders({
+        O2_pct: lunarPreset.O2_pct,
+        P_psi: lunarPreset.P_psi,
+        Flow_ms: lunarPreset.Flow_ms,
+        g_eff: lunarPreset.g_eff,
+        Thickness_mm: lunarPreset.Thickness_mm,
+        material: 'PMMA',
+        ignitionFlux_Wm2: 25000,
+      });
+      setActiveView('virtual-lab');
+      return;
+    }
+
+    if (scenarioId === 'cool-flame') {
+      setActivePresetId(null);
+      setSliders({
+        O2_pct: 21.0,
+        P_psi: 14.7,
+        Flow_ms: 0.04,
+        g_eff: 0.0,
+        Thickness_mm: 2.0,
+        material: 'PMMA',
+        ignitionFlux_Wm2: 25000,
+      });
+      setVizMode('safety-map');
+      setActiveView('visual-studio');
+      return;
+    }
+
+    setActiveView('mission-spinoffs');
   };
 
   const handleApplyParamsToVirtualLab = (
@@ -671,6 +636,7 @@ export default function App() {
   };
 
   const detailBackTarget: WorkspaceView =
+    previousView === 'home' ||
     previousView === 'experiment-runs' ||
     previousView === 'comparator' ||
     previousView === 'import-sync' ||
@@ -683,7 +649,9 @@ export default function App() {
       : 'investigations';
 
   const detailBackLabel =
-    detailBackTarget === 'experiment-runs'
+    detailBackTarget === 'home'
+      ? 'Home'
+      : detailBackTarget === 'experiment-runs'
       ? 'Experiment Runs'
       : detailBackTarget === 'comparator'
       ? 'Run Comparator'
@@ -756,6 +724,19 @@ export default function App() {
         />
 
         <main className="flex-1 px-4 sm:px-6 pb-6 pt-4 max-w-[1720px] w-full">
+          {activeView === 'home' && (
+            <HomeView
+              theme={theme}
+              investigationCount={investigationCount}
+              totalRunsCount={totalRunsCount}
+              literatureChunksCount={literatureChunks.length}
+              missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
+              isArchiveLoading={isArchiveLoading}
+              onNavigate={setActiveView}
+              onStartQuickScenario={handleStartQuickScenario}
+            />
+          )}
+
           {activeView === 'virtual-lab' && (
             <VirtualTestLab
               theme={theme}

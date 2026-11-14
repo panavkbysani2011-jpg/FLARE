@@ -180,31 +180,31 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="font-display text-lg font-bold tracking-tight">
-          Data Import, Unit Normalizer &amp; FastAPI Sync
+          Data Import &amp; Archive Sync
         </h1>
         <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-          Domain-gated CSV/JSON ingestion and live inference endpoint configuration
+          Upload CSV/JSON test runs, convert units automatically, or connect a remote model service
         </span>
       </div>
 
       {/* Top Collapsible FastAPI & Model Endpoint Configuration Panel */}
       <CollapsibleCard
         theme={theme}
-        title="Model & FastAPI Endpoint Configuration"
+        title="Remote Model Endpoint (Optional)"
         subtitle={
           endpointConfig.baseUrl
             ? `Configured: ${endpointConfig.baseUrl}`
-            : 'Offline Fallback Active (Local Physics + Archive Engine)'
+            : 'Local Mode Active (Runs in Browser)'
         }
         summaryLine={
           endpointConfig.baseUrl
-            ? `Live FastAPI Target: ${endpointConfig.baseUrl} (${endpointConfig.apiKeyHeader})`
-            : 'No external backend required · Local Physics + Archive Inference Engine Active'
+            ? `Remote API Target: ${endpointConfig.baseUrl} (${endpointConfig.apiKeyHeader})`
+            : 'No external server required · Local Combustion Engine Active'
         }
       >
         <div className="space-y-4">
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Configure an optional external FastAPI inference endpoint (`POST /api/analyze`, `GET /health`) and API key header for live remote predictions. Leaving the URL empty seamlessly routes all Virtual Test Lab and Model Console requests through the local deterministic combustion engine.
+            Optionally connect an external FastAPI prediction service (`POST /api/analyze`, `GET /health`) with an API key. Leave the URL blank to run all Virtual Test Lab and Model Console calculations locally in your browser.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
@@ -298,7 +298,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
               <button
                 type="button"
                 onClick={handleSaveEndpointConfig}
-                className={`px-3.5 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${
+                className={`px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
                   isDark
                     ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
                     : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
@@ -311,26 +311,26 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                 type="button"
                 disabled={isTestingEndpoint}
                 onClick={handleTestEndpoint}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer disabled:opacity-60 ${
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 ${
                   isDark
-                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" />
-                <span>{isTestingEndpoint ? 'Testing...' : 'Test Endpoint Health'}</span>
+                <span>{isTestingEndpoint ? 'Testing...' : 'Test Connection'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleUseOfflineEngine}
-                className={`px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                className={`px-3 py-2 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                   isDark
-                    ? 'border-[#27272A] text-zinc-400 hover:bg-zinc-800'
-                    : 'border-[#E4E4E7] text-zinc-600 hover:bg-zinc-100'
+                    ? 'border-[#27272A] text-zinc-400 hover:bg-zinc-800 hover:border-zinc-600'
+                    : 'border-[#E4E4E7] text-zinc-600 hover:bg-zinc-100 hover:border-zinc-300'
                 }`}
               >
-                Reset to Offline Engine
+                Use Local Mode
               </button>
             </div>
 
@@ -356,15 +356,14 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
       {/* Left 7 Columns: Domain-Gated CSV/JSON Custom Data Importer */}
       <CollapsibleCard
         theme={theme}
-        title="Domain-Gated Custom Data Importer"
-        subtitle="CSV / JSON telemetry validator & unit normalizer"
-        summaryLine={`Buffer: ${fileName} · ${validationResult ? (validationResult.valid ? `${validationResult.parsedRuns.length} runs verified` : 'Blocked non-combustion upload') : 'Ready for CSV/JSON drop'}`}
+        title="Upload Custom Test Data"
+        subtitle="Validates CSV / JSON columns and converts units"
+        summaryLine={`Buffer: ${fileName} · ${validationResult ? (validationResult.valid ? `${validationResult.parsedRuns.length} runs verified` : 'Blocked non-combustion upload') : 'Ready for CSV/JSON upload'}`}
         className="xl:col-span-7"
       >
         <div className="space-y-4">
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Automatically validates combustion/spacecraft domain headers and
-            normalizes pressure (kPa/atm → psi) and airflow (cm/s → m/s).
+            Checks that uploaded tables contain combustion or spacecraft measurements and converts pressure (kPa/atm to psi) and airflow (cm/s to m/s).
           </p>
 
         {/* Primary Visual Element: Drag-and-Drop Upload Zone */}
@@ -423,10 +422,10 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   'sofie_lunar_sweep_mixed_units.csv'
                 )
               }
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                 isDark
-                  ? 'border-[#27272A] bg-transparent text-zinc-200 hover:bg-zinc-800'
-                  : 'border-[#E4E4E7] bg-white text-zinc-800 hover:bg-zinc-100'
+                  ? 'border-[#27272A] bg-transparent text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                  : 'border-[#E4E4E7] bg-white text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -441,14 +440,14 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   'enterprise_quarterly_sales.csv'
                 )
               }
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                 isDark
-                  ? 'border-[#27272A] bg-transparent text-zinc-300 hover:bg-zinc-800'
-                  : 'border-[#E4E4E7] bg-white text-zinc-700 hover:bg-zinc-100'
+                  ? 'border-[#27272A] bg-transparent text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                  : 'border-[#E4E4E7] bg-white text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
               <ShieldAlert className="w-3.5 h-3.5 text-[#F59E0B]" />
-              <span>Test Unrelated File Rejection</span>
+              <span>Test Invalid File Check</span>
             </button>
           </div>
         </div>
@@ -612,7 +611,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   <button
                     type="button"
                     onClick={handleCommitImport}
-                    className={`px-4 py-2 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+                    className={`px-4 py-2 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
                       isDark
                         ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                         : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -631,12 +630,12 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
       {/* Right 5 Columns: Live Public Archive Manifest & Session Ingestion Log */}
       <CollapsibleCard
         theme={theme}
-        title="Data Manifest &amp; Ingestion Status"
-        subtitle="Live Public Archive"
+        title="Data Manifest & Ingestion Status"
+        subtitle="Verified Spaceflight Dataset"
         summaryLine={
           isArchiveLoading
-            ? 'Loading public/data/nasa-space-apps/ assets...'
-            : `${manifestFiles.length} archive files loaded · ${sessionEvents.length} session ingestion events`
+            ? 'Loading verified PSI dataset assets...'
+            : `${manifestFiles.length} archive datasets loaded · ${sessionEvents.length} session ingestion events`
         }
         className="xl:col-span-5"
       >
@@ -645,17 +644,14 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
             <span className="inline-flex items-center gap-2">
               <Database className="w-3.5 h-3.5" />
               <span>
-                Files loaded from{' '}
-                <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                  public/data/nasa-space-apps/
-                </span>
+                Source: Verified Physical Science Informatics &amp; ISS Reference Corpus
               </span>
             </span>
           </div>
 
           {isArchiveLoading ? (
             <div className={`p-3.5 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}>
-              Fetching and indexing archive JSON and CSV telemetry files...
+              Fetching and indexing verified PSI &amp; ISS reference datasets...
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -668,14 +664,8 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                     <span className="font-mono text-xs font-semibold truncate">
                       {file.fileName}
                     </span>
-                    <div className="flex items-center gap-2 shrink-0 text-[11px] font-sans">
-                      <span
-                        className={`px-1.5 py-0.5 rounded-[4px] border text-[10px] font-medium ${
-                          isDark
-                            ? 'border-[#27272A] text-zinc-300'
-                            : 'border-[#E4E4E7] text-zinc-700'
-                        }`}
-                      >
+                    <div className="flex items-center gap-2.5 shrink-0 text-[11px] font-sans">
+                      <span className="text-zinc-500 dark:text-zinc-400 font-medium">
                         {file.format}
                       </span>
                       <span className="inline-flex items-center gap-1 text-[#10B981] font-medium">

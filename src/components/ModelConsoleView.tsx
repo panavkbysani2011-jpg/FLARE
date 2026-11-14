@@ -120,7 +120,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [appliedMsgId, setAppliedMsgId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const isDark = theme === 'dark';
   const apiConfig = getApiEndpointConfig();
@@ -135,12 +135,12 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
     : 'bg-[#FAFAFA] border-[#E4E4E7]';
 
   const activeMonochrome = isDark
-    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold'
-    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold';
+    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold shadow-xs hover:bg-zinc-200 hover:shadow-sm active:scale-[0.98] transition-all'
+    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold shadow-xs hover:bg-zinc-800 hover:shadow-sm active:scale-[0.98] transition-all';
 
   const inactiveMonochrome = isDark
-    ? 'bg-[#18181B] text-zinc-300 border-[#27272A] hover:bg-zinc-800'
-    : 'bg-white text-zinc-700 border-[#E4E4E7] hover:bg-zinc-100';
+    ? 'bg-[#18181B] text-zinc-300 border-[#27272A] hover:bg-zinc-800 hover:border-zinc-600 shadow-xs active:scale-[0.98] transition-all'
+    : 'bg-white text-zinc-700 border-[#E4E4E7] hover:bg-zinc-100 hover:border-zinc-300 shadow-xs active:scale-[0.98] transition-all';
 
   const activeModeMeta = useMemo(
     () =>
@@ -191,17 +191,15 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-lg font-semibold tracking-tight">
-            Model Console — Combustion Prediction &amp; Decoding Model
+            Model Console — Combustion Prediction &amp; Decoding
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Deterministic microgravity combustion model console for telemetry decoding, parametric What-If sweeps, literature synthesis, and pre-test safety auditing
+            Ask questions about sensor curves, test &quot;What-If&quot; cabin scenarios, search the ISS Researcher&apos;s Guide, or run a pre-test safety check
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            className={`px-2.5 py-1 rounded-[4px] border text-xs font-sans flex items-center gap-2 ${subSurface}`}
-          >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-2 text-xs font-sans text-zinc-600 dark:text-zinc-300">
             <span
               className={`w-2 h-2 rounded-[2px] ${
                 remoteConfigured ? 'bg-[#10B981]' : 'bg-[#F59E0B]'
@@ -210,14 +208,14 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             <span>
               {remoteConfigured
                 ? `Live FastAPI Endpoint (${apiConfig.baseUrl})`
-                : 'Local Physics + Archive Inference Engine'}
+                : 'Local Physics + Archive Engine'}
             </span>
           </div>
 
           <button
             type="button"
             onClick={onGoToEndpointConfig}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${inactiveMonochrome}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${inactiveMonochrome}`}
           >
             <Settings className="w-3.5 h-3.5" />
             <span>API Config</span>
@@ -228,14 +226,15 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
       {/* Collapsible Active Model Context Strip */}
       <CollapsibleCard
         theme={theme}
-        title="Active Model Context Strip"
+        defaultOpen={Boolean(activeChartContext)}
+        title="Active Test Context"
         subtitle={`${virtualConfig.material} · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${virtualConfig.Flow_ms.toFixed(2)} m/s`}
         summaryLine={`${virtualConfig.material} (${virtualConfig.Thickness_mm.toFixed(1)} mm) · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${virtualConfig.P_psi.toFixed(1)} psi · ${virtualConfig.Flow_ms.toFixed(2)} m/s · ${totalRunsCount.toLocaleString()} runs indexed`}
         rightActions={
           <button
             type="button"
             onClick={onResetConsole}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${inactiveMonochrome}`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${inactiveMonochrome}`}
           >
             <RotateCcw className="w-3 h-3" />
             <span>Reset Thread</span>
@@ -324,7 +323,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <button
                 type="button"
                 onClick={onClearChartContext}
-                className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans rounded-[4px] border cursor-pointer ${inactiveMonochrome}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans rounded-lg border cursor-pointer ${inactiveMonochrome}`}
               >
                 <X className="w-3 h-3" />
                 <span>Detach Chart</span>
@@ -352,7 +351,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                   role="tab"
                   aria-selected={active}
                   onClick={() => onChangeMode(m.id)}
-                  className={`flex items-center gap-2 px-3 py-2.5 text-xs font-sans rounded-[5px] border text-left transition-colors cursor-pointer ${
+                  className={`flex items-center gap-2 px-3 py-2.5 text-xs font-sans rounded-lg border text-left cursor-pointer ${
                     active ? activeMonochrome : inactiveMonochrome
                   }`}
                 >
@@ -376,16 +375,50 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               type="button"
               disabled={isRunningInference}
               onClick={() => onSubmitInference(starter, activeMode)}
-              className={`px-3 py-1.5 text-xs font-sans rounded-[4px] border transition-colors text-left cursor-pointer disabled:opacity-60 ${inactiveMonochrome}`}
+              className={`px-3 py-1.5 text-xs font-sans rounded-lg border text-left cursor-pointer disabled:opacity-60 ${inactiveMonochrome}`}
             >
               {starter}
             </button>
           ))}
         </div>
 
-        {/* Inference Output Stream */}
-        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-          {messages.map((msg) => {
+        {/* Elevated Multi-Line Query Composer */}
+        <form onSubmit={handleSubmit} className="space-y-2.5 pt-1">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2.5">
+            <textarea
+              ref={inputRef}
+              rows={3}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder={`Ask in ${activeModeMeta.label} mode (e.g., "What if O2 is 38% at 0.04 m/s?" or "PSI-99")... Press Enter to submit, Shift+Enter for new line`}
+              aria-label="Model Console Inference Input"
+              className={`flex-1 min-h-[72px] px-4 py-3 text-xs sm:text-sm font-sans rounded-xl border outline-none resize-y ${
+                isDark
+                  ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] placeholder:text-zinc-500 focus:border-zinc-500'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] placeholder:text-zinc-400 focus:border-zinc-500'
+              }`}
+            />
+            <button
+              type="submit"
+              disabled={!inputValue.trim() || isRunningInference}
+              className={`inline-flex items-center justify-center gap-2 px-5 py-3 text-xs font-sans font-semibold rounded-lg border cursor-pointer disabled:opacity-50 shrink-0 ${activeMonochrome}`}
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>{isRunningInference ? 'Running...' : 'Ask Model'}</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Inference Output Stream (blank until first query or running inference) */}
+        {(messages.length > 0 || isRunningInference) && (
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1 pt-3 border-t border-[#E4E4E7] dark:border-[#27272A]">
+            {messages.map((msg) => {
             const isUser = msg.role === 'user';
             if (isUser) {
               return (
@@ -420,8 +453,9 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     <Terminal className="w-3.5 h-3.5 text-zinc-500" />
                     <span>Combustion Model Inference Output</span>
                     {msg.mode && (
-                      <span className="font-sans text-[10px] font-normal px-2 py-0.5 rounded-[4px] border border-[#E4E4E7] dark:border-[#27272A] text-zinc-500">
-                        {msg.mode}
+                      <span className="inline-flex items-center gap-1.5 font-sans text-[11px] font-normal text-zinc-500">
+                        <span className="w-1.5 h-1.5 rounded-[2px] bg-zinc-400 dark:bg-zinc-500" />
+                        <span>{msg.mode}</span>
                       </span>
                     )}
                   </div>
@@ -530,7 +564,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                                       rowKey
                                     )
                                   }
-                                  className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] border cursor-pointer ${inactiveMonochrome}`}
+                                  className={`px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border cursor-pointer ${inactiveMonochrome}`}
                                 >
                                   {appliedMsgId === rowKey ? 'Loaded' : 'Load'}
                                 </button>
@@ -554,7 +588,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         key={citeId}
                         type="button"
                         onClick={() => onOpenInvestigation(citeId)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${inactiveMonochrome}`}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border cursor-pointer ${inactiveMonochrome}`}
                         title={`Open ${citeId} Investigation Details`}
                       >
                         <span>{citeId}</span>
@@ -569,7 +603,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                       onClick={() =>
                         handleApplyParams(msg.recommendedParams!, msg.id)
                       }
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${activeMonochrome}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${activeMonochrome}`}
                     >
                       {appliedMsgId === msg.id ? (
                         <>
@@ -593,35 +627,11 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             <div
               className={`p-3.5 rounded-[5px] border text-xs font-sans text-zinc-500 ${subSurface}`}
             >
-              Executing Combustion Model Inference...
+              Running combustion model calculation...
             </div>
           )}
-        </div>
-
-        {/* Bottom Query Composer */}
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5 pt-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Query model in ${activeModeMeta.label} mode (e.g., "What if O2 is 38% at 0.04 m/s?" or "PSI-99")...`}
-            aria-label="Model Console Inference Input"
-            className={`flex-1 px-3.5 py-2.5 text-xs sm:text-sm font-sans rounded-[5px] border outline-none ${
-              isDark
-                ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] placeholder:text-zinc-500 focus:border-zinc-500'
-                : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] placeholder:text-zinc-400 focus:border-zinc-500'
-            }`}
-          />
-          <button
-            type="submit"
-            disabled={!inputValue.trim() || isRunningInference}
-            className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-sans font-semibold rounded-[5px] border transition-colors cursor-pointer disabled:opacity-50 ${activeMonochrome}`}
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>{isRunningInference ? 'Running...' : 'Run Model Inference'}</span>
-          </button>
-        </form>
+          </div>
+        )}
       </section>
     </div>
   );

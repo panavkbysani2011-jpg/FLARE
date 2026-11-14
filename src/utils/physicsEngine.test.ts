@@ -686,3 +686,55 @@ test('zero hardcoded mock runs, simulated syncs, or fake UTC timestamps remain i
   assert.equal(emptySim.nearestRuns.length, 0);
   assert.equal(emptySim.modelConfidence?.validatedRunCount, 0);
 });
+
+test('home landing view, blank model console composer, unique bar labels, and zero internal path leaks hold', () => {
+  const rootDir = path.resolve(
+    import.meta.dirname ??
+      path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
+    '..',
+    '..'
+  );
+  const readFile = (...segs: string[]) =>
+    fs.readFileSync(path.join(rootDir, ...segs), 'utf8');
+
+  const appSrc = readFile('src', 'App.tsx');
+  assert.ok(
+    appSrc.includes("useState<WorkspaceView>('home')"),
+    'App must open on Home landing view by default'
+  );
+  assert.ok(
+    appSrc.includes('useState<AssistantMessage[]>([])'),
+    'Model Console must initialize with empty messages array'
+  );
+
+  const homeSrc = readFile('src', 'components', 'HomeView.tsx');
+  assert.ok(homeSrc.includes('18') && homeSrc.includes('Orbital Investigations'), 'HomeView must render 18 Investigations stat');
+  assert.ok(homeSrc.includes('1616') && homeSrc.includes('Calibrated Runs'), 'HomeView must render 1616 Calibrated Runs stat');
+  assert.ok(homeSrc.includes('979') && homeSrc.includes('Indexed Guide Sections'), 'HomeView must render 979 Indexed Guide Sections stat');
+  assert.ok(homeSrc.includes('missionCasesCount') && homeSrc.includes('Historical &amp; Earth Spin-Off Cases'), 'HomeView must render 8 Cases stat');
+
+  const consoleSrc = readFile('src', 'components', 'ModelConsoleView.tsx');
+  const formIdx = consoleSrc.indexOf('<form onSubmit={handleSubmit}');
+  const mapIdx = consoleSrc.indexOf('messages.map(');
+  assert.ok(formIdx > 0 && mapIdx > 0 && formIdx < mapIdx, 'Model Console composer must render above output stream');
+  assert.ok(consoleSrc.includes('<textarea') && consoleSrc.includes('min-h-[72px]') && consoleSrc.includes('rounded-xl'), 'Model Console must use taller rounded-xl textarea');
+
+  const rendererSrc = readFile('src', 'components', 'VizTechniqueRenderer.tsx');
+  assert.ok(
+    rendererSrc.includes('${shortPsi} · ${runCode}'),
+    'Horizontal Ranked Bar chart must label Y-axis ticks with both PSI ID and runCode'
+  );
+
+  // Ensure components and engine expose zero internal filesystem paths or workspace branding
+  const componentsDir = path.join(rootDir, 'src', 'components');
+  for (const name of fs.readdirSync(componentsDir)) {
+    if (!name.endsWith('.tsx')) continue;
+    const text = readFile('src', 'components', name);
+    assert.ok(!/public\/data\/nasa-space-apps/i.test(text), `Internal public path leaked in ${name}`);
+    assert.ok(!/\bnasa-space-apps\b/i.test(text), `Internal folder slug leaked in ${name}`);
+    assert.ok(!/Antigravity/i.test(text), `Workspace tool name leaked in ${name}`);
+  }
+  const engineSrc = readFile('src', 'utils', 'physicsEngine.ts');
+  assert.ok(!/public\/data\/nasa-space-apps/i.test(engineSrc), 'Internal public path leaked in physicsEngine.ts');
+  assert.ok(!/Antigravity/i.test(engineSrc), 'Workspace tool name leaked in physicsEngine.ts');
+});

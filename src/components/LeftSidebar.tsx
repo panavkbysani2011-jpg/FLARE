@@ -10,6 +10,7 @@ import {
   Flame,
   FlaskConical,
   GitCompare,
+  Home,
   Layers,
   PanelLeftClose,
   RefreshCw,
@@ -116,6 +117,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       badge?: string;
     }> = [
       {
+        id: 'home',
+        label: 'Home',
+        icon: Home,
+        isActive: activeView === 'home',
+      },
+      {
         id: 'virtual-lab',
         label: 'Virtual Test Lab',
         icon: FlaskConical,
@@ -186,10 +193,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               onClick={onCycleSidebarState}
               title="Hide Navigation Rail ([)"
               aria-label="Hide Navigation Rail"
-              className={`w-9 h-9 rounded-[4px] border flex items-center justify-center transition-colors cursor-pointer ${
+              className={`w-9 h-9 rounded-lg border shadow-xs flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                 isDark
-                  ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500'
-                  : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                  ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800'
+                  : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
               <PanelLeftClose className="w-4 h-4" />
@@ -214,8 +221,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     type="button"
                     onClick={() => onSelectView(item.id)}
                     aria-label={item.label}
-                    className={`w-10 h-9 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer relative ${
-                      item.isActive ? activeItemClass : inactiveItemClass
+                    className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer relative ${
+                      item.isActive ? activeItemClass + ' shadow-xs' : inactiveItemClass
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
@@ -270,9 +277,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       {/* Top: Brand Header + Collapse Toggle + Quick Find + Hierarchical Tree */}
       <div className="p-3.5 space-y-3 overflow-y-auto">
         <div className="flex items-center justify-between gap-2 px-0.5">
-          <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => onSelectView('home')}
+            className="flex items-center gap-2 min-w-0 text-left cursor-pointer hover:opacity-80 transition-opacity"
+            title="Return to Home"
+          >
             <div
-              className={`w-6 h-6 rounded-[4px] flex items-center justify-center border shrink-0 ${
+              className={`w-6 h-6 rounded-md flex items-center justify-center border shrink-0 shadow-xs ${
                 isDark
                   ? 'bg-[#FAFAFA] text-[#09090B] border-white/20'
                   : 'bg-[#18181B] text-[#FFFFFF] border-zinc-900'
@@ -283,17 +295,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <span className="font-display text-sm font-semibold tracking-tight truncate">
               PSI Data Manager
             </span>
-          </div>
+          </button>
 
           <button
             type="button"
             onClick={onCycleSidebarState}
             title="Collapse to Icon Rail ([)"
             aria-label="Collapse sidebar to compact rail"
-            className={`w-7 h-7 rounded-[4px] border flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
+            className={`w-7 h-7 rounded-lg border shadow-xs flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
               isDark
-                ? 'bg-[#18181B] border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-500'
-                : 'bg-white border-[#E4E4E7] text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100'
+                ? 'bg-[#18181B] border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800'
+                : 'bg-white border-[#E4E4E7] text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 hover:border-zinc-300'
             }`}
           >
             <PanelLeftClose className="w-3.5 h-3.5" />
@@ -355,17 +367,33 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           )}
         </div>
 
-        {/* Exact Hierarchical Expandable Navigation Tree */}
+        {/* Hierarchical Expandable Navigation Tree */}
         <nav className="space-y-1 pt-1" aria-label="Workspace Navigation Tree">
+          {/* 0. Home Landing Page */}
+          <button
+            type="button"
+            onClick={() => onSelectView('home')}
+            className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+              activeView === 'home'
+                ? activeItemClass + ' shadow-xs'
+                : inactiveItemClass
+            }`}
+          >
+            <span className="flex items-center gap-2.5 truncate">
+              <Home className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Home</span>
+            </span>
+          </button>
+
           {/* 1. Virtual Test Lab + Nested Run Comparator */}
           <div className="space-y-0.5">
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => onSelectView('virtual-lab')}
-                className={`flex-1 flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer min-w-0 ${
+                className={`flex-1 flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer min-w-0 ${
                   activeView === 'virtual-lab'
-                    ? activeItemClass
+                    ? activeItemClass + ' shadow-xs'
                     : inactiveItemClass
                 }`}
               >
@@ -379,7 +407,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 onClick={() => setVirtualLabExpanded((p) => !p)}
                 aria-label="Toggle Virtual Test Lab sub-items"
                 aria-expanded={virtualLabExpanded}
-                className={`w-6 h-8 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer shrink-0 ${inactiveItemClass}`}
+                className={`w-6 h-8 rounded-lg flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer shrink-0 ${inactiveItemClass}`}
               >
                 {virtualLabExpanded ? (
                   <ChevronDown className="w-3 h-3" />
@@ -398,9 +426,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectView('comparator')}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                     activeView === 'comparator'
-                      ? activeItemClass
+                      ? activeItemClass + ' shadow-xs'
                       : inactiveItemClass
                   }`}
                 >
@@ -424,9 +452,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             type="button"
             onClick={() => onSelectView('visual-studio')}
-            className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
               activeView === 'visual-studio'
-                ? activeItemClass
+                ? activeItemClass + ' shadow-xs'
                 : inactiveItemClass
             }`}
           >
@@ -440,9 +468,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             type="button"
             onClick={() => onSelectView('model-console')}
-            className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+            className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
               activeView === 'model-console'
-                ? activeItemClass
+                ? activeItemClass + ' shadow-xs'
                 : inactiveItemClass
             }`}
           >
@@ -463,7 +491,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                     onSelectView('investigations');
                   }
                 }}
-                className={`flex-1 flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer min-w-0 ${
+                className={`flex-1 flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer min-w-0 ${
                   isArchiveGroupActive
                     ? isDark
                       ? 'text-zinc-100 bg-zinc-900 font-semibold'
@@ -481,7 +509,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 onClick={() => setArchiveExpanded((p) => !p)}
                 aria-label="Toggle Data Archive sub-items"
                 aria-expanded={archiveExpanded}
-                className={`w-6 h-8 rounded-[4px] flex items-center justify-center transition-colors cursor-pointer shrink-0 ${inactiveItemClass}`}
+                className={`w-6 h-8 rounded-lg flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer shrink-0 ${inactiveItemClass}`}
               >
                 {archiveExpanded ? (
                   <ChevronDown className="w-3 h-3" />
@@ -500,10 +528,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectView('investigations')}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                     activeView === 'investigations' ||
                     activeView === 'investigation-detail'
-                      ? activeItemClass
+                      ? activeItemClass + ' shadow-xs'
                       : inactiveItemClass
                   }`}
                 >
@@ -521,9 +549,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectView('experiment-runs')}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                     activeView === 'experiment-runs'
-                      ? activeItemClass
+                      ? activeItemClass + ' shadow-xs'
                       : inactiveItemClass
                   }`}
                 >
@@ -540,9 +568,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectView('researchers-guide')}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                     activeView === 'researchers-guide'
-                      ? activeItemClass
+                      ? activeItemClass + ' shadow-xs'
                       : inactiveItemClass
                   }`}
                 >
@@ -552,9 +580,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectView('mission-spinoffs')}
-                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                     activeView === 'mission-spinoffs'
-                      ? activeItemClass
+                      ? activeItemClass + ' shadow-xs'
                       : inactiveItemClass
                   }`}
                 >
@@ -576,9 +604,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               type="button"
               onClick={() => onSelectView('import-sync')}
-              className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-[4px] transition-colors duration-150 cursor-pointer ${
+              className={`w-full flex items-center justify-between px-2.5 py-2 text-xs font-sans font-medium rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer ${
                 activeView === 'import-sync'
-                  ? activeItemClass
+                  ? activeItemClass + ' shadow-xs'
                   : inactiveItemClass
               }`}
             >

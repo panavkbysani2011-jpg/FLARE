@@ -293,14 +293,14 @@ export const PsiInvestigationDetailView: React.FC<
           <button
             type="button"
             onClick={() => onToggleComparison(run.id)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
               isSelectedForComparison
                 ? isDark
                   ? 'border-zinc-500 bg-zinc-800 text-zinc-100'
                   : 'border-zinc-400 bg-zinc-100 text-zinc-900'
                 : isDark
-                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
             }`}
           >
             {isSelectedForComparison ? (
@@ -318,7 +318,7 @@ export const PsiInvestigationDetailView: React.FC<
           <button
             type="button"
             onClick={() => onLoadIntoSimulator(run)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
               isDark
                 ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                 : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -421,24 +421,22 @@ export const PsiInvestigationDetailView: React.FC<
             </p>
           </div>
 
-          {/* Safety Regime Status Panel */}
-          <div
-            className={`px-4 py-3 rounded-[5px] border flex items-center gap-3 shrink-0 ${statusMeta.bg}`}
-          >
-            <StatusIcon className={`w-5 h-5 shrink-0 ${statusMeta.color}`} />
+          {/* Safety Regime Status Indicator (borderless inline display) */}
+          <div className="flex items-center gap-4 shrink-0 pt-1">
             <div>
               <div className="text-[10px] font-sans uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Safety Regime Status
               </div>
-              <div className={`text-sm font-sans font-bold ${statusMeta.color}`}>
-                {run.outcome}
+              <div className={`mt-0.5 inline-flex items-center gap-1.5 text-sm font-sans font-bold ${statusMeta.color}`}>
+                <StatusIcon className="w-4 h-4 shrink-0" />
+                <span>{run.outcome}</span>
               </div>
             </div>
-            <div className={`pl-3 ml-1 border-l ${dividerBorder} text-right`}>
+            <div className={`pl-4 border-l ${dividerBorder} text-right`}>
               <div className="text-[10px] font-sans text-zinc-500 dark:text-zinc-400">
                 Spread Rate
               </div>
-              <div className="font-mono text-sm font-bold tabular-nums">
+              <div className="mt-0.5 font-mono text-sm font-bold tabular-nums">
                 {run.flameSpread_mms.toFixed(2)} mm/s
               </div>
             </div>
@@ -490,12 +488,12 @@ export const PsiInvestigationDetailView: React.FC<
         </div>
       </CollapsibleCard>
 
-      {/* 2. Calibrated Telemetry & Real CSV Experimental Runs Table */}
+      {/* 2. Calibrated Telemetry & Experimental Runs Table */}
       <CollapsibleCard
         theme={theme}
-        title={`Active Run Telemetry (${run.runCode}) & Experimental CSV Sweep Table`}
-        subtitle={`${investigationRuns.length} experimental runs parsed from master_psi_telemetry.csv · Record ${canonicalId} / ${run.runCode}`}
-        summaryLine={`${run.O2_pct.toFixed(1)}% O2 · ${run.P_psi.toFixed(1)} psi · ${run.Flow_ms.toFixed(2)} m/s · ${run.flameSpread_mms.toFixed(2)} mm/s (${investigationRuns.length} CSV runs)`}
+        title={`Active Run Telemetry (${run.runCode}) & Experimental Sweep Table`}
+        subtitle={`${investigationRuns.length} calibrated experimental runs · Record ${canonicalId} / ${run.runCode}`}
+        summaryLine={`${run.O2_pct.toFixed(1)}% O2 · ${run.P_psi.toFixed(1)} psi · ${run.Flow_ms.toFixed(2)} m/s · ${run.flameSpread_mms.toFixed(2)} mm/s (${investigationRuns.length} experimental runs)`}
         bodyClassName="p-5 space-y-4"
       >
 
@@ -518,7 +516,7 @@ export const PsiInvestigationDetailView: React.FC<
           ))}
         </div>
 
-        {/* Paginated Experimental Runs Table from master_psi_telemetry.csv */}
+        {/* Paginated Experimental Runs Table */}
         <div className="pt-2 space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="text-xs font-sans font-semibold text-zinc-700 dark:text-zinc-200">
@@ -658,14 +656,14 @@ export const PsiInvestigationDetailView: React.FC<
                           <button
                             type="button"
                             onClick={() => onToggleComparison(rel.id)}
-                            className={`px-2 py-0.5 text-[10px] font-sans rounded-[3px] border cursor-pointer ${
+                            className={`px-2 py-0.5 text-[10px] font-sans rounded-md border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                               isInCompare
                                 ? isDark
                                   ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'
                                   : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B]'
                                 : isDark
-                                ? 'border-[#27272A] text-zinc-300'
-                                : 'border-[#E4E4E7] text-zinc-700'
+                                ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
+                                : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
                             }`}
                           >
                             {isInCompare ? 'Selected' : 'Compare'}
@@ -673,7 +671,7 @@ export const PsiInvestigationDetailView: React.FC<
                           <button
                             type="button"
                             onClick={() => onLoadIntoSimulator(rel)}
-                            className={`px-2 py-0.5 text-[10px] font-sans rounded-[3px] border cursor-pointer ${
+                            className={`px-2 py-0.5 text-[10px] font-sans rounded-md border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                               isDark
                                 ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
                                 : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
@@ -893,7 +891,7 @@ export const PsiInvestigationDetailView: React.FC<
                 <button
                   type="button"
                   onClick={handleDownloadArtifact}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                     isDark
                       ? 'border-[#27272A] bg-[#121215] text-zinc-200 hover:bg-zinc-800'
                       : 'border-[#E4E4E7] bg-white text-zinc-800 hover:bg-zinc-100'

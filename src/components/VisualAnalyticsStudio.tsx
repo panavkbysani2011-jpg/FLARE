@@ -254,12 +254,12 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
   }`;
 
   const activeMonoBtn = isDark
-    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold'
-    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold';
+    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold shadow-xs hover:bg-zinc-200 hover:shadow-sm active:scale-[0.98] transition-all'
+    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold shadow-xs hover:bg-zinc-800 hover:shadow-sm active:scale-[0.98] transition-all';
 
   const inactiveMonoBtn = isDark
-    ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100';
+    ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 shadow-xs active:scale-[0.98] transition-all'
+    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 shadow-xs active:scale-[0.98] transition-all';
 
   const isUnavailable = activeTechnique.compatibility.status === 'unavailable';
 
@@ -272,17 +272,17 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
             Visual Analytics Studio
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Generic multi-technique exploratory visualization canvas with dynamic variable mapping across all PSI datasets.
+            Explore spaceflight fire data across 25 chart types with custom X, Y, and grouping controls.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleDecodeView}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-sans font-semibold rounded-[4px] border transition-colors cursor-pointer ${activeMonoBtn}`}
+          className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${activeMonoBtn}`}
         >
           <TerminalSquare className="w-3.5 h-3.5" />
-          <span>Decode This View in Model Console</span>
+          <span>Explain Chart in Model Console</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -290,8 +290,8 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       {/* Collapsible 3-Part Top Control Strip */}
       <CollapsibleCard
         theme={theme}
-        title="Studio Controls: Dataset, Visualization Technique & Variable Mapper"
-        subtitle="Select active dataset scope, method family, and dynamic X / Y / Group variables"
+        title="Chart Controls: Dataset, Chart Type & Variables"
+        subtitle="Choose a dataset scope, chart method, and dynamic X / Y / Color variables"
         summaryLine={
           <span>
             {activeDatasetMeta.label} (<span className="font-mono tabular-nums">{datasetContext.activeRuns.length}</span>) •{' '}
@@ -347,10 +347,10 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               aria-haspopup="listbox"
               aria-expanded={isTechOpen}
               onClick={() => setIsTechOpen((p) => !p)}
-              className={`w-full px-3 py-1.5 text-xs font-sans rounded-[4px] border flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+              className={`w-full px-3 py-1.5 text-xs font-sans rounded-lg border flex items-center justify-between gap-2 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
                 isDark
                   ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500'
-                  : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
               <span className="flex items-center gap-2 min-w-0">
@@ -445,7 +445,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                           key={tab.id}
                           type="button"
                           onClick={() => setStatusFilter(tab.id)}
-                          className={`inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans rounded-lg border cursor-pointer ${
                             active ? activeMonoBtn : inactiveMonoBtn
                           }`}
                         >
@@ -667,18 +667,13 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-0.5 min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <h2 className="font-display text-sm sm:text-base font-semibold">
                 {activeTechnique.definition.name}
               </h2>
-              <span
-                className={`px-2 py-0.5 text-[11px] font-sans rounded-[4px] border ${
-                  isDark
-                    ? 'bg-[#09090B] border-[#27272A] text-zinc-400'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-600'
-                }`}
-              >
-                {activeTechnique.definition.familyLabel}
+              <span className="inline-flex items-center gap-1.5 text-xs font-sans text-zinc-500 dark:text-zinc-400">
+                <span className="w-1.5 h-1.5 rounded-[2px] bg-zinc-400 dark:bg-zinc-500" />
+                <span>{activeTechnique.definition.familyLabel}</span>
               </span>
             </div>
             <p className="text-xs font-sans text-zinc-600 dark:text-zinc-300 leading-relaxed">
@@ -688,7 +683,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
 
           <div className="text-right shrink-0">
             <div className="text-[10px] font-sans uppercase tracking-wider text-zinc-400">
-              Active Dataset Points
+              Plotted Runs
             </div>
             <div className="font-mono text-sm font-semibold tabular-nums">
               {datasetContext.activeRuns.length.toLocaleString()} runs
@@ -719,7 +714,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                 <button
                   type="button"
                   onClick={() => setDatasetSource('full-archive')}
-                  className={`px-3 py-1.5 text-xs font-sans rounded-[4px] border cursor-pointer ${activeMonoBtn}`}
+                  className={`px-3 py-1.5 text-xs font-sans rounded-lg border cursor-pointer ${activeMonoBtn}`}
                 >
                   Switch to Full PSI Archive ({catalogRuns.length.toLocaleString()} runs)
                 </button>
@@ -728,7 +723,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                 <button
                   type="button"
                   onClick={onGoToImportSync}
-                  className={`px-3 py-1.5 text-xs font-sans rounded-[4px] border cursor-pointer ${inactiveMonoBtn}`}
+                  className={`px-3 py-1.5 text-xs font-sans rounded-lg border cursor-pointer ${inactiveMonoBtn}`}
                 >
                   Upload CSV/JSON in Data Import &amp; Sync
                 </button>
@@ -736,7 +731,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               <button
                 type="button"
                 onClick={() => onChangeVizMode('safety-map')}
-                className={`px-3 py-1.5 text-xs font-sans rounded-[4px] border cursor-pointer ${inactiveMonoBtn}`}
+                className={`px-3 py-1.5 text-xs font-sans rounded-lg border cursor-pointer ${inactiveMonoBtn}`}
               >
                 Switch to 2D Regime Heatmap
               </button>
@@ -792,12 +787,12 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                 onMouseEnter={() => onHoverRun(run.id)}
                 onMouseLeave={() => onHoverRun(null)}
                 onClick={() => onInspectRun(run.id)}
-                className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-[4px] border transition-colors cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
                   isHovered
                     ? activeMonoBtn
                     : isDark
                     ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:border-zinc-500'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-[1px] ${dotColor}`} />

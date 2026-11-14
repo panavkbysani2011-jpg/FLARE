@@ -282,7 +282,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'psi-investigations'}
             onClick={() => setActiveTab('psi-investigations')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
               activeTab === 'psi-investigations'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -300,7 +300,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'researchers-guide'}
             onClick={() => setActiveTab('researchers-guide')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
               activeTab === 'researchers-guide'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -318,7 +318,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'mission-spinoffs'}
             onClick={() => setActiveTab('mission-spinoffs')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
               activeTab === 'mission-spinoffs'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -334,17 +334,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <div className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-            <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Calibrated CSV Runs ·{' '}
+            <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Calibrated Runs ·{' '}
             {corpusStats ? (
               <>
                 <span className="font-mono tabular-nums">
                   {corpusStats.totalRawChunks.toLocaleString()}
                 </span>{' '}
-                Indexed Source Chunks
+                Indexed Guide Sections
               </>
             ) : (
               <>
-                <span className="font-mono tabular-nums">{literatureChunks.length}</span> Literature Chunks
+                <span className="font-mono tabular-nums">{literatureChunks.length}</span> Indexed Sections
               </>
             )}
           </div>
@@ -352,7 +352,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           <button
             type="button"
             onClick={onGoToComparator}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
               isDark
                 ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                 : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -514,7 +514,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowFilters((prev) => !prev)}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                     isDark
                       ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
                       : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
@@ -537,7 +537,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 <span className="text-zinc-300 dark:text-zinc-700">|</span>
                 <span className="font-sans text-zinc-500 dark:text-zinc-400">
                   {isArchiveLoading ? (
-                    'Indexing archive CSV & manifest...'
+                    'Indexing calibrated investigation runs...'
                   ) : (
                     <>
                       <span className="font-mono tabular-nums">
@@ -549,9 +549,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </span>
               </div>
               <span className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-                Source:{' '}
-                <span className="font-mono">psi_runs_catalog.json</span> +{' '}
-                <span className="font-mono">master_psi_telemetry.csv</span>
+                Source: Verified Physical Science Informatics &amp; ISS Reference Corpus
               </span>
             </div>
 
@@ -613,13 +611,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             type="button"
                             onClick={() => onToggleRun(repRun.id)}
                             aria-label={`Compare ${inv.psiId}`}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-[4px] border transition-colors shrink-0 cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all shrink-0 cursor-pointer ${
                               isChecked
                                 ? activeMonochrome +
                                   (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                                 : isDark
-                                ? 'bg-transparent border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                                ? 'bg-transparent border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                             }`}
                           >
                             {isChecked ? (
@@ -722,10 +720,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onInspectRun(inv.psiId)}
-                              className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                              className={`px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                                 isDark
-                                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                               }`}
                             >
                               Inspect Runs
@@ -733,10 +731,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onApplyRunToSliders(repRun)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                                 isDark
-                                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:text-white'
-                                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950'
+                                  ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-600'
+                                  : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300'
                               }`}
                             >
                               <Sliders className="w-3 h-3" />
@@ -795,23 +793,21 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             <div className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-                  Indexed directly from{' '}
-                  <span className="font-mono">psi_literature_chunks.json</span>{' '}
-                  (190 verbatim Researcher's Guide sections +{' '}
-                  {literatureChunks.length.toLocaleString()} curated high-signal PSI technical report excerpts). Search across physics mechanisms or open any chapter page directly in the local 50-page PDF.
+                  Indexed directly from the verified ISS Reference Corpus (190 verbatim Researcher&apos;s Guide sections +{' '}
+                  {literatureChunks.length.toLocaleString()} technical report excerpts). Search physics concepts or open any chapter page in the 50-page PDF guide.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setShowInlinePdf((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                       showInlinePdf
                         ? activeMonochrome +
                           (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                         : isDark
-                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
-                        : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
+                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                        : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                     }`}
                   >
                     <FileText className="w-3.5 h-3.5" />
@@ -824,7 +820,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={RESEARCHERS_GUIDE_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all ${
                       isDark
                         ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                         : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -838,10 +834,10 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={SAME_EIRD_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-[4px] border transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all ${
                       isDark
-                        ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800'
-                        : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100'
+                        ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                        : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                     }`}
                   >
                     <span>SAME EIRD Spec PDF</span>
@@ -881,13 +877,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={cat}
                       type="button"
                       onClick={() => setGuideCategory(cat)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 text-[11px] font-sans rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                         guideCategory === cat
                           ? activeMonochrome +
                             (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                           : isDark
-                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
-                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
+                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:border-zinc-300'
                       }`}
                     >
                       {cat === 'ALL' ? 'All Sections' : cat}
@@ -1131,13 +1127,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setCaseCategory(cat.id)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-[4px] border transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 text-[11px] font-sans rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                         caseCategory === cat.id
                           ? activeMonochrome +
                             (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                           : isDark
-                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100'
-                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950'
+                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
+                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:border-zinc-300'
                       }`}
                     >
                       {cat.label}

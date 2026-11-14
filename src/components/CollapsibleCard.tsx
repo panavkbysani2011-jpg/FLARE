@@ -82,12 +82,12 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             type="button"
             onClick={handleToggle}
             aria-expanded={isOpen}
-            className={`inline-flex items-center gap-1 px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] border transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer ${
               isDark
-                ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:border-zinc-500 hover:text-white'
-                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950'
+                ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white'
+                : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 hover:text-zinc-950'
             }`}
-            title={isOpen ? `Hide ${title}` : `Show ${title}`}
+            title={isOpen ? `Collapse ${title}` : `Expand ${title}`}
           >
             {isOpen ? (
               <>

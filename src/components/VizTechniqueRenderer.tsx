@@ -1938,17 +1938,29 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
         isSim: true,
         color: isDark ? '#FAFAFA' : '#18181B',
       },
-      ...activeRuns.slice(0, 12).map((r) => ({
-        id: r.id,
-        name: r.psiId.split(' ')[0],
-        psiId: r.psiId,
-        val: r[numericY],
-        outcome: r.outcome,
-        material: r.material,
-        facility: r.facility,
-        isSim: false,
-        color: getGroupColor(r, colorByKey, groupIndexMap, isDark),
-      })),
+      ...(() => {
+        const usedLabels = new Set<string>(['ACTIVE TEST']);
+        return activeRuns.slice(0, 12).map((r, idx) => {
+          const shortPsi = r.psiId.split(' ')[0];
+          const runCode = r.runCode?.trim();
+          let label = runCode ? `${shortPsi} · ${runCode}` : `${shortPsi} · #${idx + 1}`;
+          if (usedLabels.has(label)) {
+            label = `${label} (${idx + 1})`;
+          }
+          usedLabels.add(label);
+          return {
+            id: r.id,
+            name: label,
+            psiId: runCode ? `${r.psiId} · ${runCode}` : r.psiId,
+            val: r[numericY],
+            outcome: r.outcome,
+            material: r.material,
+            facility: r.facility,
+            isSim: false,
+            color: getGroupColor(r, colorByKey, groupIndexMap, isDark),
+          };
+        });
+      })(),
     ].sort((a, b) => b.val - a.val);
 
     return (
@@ -1969,7 +1981,7 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
             <BarChart
               data={combined}
               layout="vertical"
-              margin={{ top: 8, right: 28, left: 24, bottom: 8 }}
+              margin={{ top: 8, right: 28, left: 12, bottom: 8 }}
             >
               <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" horizontal={false} />
               <XAxis
@@ -1981,7 +1993,8 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
               <YAxis
                 type="category"
                 dataKey="name"
-                width={94}
+                interval={0}
+                width={150}
                 stroke={axisStroke}
                 tick={({ x, y, payload }) => {
                   const val = String(payload?.value ?? '');
@@ -2088,7 +2101,9 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
                 }`}
               >
                 <div className="col-span-3 sm:col-span-2 truncate">
-                  <div className="font-mono text-xs font-semibold truncate">{run.psiId}</div>
+                  <div className="font-mono text-xs font-semibold truncate">
+                    {run.runCode ? `${run.psiId.split(' ')[0]} · ${run.runCode}` : run.psiId}
+                  </div>
                   <div className="font-sans text-[10px] text-zinc-500 truncate">{run.material}</div>
                 </div>
                 <div className="col-span-6 sm:col-span-8 relative h-5 flex items-center">
