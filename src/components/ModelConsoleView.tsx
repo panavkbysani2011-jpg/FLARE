@@ -256,6 +256,27 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
     }, 1800);
   };
 
+  const formatAssistantCopyText = (msg: AssistantMessage): string => {
+    const parts: string[] = [];
+    if (msg.steps && msg.steps.length > 0) {
+      parts.push(msg.steps.join('\n\n'));
+    } else if (msg.text) {
+      parts.push(msg.text);
+    }
+    if (msg.dataTable && msg.dataTable.columns.length > 0 && msg.dataTable.rows.length > 0) {
+      parts.push(msg.dataTable.title);
+      parts.push(`| ${msg.dataTable.columns.join(' | ')} |`);
+      parts.push(`| ${msg.dataTable.columns.map(() => '---').join(' | ')} |`);
+      msg.dataTable.rows.forEach((row) => {
+        parts.push(`| ${row.map((cell) => String(cell)).join(' | ')} |`);
+      });
+    }
+    if (msg.citations && msg.citations.length > 0) {
+      parts.push(`References: ${msg.citations.join(', ')}`);
+    }
+    return parts.join('\n\n');
+  };
+
   // Per-user profile & closed-loop inline correction state
   const [userProfile, setUserProfile] = useState(() => getOrCreateUserProfile());
   const [correctionCount, setCorrectionCount] = useState(
@@ -1313,6 +1334,104 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         </div>
                       )}
 
+                      {/* Keyword-Matched Structured Fallback Table */}
+                      {msg.dataTable &&
+                        Array.isArray(msg.dataTable.columns) &&
+                        msg.dataTable.columns.length > 0 &&
+                        Array.isArray(msg.dataTable.rows) &&
+                        msg.dataTable.rows.length > 0 && (
+                          <div className="border rounded-md border-[#E4E4E7] dark:border-[#27272A] overflow-hidden">
+                            <div
+                              className={`px-3 py-2 border-b flex flex-wrap items-center justify-between gap-2 ${
+                                isDark
+                                  ? 'bg-[#121215] border-[#27272A]'
+                                  : 'bg-zinc-100/70 border-[#E4E4E7]'
+                              }`}
+                            >
+                              <div className="text-xs font-display font-semibold">
+                                {msg.dataTable.title}
+                              </div>
+                              {msg.dataTable.subtitle && (
+                                <div className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+                                  {msg.dataTable.subtitle}
+                                </div>
+                              )}
+                            </div>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left border-collapse text-xs">
+                                <thead>
+                                  <tr
+                                    className={`border-b font-sans text-[11px] font-semibold text-zinc-500 ${
+                                      isDark
+                                        ? 'bg-[#121215]/70 border-[#27272A]'
+                                        : 'bg-zinc-50 border-[#E4E4E7]'
+                                    }`}
+                                  >
+                                    {msg.dataTable.columns.map((col, colIdx) => {
+                                      const isNumericCol =
+                                        /O2|Press|Flow|Gravity|Spread|Safe|LOI|Temp|Risk|Yield|Page/i.test(
+                                          col
+                                        );
+                                      return (
+                                        <th
+                                          key={`${msg.id}-col-${colIdx}`}
+                                          className={`py-2 px-3 whitespace-nowrap ${
+                                            isNumericCol ? 'text-right' : 'text-left'
+                                          }`}
+                                        >
+                                          {col}
+                                        </th>
+                                      );
+                                    })}
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#E4E4E7] dark:divide-[#27272A]">
+                                  {msg.dataTable.rows.map((row, rowIdx) => (
+                                    <tr
+                                      key={`${msg.id}-dtrow-${rowIdx}`}
+                                      className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/70 transition-colors"
+                                    >
+                                      {msg.dataTable!.columns.map((col, cellIdx) => {
+                                        const cellVal = row[cellIdx] ?? '-';
+                                        const cellStr = String(cellVal);
+                                        const isNumericCol =
+                                          typeof cellVal === 'number' ||
+                                          /O2|Press|Flow|Gravity|Spread|Safe|LOI|Temp|Risk|Yield|Page/i.test(
+                                            col
+                                          );
+                                        const statusTone =
+                                          cellStr === 'Rapid Flame Spread'
+                                            ? 'text-[#EF4444] font-semibold font-sans'
+                                            : cellStr === 'Cool Flame Caution'
+                                            ? 'text-[#F59E0B] font-semibold font-sans'
+                                            : cellStr === 'Self-Extinguishing'
+                                            ? 'text-[#10B981] font-semibold font-sans'
+                                            : '';
+                                        return (
+                                          <td
+                                            key={`${msg.id}-cell-${rowIdx}-${cellIdx}`}
+                                            className={`py-2 px-3 ${
+                                              statusTone
+                                                ? `${statusTone} whitespace-nowrap`
+                                                : isNumericCol
+                                                ? 'font-mono text-right tabular-nums whitespace-nowrap'
+                                                : cellIdx <= 2
+                                                ? 'font-sans font-medium whitespace-nowrap'
+                                                : 'font-sans max-w-[280px]'
+                                            }`}
+                                          >
+                                            {statusTone ? `● ${cellStr}` : cellStr}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
                       {/* Embedded Interactive Chart / Compatibility Fallback */}
                       {msg.inlineChart && (
                         <ChatInlineChartCard
@@ -1374,7 +1493,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleCopyAssistantResponse(msg.id, msg.text ?? '')}
+                            onClick={() => handleCopyAssistantResponse(msg.id, formatAssistantCopyText(msg))}
                             className={`h-8 inline-flex items-center gap-1 px-2.5 text-[11px] font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
                             title="Copy response to clipboard"
                             aria-label="Copy response to clipboard"

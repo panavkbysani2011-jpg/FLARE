@@ -128,6 +128,36 @@ export function sanitizeStoredMessage(raw: unknown, fallbackId: string): Assista
       ? msg.inlineChart
       : undefined;
 
+  const rawTable = msg.dataTable as unknown;
+  let safeDataTable: AssistantMessage['dataTable'];
+  if (rawTable && typeof rawTable === 'object') {
+    const t = rawTable as Record<string, unknown>;
+    const rawCols = Array.isArray(t.columns)
+      ? t.columns.map((c) => String(c ?? '').trim()).filter(Boolean)
+      : [];
+    const rawRows = Array.isArray(t.rows)
+      ? t.rows
+          .filter((row): row is unknown[] => Array.isArray(row))
+          .map((row) =>
+            rawCols.map((_, idx) => {
+              const cell = row[idx];
+              if (typeof cell === 'number' && Number.isFinite(cell)) return cell;
+              return String(cell ?? '-');
+            })
+          )
+      : [];
+    if (typeof t.title === 'string' && t.title.trim() && rawCols.length > 0 && rawRows.length > 0) {
+      safeDataTable = {
+        title: t.title.trim(),
+        ...(typeof t.subtitle === 'string' && t.subtitle.trim()
+          ? { subtitle: t.subtitle.trim() }
+          : {}),
+        columns: rawCols,
+        rows: rawRows,
+      };
+    }
+  }
+
   return {
     ...msg,
     id,
@@ -143,6 +173,7 @@ export function sanitizeStoredMessage(raw: unknown, fallbackId: string): Assista
     steps: safeSteps ?? (role === 'assistant' && text ? [text] : undefined),
     citations: safeCitations,
     whatIfRows: safeWhatIf,
+    dataTable: safeDataTable,
     inlineChart: safeInlineChart,
     timestamp:
       typeof msg.timestamp === 'string' && msg.timestamp ? msg.timestamp : formatChatTimestamp(),

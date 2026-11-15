@@ -884,12 +884,21 @@ export function exportChatThreadFormatted(params: {
         } else {
           mdLines.push(
             `## Message ${idx + 1} - Model Response (${m.timestamp})`,
-            ...(m.steps ?? []).map((s) => `- ${s}`),
-            m.citations && m.citations.length > 0
-              ? `- Cited Experiments: ${m.citations.join(', ')}`
-              : '',
-            ''
+            ...(m.steps ?? []).map((s) => `- ${s}`)
           );
+          if (m.dataTable && m.dataTable.columns.length > 0 && m.dataTable.rows.length > 0) {
+            mdLines.push(
+              '',
+              `### ${m.dataTable.title}`,
+              `| ${m.dataTable.columns.join(' | ')} |`,
+              `| ${m.dataTable.columns.map(() => '---').join(' | ')} |`,
+              ...m.dataTable.rows.map((row) => `| ${row.map((c) => String(c)).join(' | ')} |`)
+            );
+          }
+          if (m.citations && m.citations.length > 0) {
+            mdLines.push(`- Cited Experiments: ${m.citations.join(', ')}`);
+          }
+          mdLines.push('');
         }
       });
     }
@@ -920,6 +929,13 @@ export function exportChatThreadFormatted(params: {
                 : `${idx + 1}. Model Response (${m.timestamp})`,
             paragraphs: m.role === 'user' && m.text ? [m.text] : undefined,
             bullets: m.role === 'assistant' ? m.steps : undefined,
+            table:
+              m.role === 'assistant' && m.dataTable && m.dataTable.columns.length > 0 && m.dataTable.rows.length > 0
+                ? {
+                    headers: m.dataTable.columns,
+                    rows: m.dataTable.rows.map((row) => row.map((c) => String(c))),
+                  }
+                : undefined,
             keyValues:
               m.citations && m.citations.length > 0
                 ? [{ label: 'Cited Runs', value: m.citations.join(', ') }]

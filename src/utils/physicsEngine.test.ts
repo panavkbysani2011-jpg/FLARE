@@ -17,10 +17,13 @@ import {
 } from './dataImporter';
 import { sanitizeVisiblePsiText } from '../services/dataLoader';
 import {
+  GEMINI_API_KEY_STORAGE_KEY,
   GEMINI_MODEL_CHAIN,
   MODEL_LABEL_ACTIVE,
   MODEL_LABEL_LOCAL,
+  buildKeywordFallbackResponse,
   normalizeLiveAskResponse,
+  runLocalCombustionModelPipeline,
 } from '../lib/flareApi';
 import { sanitizeStoredMessage } from './chatStorage';
 import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
@@ -1808,4 +1811,245 @@ test('live /ask normalizer, chat storage crash-proofing, zoom lock, 3-item model
       settingsSrc.includes('not affiliated with or endorsed by NASA') &&
       settingsSrc.includes('Google Gemini')
   );
+
+  // 9. Data Archive sub-navigation card is restricted strictly to PSI Investigations tab
+  const navSectionIdx = catalogLayoutSrc.indexOf('aria-label="Data Archive Sections"');
+  const navGuardIdx = catalogLayoutSrc.lastIndexOf(
+    "{activeTab === 'psi-investigations' && (",
+    navSectionIdx
+  );
+  assert.ok(
+    navGuardIdx > 0 && navSectionIdx > navGuardIdx && navSectionIdx - navGuardIdx < 260,
+    'Data Archive Sections switcher card must only render inside activeTab === psi-investigations'
+  );
+
+  // 10. Model Console UI renders structured fallback dataTable cleanly
+  assert.ok(
+    consoleSrc.includes('msg.dataTable') &&
+      !consoleSrc.includes('rounded-full') &&
+      !consoleSrc.includes('\u2014')
+  );
+});
+
+test('Gemini failure triggers keyword-driven codebase analyzer with structured dataTable output', async () => {
+  const prevWindow = (globalThis as unknown as { window?: unknown }).window;
+  const prevStorage = globalThis.localStorage;
+  const prevFetch = globalThis.fetch;
+  const prevEnvKey = process.env.VITE_GEMINI_API_KEY;
+  const memStore = new Map<string, string>();
+  const mockStorage: Storage = {
+    get length() {
+      return memStore.size;
+    },
+    clear: () => memStore.clear(),
+    getItem: (k: string) => memStore.get(k) ?? null,
+    key: (i: number) => Array.from(memStore.keys())[i] ?? null,
+    removeItem: (k: string) => {
+      memStore.delete(k);
+    },
+    setItem: (k: string, v: string) => {
+      memStore.set(k, String(v));
+    },
+  };
+  (globalThis as unknown as { localStorage: Storage }).localStorage = mockStorage;
+  (globalThis as unknown as { window: { localStorage: Storage } }).window = {
+    localStorage: mockStorage,
+  };
+
+  let geminiAttempts = 0;
+  try {
+    memStore.set(GEMINI_API_KEY_STORAGE_KEY, 'test-gemini-key');
+    setActiveEndpointProfileId(LOCAL_MODEL_ID);
+    (globalThis as unknown as { fetch: typeof fetch }).fetch = (async () => {
+      geminiAttempts += 1;
+      return new Response(JSON.stringify({ error: { message: 'Quota exceeded' } }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }) as typeof fetch;
+
+    const sliders = {
+      O2_pct: 23.5,
+      P_psi: 14.7,
+      Flow_ms: 0.14,
+      g_eff: 0.166,
+      Thickness_mm: 2.0,
+      material: 'PMMA' as const,
+      ignitionFlux_Wm2: 28000,
+    };
+    const baseSim = runLocalPhysicsSimulation(sliders, REAL_SAMPLE_RUNS, {
+      missionCases: MISSION_AND_SPINOFF_CASES,
+      literatureChunks: [
+        {
+          chunk_id: 'rg-soot-1',
+          psi_id: 'psi-99',
+          source_file: 'iss_researchers_guide_combustion.pdf',
+          page_number: 24,
+          chunk_index: 1,
+          char_count: 140,
+          text: 'Radiometer heat flux and soot agglomeration in microgravity laminar diffusion flames dictate radiant extinction limits.',
+        },
+      ],
+    });
+
+    // 1. Live pipeline fallback when all Gemini models return 429 -> Mission Cases table
+    const missionFallback = await runLocalCombustionModelPipeline({
+      question: 'What happened in Apollo 1 and Mir spacecraft fires?',
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+      archiveContext: { missionCases: MISSION_AND_SPINOFF_CASES },
+    });
+    assert.equal(geminiAttempts, GEMINI_MODEL_CHAIN.length);
+    assert.ok(missionFallback.dataTable, 'Expected structured mission dataTable on Gemini failure');
+    assert.ok(missionFallback.dataTable.title.includes('Mission & Spin-Off Cases'));
+    assert.ok(
+      missionFallback.dataTable.rows.some((r) => r.join(' ').includes('Apollo 1')) &&
+        missionFallback.dataTable.rows.some((r) => r.join(' ').includes('Mir')),
+      'Expected matched Apollo 1 and Mir rows in dataTable'
+    );
+
+    // 2. Material flammability & LOI comparison
+    const materialRes = buildKeywordFallbackResponse({
+      question: 'Compare Nomex vs PMMA flammability and LOI',
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    assert.ok(materialRes.dataTable);
+    assert.ok(materialRes.dataTable.title.includes('Material Flammability'));
+    assert.ok(materialRes.dataTable.columns.includes('LOI (%)'));
+    assert.ok(materialRes.dataTable.rows.some((r) => String(r[0]).includes('Nomex')));
+
+    // 3. Flight runs search by PSI experiment keywords & regime
+    const runsRes = buildKeywordFallbackResponse({
+      question: 'Show SAFFIRE and BASS cool flame flight runs',
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    assert.ok(runsRes.dataTable);
+    assert.ok(runsRes.dataTable.title.includes('Flight Experiment Runs'));
+    assert.ok(runsRes.dataTable.rows.length >= 2);
+    assert.ok(
+      runsRes.dataTable.rows.some(
+        (r) => String(r[1]).includes('PSI-99') || String(r[1]).includes('PSI-25')
+      )
+    );
+
+    // 4. Cross-gravity comparison
+    const gravRes = buildKeywordFallbackResponse({
+      question: 'Compare orbital 0g vs lunar 0.166g vs martian 0.38g flame spread',
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    assert.ok(gravRes.dataTable);
+    assert.equal(gravRes.dataTable.rows.length, 4);
+    assert.ok(gravRes.dataTable.rows.some((r) => String(r[0]).includes('Lunar')));
+
+    // 5. Researcher's Guide literature search
+    const guideRes = buildKeywordFallbackResponse({
+      question: "Search the Researcher's Guide for soot and radiometer",
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+      archiveContext: {
+        literatureChunks: [
+          {
+            chunk_id: 'rg-soot-1',
+            psi_id: 'psi-99',
+            source_file: 'iss_researchers_guide_combustion.pdf',
+            page_number: 24,
+            chunk_index: 1,
+            char_count: 140,
+            text: 'Radiometer heat flux and soot agglomeration in microgravity laminar diffusion flames dictate radiant extinction limits.',
+          },
+        ],
+      },
+    });
+    assert.ok(guideRes.dataTable);
+    assert.ok(guideRes.dataTable.title.includes("Researcher's Guide"));
+    assert.equal(guideRes.dataTable.rows[0]?.[1], 'p.24');
+
+    // 6. Storage sanitization preserves structured dataTable cleanly
+    const restored = sanitizeStoredMessage(
+      {
+        id: 'ast-table-test',
+        role: 'assistant',
+        timestamp: '10:00 AM',
+        steps: runsRes.steps,
+        citations: runsRes.citations,
+        dataTable: runsRes.dataTable,
+      },
+      'ast-table-fallback'
+    );
+    assert.ok(restored?.dataTable);
+    assert.equal(restored?.dataTable?.columns.length, runsRes.dataTable.columns.length);
+    assert.equal(restored?.dataTable?.rows.length, runsRes.dataTable.rows.length);
+
+    // 7. End-to-end runModelConsoleInference propagates keyword dataTable on Gemini/backend failure
+    const e2eFallback = await runModelConsoleInference({
+      question: 'Compare Nomex vs PMMA flammability and LOI',
+      mode: 'literature',
+      request: sliders,
+      catalog: REAL_SAMPLE_RUNS,
+      archiveContext: { missionCases: MISSION_AND_SPINOFF_CASES },
+    });
+    assert.ok(
+      e2eFallback.assistantReply?.dataTable,
+      'runModelConsoleInference must attach structured dataTable during fallback'
+    );
+    assert.ok(
+      e2eFallback.assistantReply.dataTable.columns.includes('LOI (%)') &&
+        e2eFallback.assistantReply.dataTable.rows.some((r) => String(r[0]).includes('Nomex'))
+    );
+
+    // 8. When Gemini DOES succeed, Gemini answers directly
+    (globalThis as unknown as { fetch: typeof fetch }).fetch = (async () => {
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: 'Gemini primary response: Nomex aramid weave resists ignition in 23.5% O2 at 14.7 psi.',
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }) as typeof fetch;
+    const geminiOk = await runLocalCombustionModelPipeline({
+      question: 'Evaluate Nomex safety',
+      mode: 'literature',
+      sliders,
+      localSim: baseSim,
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    assert.ok(geminiOk.steps[0]?.includes('Gemini primary response'));
+    assert.equal(geminiOk.dataTable, undefined);
+  } finally {
+    if (prevWindow === undefined) {
+      delete (globalThis as unknown as { window?: unknown }).window;
+    } else {
+      (globalThis as unknown as { window?: unknown }).window = prevWindow;
+    }
+    (globalThis as unknown as { localStorage: Storage }).localStorage = prevStorage;
+    (globalThis as unknown as { fetch: typeof fetch }).fetch = prevFetch;
+    if (prevEnvKey === undefined) {
+      delete process.env.VITE_GEMINI_API_KEY;
+    } else {
+      process.env.VITE_GEMINI_API_KEY = prevEnvKey;
+    }
+  }
 });

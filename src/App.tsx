@@ -756,6 +756,7 @@ export default function App() {
         suggestedVizMode: response.assistantReply.suggestedVizMode,
         recommendedParams: response.assistantReply.recommendedParams,
         whatIfRows: response.assistantReply.whatIfRows,
+        dataTable: response.assistantReply.dataTable,
         chartContext: chartCtx ?? undefined,
         inlineChart: response.assistantReply.inlineChart,
         endpointLabel: response.assistantReply.endpointLabel,

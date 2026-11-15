@@ -6,14 +6,19 @@
 import {
   ConsoleMode,
   HazardOutcome,
+  LiteratureChunk,
+  MissionSpinoffCase,
   PsiInvestigationRecord,
   PsiRun,
   SimulationRequest,
   SimulationResponse,
+  StructuredDataTable,
   VirtualTestConfig,
 } from '../types/psi';
+import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
 import {
   AssistantArchiveContext,
+  computeFlameSpreadVelocity,
   runLocalPhysicsSimulation,
 } from '../utils/physicsEngine';
 
@@ -85,6 +90,7 @@ export interface LiveAskResponse {
   flameSpread_mms?: number;
   hazardStatus?: HazardOutcome;
   latencyMs?: number;
+  dataTable?: StructuredDataTable;
   telemetry?: Partial<{
     flameSpread_mms: number;
     O2_pct: number;
@@ -922,30 +928,432 @@ function isConversationalGreeting(question: string): boolean {
   return /^(hi|hello|hey)\b/.test(clean) && clean.split(' ').length <= 4;
 }
 
-function synthesizeDynamicLocalTelemetryResponse(params: {
+const KEYWORD_STOP_WORDS = new Set([
+  'the',
+  'and',
+  'for',
+  'with',
+  'what',
+  'which',
+  'where',
+  'when',
+  'how',
+  'why',
+  'who',
+  'show',
+  'list',
+  'table',
+  'give',
+  'find',
+  'search',
+  'compare',
+  'versus',
+  'about',
+  'between',
+  'tell',
+  'could',
+  'would',
+  'should',
+  'please',
+  'does',
+  'into',
+  'from',
+  'that',
+  'this',
+  'these',
+  'those',
+  'have',
+  'has',
+  'had',
+  'were',
+  'was',
+  'been',
+  'are',
+  'all',
+  'can',
+  'did',
+  'use',
+  'using',
+  'make',
+  'pop',
+  'out',
+  'get',
+  'me',
+  'my',
+  'you',
+  'your',
+  'any',
+  'based',
+]);
+
+const SHORT_DOMAIN_TOKENS = new Set([
+  'o2',
+  'co',
+  '0g',
+  '1g',
+  'ir',
+]);
+
+interface KeywordSignals {
+  qLower: string;
+  tokens: string[];
+  psiIds: string[];
+  materials: string[];
+  targetO2: number | null;
+  targetGravity: 'orbital' | 'lunar' | 'martian' | 'terrestrial' | null;
+  asksForGravityCompare: boolean;
+  asksForMaterials: boolean;
+  asksForMission: boolean;
+  asksForInvestigations: boolean;
+  asksForGuide: boolean;
+  asksForRuns: boolean;
+  asksCoolFlame: boolean;
+  asksRapidSpread: boolean;
+  asksSafeExtinguish: boolean;
+}
+
+function extractKeywordSignals(question: string): KeywordSignals {
+  const qLower = question.toLowerCase().trim();
+  const rawTokens = qLower
+    .split(/[^a-z0-9.%-]+/)
+    .map((t) => t.replace(/^[.-]+|[.-]+$/g, ''))
+    .filter((t) => t.length >= 3 || SHORT_DOMAIN_TOKENS.has(t));
+
+  const expandedSet = new Set<string>();
+  for (const tok of rawTokens) {
+    if (KEYWORD_STOP_WORDS.has(tok)) continue;
+    expandedSet.add(tok);
+    if (tok === 'teflon') expandedSet.add('ptfe');
+    if (tok === 'acrylic' || tok === 'plexiglass') expandedSet.add('pmma');
+    if (tok === 'aramid') expandedSet.add('nomex');
+    if (tok === 'moon' || tok === 'lunar') expandedSet.add('lunar');
+    if (tok === 'mars' || tok === 'martian') expandedSet.add('martian');
+    if (tok === 'oxygen') expandedSet.add('o2');
+    if (tok === 'spin-off' || tok === 'spinoff' || tok === 'spinoffs') {
+      expandedSet.add('spinoff');
+    }
+  }
+  const tokens = Array.from(expandedSet);
+
+  const psiMatches = Array.from(qLower.matchAll(/\bpsi[-\s]?(\d{1,3})\b/gi)).map(
+    (m) => `PSI-${m[1]}`
+  );
+
+  const materials: string[] = [];
+  if (qLower.includes('pmma') || qLower.includes('acrylic')) materials.push('PMMA');
+  if (qLower.includes('sibal')) materials.push('SIBAL');
+  if (qLower.includes('cotton') || qLower.includes('fiberglass') || qLower.includes('cfg')) {
+    materials.push('Cotton-Fiberglass');
+  }
+  if (qLower.includes('ptfe') || qLower.includes('teflon')) materials.push('PTFE');
+  if (qLower.includes('nomex') || qLower.includes('aramid')) materials.push('Nomex');
+  if (qLower.includes('methanol')) materials.push('Methanol');
+  if (qLower.includes('heptane')) materials.push('Heptane');
+  if (qLower.includes('decane')) materials.push('Decane');
+  if (qLower.includes('cellulose') || qLower.includes('kimwipe')) materials.push('Cellulose');
+
+  const o2Match = qLower.match(/(\d+(?:\.\d+)?)\s*%\s*o2|\bo2\s*(?:at|to|=|:)?\s*(\d+(?:\.\d+)?)/);
+  const targetO2 = o2Match ? Number(o2Match[1] || o2Match[2]) : null;
+
+  const hasOrbital = /\b(0g|0\.0g|orbital|microgravity|zero-g|iss)\b/.test(qLower);
+  const hasLunar = /\b(lunar|moon|0\.166g?)\b/.test(qLower);
+  const hasMartian = /\b(martian|mars|0\.38g?)\b/.test(qLower);
+  const hasTerrestrial = /\b(terrestrial|earth|1g|1\.0g)\b/.test(qLower);
+  const gravityCount =
+    Number(hasOrbital) + Number(hasLunar) + Number(hasMartian) + Number(hasTerrestrial);
+
+  const targetGravity: KeywordSignals['targetGravity'] =
+    gravityCount === 1
+      ? hasOrbital
+        ? 'orbital'
+        : hasLunar
+        ? 'lunar'
+        : hasMartian
+        ? 'martian'
+        : 'terrestrial'
+      : null;
+
+  const asksForRuns =
+    /\b(run|runs|test|tests|telemetry|experiment|experiments|data points?|saffire|bass|flex|same|sofbull|acmee|bre|feanics|runcode)\b/.test(
+      qLower
+    ) || psiMatches.length > 0;
+
+  const asksForGravityCompare =
+    (gravityCount >= 2 ||
+      /\b(gravity|environments?|orbital vs|lunar vs|mars vs|martian vs)\b/.test(qLower)) &&
+    !asksForRuns;
+
+  const asksForMaterials =
+    (/\b(material|materials|flammability|loi|limiting oxygen|toxicity|toxic|smoke|clumping|rank|safest)\b/.test(
+      qLower
+    ) ||
+      materials.length >= 2) &&
+    !asksForRuns;
+
+  const asksForMission =
+    /\b(apollo|mir|shuttle|skylab|scba|firefighter|smoke detector|attire|suit|pbi|spinoff|spin-off|sciencecast|glenn|incident|accident|historical|history)\b/.test(
+      qLower
+    );
+
+  const asksForInvestigations =
+    /\b(investigation|investigations|catalog|program|programs|hardware|facility|cir|mdca|fsl|firs|msgs)\b/.test(
+      qLower
+    );
+
+  const asksForGuide =
+    /\b(guide|handbook|manual|chapter|section|page|literature|excerpt|pdf|soot|radiometer|boundary layer|damkohler|stefan)\b/.test(
+      qLower
+    );
+
+  return {
+    qLower,
+    tokens,
+    psiIds: psiMatches,
+    materials,
+    targetO2: targetO2 !== null && Number.isFinite(targetO2) ? targetO2 : null,
+    targetGravity,
+    asksForGravityCompare,
+    asksForMaterials,
+    asksForMission,
+    asksForInvestigations,
+    asksForGuide,
+    asksForRuns,
+    asksCoolFlame: /\b(cool flame|cool-flame|ntc)\b/.test(qLower),
+    asksRapidSpread: /\b(rapid|danger|high risk|fast spread|hazardous)\b/.test(qLower),
+    asksSafeExtinguish: /\b(self-extinguishing|extinguish|safe|pass)\b/.test(qLower),
+  };
+}
+
+function scoreKeywordFields(
+  fields: Array<{ text: string; weight: number }>,
+  tokens: string[]
+): number {
+  if (tokens.length === 0) return 0;
+  let score = 0;
+  for (const tok of tokens) {
+    for (const field of fields) {
+      if (field.text && field.text.includes(tok)) {
+        score += field.weight;
+      }
+    }
+  }
+  return score;
+}
+
+function rankKeywordMissionCases(
+  signals: KeywordSignals,
+  cases: MissionSpinoffCase[]
+): Array<{ item: MissionSpinoffCase; score: number }> {
+  return cases
+    .map((item) => {
+      let score = scoreKeywordFields(
+        [
+          { text: item.title.toLowerCase(), weight: 5 },
+          { text: item.code.toLowerCase(), weight: 5 },
+          { text: item.missionOrDomain.toLowerCase(), weight: 4 },
+          { text: item.category.toLowerCase(), weight: 3 },
+          { text: item.summary.toLowerCase(), weight: 2 },
+          { text: item.lessonsLearned.join(' ').toLowerCase(), weight: 2 },
+          { text: item.relatedPsiIds.join(' ').toLowerCase(), weight: 4 },
+        ],
+        signals.tokens
+      );
+      if (signals.qLower.includes('apollo 13') && item.id === 'case-apollo-13') score += 15;
+      if (signals.qLower.includes('apollo 1') && item.id === 'case-apollo-1') score += 15;
+      if (signals.qLower.includes('apollo') && item.id.includes('apollo')) score += 8;
+      if (signals.qLower.includes('mir') && item.id === 'case-mir-fire') score += 15;
+      if (
+        (signals.qLower.includes('scba') || signals.qLower.includes('firefighter')) &&
+        item.id === 'case-spinoff-scba'
+      ) {
+        score += 12;
+      }
+      if (
+        (signals.qLower.includes('detector') || signals.qLower.includes('shuttle')) &&
+        item.id === 'case-spinoff-smoke-detector'
+      ) {
+        score += 12;
+      }
+      if (
+        (signals.qLower.includes('attire') ||
+          signals.qLower.includes('pbi') ||
+          signals.qLower.includes('garment') ||
+          signals.qLower.includes('clothing')) &&
+        item.id === 'case-spinoff-fire-attire'
+      ) {
+        score += 10;
+      }
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+function rankKeywordInvestigations(
+  signals: KeywordSignals,
+  investigations: PsiInvestigationRecord[]
+): Array<{ item: PsiInvestigationRecord; score: number }> {
+  return investigations
+    .map((item) => {
+      let score = scoreKeywordFields(
+        [
+          { text: item.psiId.toLowerCase(), weight: 8 },
+          { text: item.acronym.toLowerCase(), weight: 7 },
+          { text: item.title.toLowerCase(), weight: 5 },
+          { text: item.facility.toLowerCase(), weight: 4 },
+          { text: item.fuels.join(' ').toLowerCase(), weight: 4 },
+          { text: item.researchArea.toLowerCase(), weight: 3 },
+          { text: item.objective.toLowerCase(), weight: 2 },
+          { text: item.dominantOutcome.toLowerCase(), weight: 3 },
+          { text: item.flightPlatform.toLowerCase(), weight: 3 },
+        ],
+        signals.tokens
+      );
+      for (const pid of signals.psiIds) {
+        if (item.psiId.toUpperCase() === pid.toUpperCase()) score += 18;
+      }
+      if (signals.asksCoolFlame && item.dominantOutcome === 'Cool Flame Caution') score += 4;
+      if (signals.asksRapidSpread && item.dominantOutcome === 'Rapid Flame Spread') score += 4;
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+function rankKeywordLiterature(
+  signals: KeywordSignals,
+  chunks: LiteratureChunk[]
+): Array<{ item: LiteratureChunk; score: number }> {
+  const scored = chunks
+    .map((item) => {
+      let score = scoreKeywordFields(
+        [
+          { text: item.psi_id.toLowerCase(), weight: 6 },
+          { text: item.source_file.toLowerCase(), weight: 4 },
+          { text: item.text.toLowerCase(), weight: 3 },
+        ],
+        signals.tokens
+      );
+      if (score > 0 && item.source_file.toLowerCase().includes('researchers_guide')) {
+        score += 2;
+      }
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const seenPages = new Set<string>();
+  const diverse: Array<{ item: LiteratureChunk; score: number }> = [];
+  for (const entry of scored) {
+    const key = `${entry.item.source_file}:${entry.item.page_number}`;
+    if (seenPages.has(key)) continue;
+    seenPages.add(key);
+    diverse.push(entry);
+    if (diverse.length >= 5) break;
+  }
+  return diverse;
+}
+
+function rankKeywordFlightRuns(
+  signals: KeywordSignals,
+  runs: PsiRun[]
+): { topRuns: Array<{ item: PsiRun; score: number }>; totalMatches: number } {
+  const scored = runs
+    .map((item) => {
+      let score = scoreKeywordFields(
+        [
+          { text: item.psiId.toLowerCase(), weight: 6 },
+          { text: item.runCode.toLowerCase(), weight: 7 },
+          { text: item.material.toLowerCase(), weight: 5 },
+          { text: item.facility.toLowerCase(), weight: 4 },
+          { text: item.investigationTitle.toLowerCase(), weight: 4 },
+          { text: item.outcome.toLowerCase(), weight: 4 },
+          { text: item.notes.toLowerCase(), weight: 2 },
+        ],
+        signals.tokens
+      );
+      for (const pid of signals.psiIds) {
+        if (item.psiId.toUpperCase().includes(pid.toUpperCase())) score += 16;
+      }
+      for (const mat of signals.materials) {
+        if (item.material.toLowerCase().includes(mat.toLowerCase())) score += 9;
+      }
+      if (signals.asksCoolFlame && (item.coolFlameObserved || item.outcome === 'Cool Flame Caution')) {
+        score += 9;
+      }
+      if (signals.asksRapidSpread && item.outcome === 'Rapid Flame Spread') score += 8;
+      if (signals.asksSafeExtinguish && item.outcome === 'Self-Extinguishing') score += 8;
+      if (signals.targetGravity === 'lunar' && Math.abs(item.g_eff - 0.166) <= 0.08) score += 8;
+      if (signals.targetGravity === 'orbital' && item.g_eff <= 0.05) score += 7;
+      if (signals.targetGravity === 'martian' && Math.abs(item.g_eff - 0.38) <= 0.12) score += 8;
+      if (signals.targetGravity === 'terrestrial' && item.g_eff >= 0.8) score += 8;
+      if (signals.targetO2 !== null && Math.abs(item.O2_pct - signals.targetO2) <= 2.5) {
+        score += 7;
+      }
+      return { item, score };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const selected: Array<{ item: PsiRun; score: number }> = [];
+  const usedIds = new Set<string>();
+  const psiCounts = new Map<string, number>();
+
+  for (const entry of scored) {
+    const psiKey = entry.item.psiId.split(' ')[0];
+    if ((psiCounts.get(psiKey) ?? 0) >= 2 && scored.length > 8) continue;
+    usedIds.add(entry.item.id);
+    psiCounts.set(psiKey, (psiCounts.get(psiKey) ?? 0) + 1);
+    selected.push(entry);
+    if (selected.length >= 8) break;
+  }
+
+  if (selected.length < 6) {
+    for (const entry of scored) {
+      if (usedIds.has(entry.item.id)) continue;
+      usedIds.add(entry.item.id);
+      selected.push(entry);
+      if (selected.length >= 8) break;
+    }
+  }
+
+  return { topRuns: selected, totalMatches: scored.length };
+}
+
+function resolveCandidateMaterialForQuery(
+  signals: KeywordSignals,
+  fallback: VirtualTestConfig['material']
+): VirtualTestConfig['material'] {
+  if (signals.materials.includes('Nomex')) return 'Nomex';
+  if (signals.materials.includes('PTFE')) return 'PTFE';
+  if (signals.materials.includes('Cotton-Fiberglass')) return 'Cotton-Fiberglass';
+  if (signals.materials.includes('SIBAL')) return 'SIBAL';
+  if (signals.materials.includes('PMMA')) return 'PMMA';
+  return fallback;
+}
+
+/**
+ * Deterministic keyword-driven codebase analyzer and structured table presenter.
+ * Activated whenever Gemini inference is unavailable, throttled, or offline.
+ */
+export function buildKeywordFallbackResponse(params: {
   question: string;
   mode: ConsoleMode;
   sliders: VirtualTestConfig;
   localSim: SimulationResponse;
   explanationDepth?: 'concise' | 'standard' | 'detailed';
+  catalog?: PsiRun[];
+  archiveContext?: AssistantArchiveContext;
 }): LiveAskResponse {
-  const { question, mode, sliders, localSim } = params;
+  const { question, mode, sliders, localSim, catalog, archiveContext } = params;
   const o2 = safeFiniteNumber(sliders.O2_pct, 21).toFixed(1);
   const press = safeFiniteNumber(sliders.P_psi, 14.7).toFixed(1);
   const flow = safeFiniteNumber(sliders.Flow_ms, 0.15).toFixed(2);
   const grav = safeFiniteNumber(sliders.g_eff, 0.166).toFixed(3);
   const thick = safeFiniteNumber(sliders.Thickness_mm, 2.0).toFixed(1);
   const spread = safeFiniteNumber(localSim.flameSpread_mms, 0).toFixed(2);
-  const materialLoiVal =
-    localSim.materialRankings.find(
-      (m) => m.code === sliders.material || m.name === sliders.material
-    )?.limitingO2_pct ?? 18.0;
-  const loi = safeFiniteNumber(materialLoiVal, 18.0).toFixed(1);
   const peakTemp = Math.round(safeFiniteNumber(localSim.peakTemp_K, 1450));
-  const minThick = safeFiniteNumber(
-    localSim.safeMaterialCheck?.minSafeThickness_mm,
-    2.5
-  ).toFixed(1);
+  const minThick = safeFiniteNumber(localSim.safeMaterialCheck?.minSafeThickness_mm, 2.5).toFixed(1);
   const margin = safeFiniteNumber(localSim.safeMaterialCheck?.margin_mm, 0);
 
   const topMatch = localSim.nearestRuns[0]?.run;
@@ -956,7 +1364,7 @@ function synthesizeDynamicLocalTelemetryResponse(params: {
   if (isConversationalGreeting(question)) {
     const greetingSteps = [
       `Hello! I am FLARE's Local Combustion Model. Your active test chamber is set to ${sliders.material} at ${o2}% O2, ${press} psi, ${flow} m/s airflow, and ${grav}g (${thick} mm thickness), predicting ${spread} mm/s (${localSim.hazardStatus}).`,
-      `Nearest reference flight run: ${matchLine}. Ask me to compare lunar vs. ISS fire behavior, run a what-if oxygen sweep, audit material thickness compliance (currently ${margin >= 0 ? 'passing' : 'below'} the ${minThick} mm minimum), or decode your active chart.`,
+      `Nearest reference flight run: ${matchLine}. Ask me to compare materials (Nomex vs PMMA), search SAFFIRE/BASS/FLEX flight runs, inspect Apollo/Mir mission cases, or search the ISS Researcher's Guide.`,
     ];
     return {
       blocked: false,
@@ -969,34 +1377,363 @@ function synthesizeDynamicLocalTelemetryResponse(params: {
     };
   }
 
-  const baseSteps = [...(localSim.assistantReply?.steps ?? [])];
-  if (baseSteps.length === 0) {
-    baseSteps.push(
-      `Local physics evaluation for "${question.trim()}" on ${sliders.material} (${o2}% O2, ${press} psi, ${flow} m/s, ${grav}g, ${thick} mm): predicted flame spread is ${spread} mm/s (${localSim.hazardStatus}, peak ${peakTemp} K, LOI ${loi}%).`,
-      `Thickness check: ${localSim.safeMaterialCheck?.passed ? 'PASS' : 'FAIL'} relative to ${minThick} mm minimum safe thickness (${margin >= 0 ? `+${margin.toFixed(1)}` : margin.toFixed(1)} mm margin). Closest flight match: ${matchLine}.`
+  const signals = extractKeywordSignals(question);
+  const keywordLabel = signals.tokens.slice(0, 5).join(', ') || sliders.material;
+  const runPool =
+    catalog && catalog.length > 0
+      ? catalog
+      : localSim.nearestRuns.map((nr) => nr.run);
+  const missionPool = archiveContext?.missionCases ?? MISSION_AND_SPINOFF_CASES;
+  const invPool = archiveContext?.investigations ?? [];
+  const chunkPool = archiveContext?.literatureChunks ?? [];
+
+  const matchedMissions = rankKeywordMissionCases(signals, missionPool);
+  const matchedInvs = rankKeywordInvestigations(signals, invPool);
+  const matchedChunks = rankKeywordLiterature(signals, chunkPool);
+  const { topRuns: matchedRuns, totalMatches: totalRunMatches } = rankKeywordFlightRuns(
+    signals,
+    runPool
+  );
+
+  const topMissionScore = matchedMissions[0]?.score ?? 0;
+  const topInvScore = matchedInvs[0]?.score ?? 0;
+  const topChunkScore = matchedChunks[0]?.score ?? 0;
+  const topRunScore = matchedRuns[0]?.score ?? 0;
+
+  // 1. Historical Mission & Spin-Off Cases
+  if (
+    matchedMissions.length > 0 &&
+    (signals.asksForMission ||
+      (topMissionScore >= 14 &&
+        !signals.asksForMaterials &&
+        !signals.asksForGravityCompare &&
+        !signals.asksForRuns))
+  ) {
+    const topCases = matchedMissions.slice(0, 6).map((m) => m.item);
+    const dataTable: StructuredDataTable = {
+      title: `Matched Mission & Spin-Off Cases (${topCases.length} found)`,
+      subtitle: `Keyword search: ${keywordLabel}`,
+      columns: ['Code', 'Title', 'Category', 'Atmosphere', 'Related PSI', 'Key Lesson'],
+      rows: topCases.map((c) => [
+        c.code,
+        c.title,
+        c.category,
+        c.atmosphereLabel,
+        c.relatedPsiIds.slice(0, 3).join(', ') || '-',
+        (c.lessonsLearned[0] ?? c.summary).replace(/\s+/g, ' ').slice(0, 120),
+      ]),
+    };
+    const lead = topCases[0];
+    const citations = Array.from(
+      new Set([
+        ...topCases.flatMap((c) => c.relatedPsiIds),
+        ...(localSim.assistantReply?.citations ?? []),
+      ])
+    ).slice(0, 6);
+    const steps = [
+      `Archive Keyword Fallback [${keywordLabel}]: Matched ${matchedMissions.length} historical mission or spin-off record(s), led by ${lead.code} (${lead.title}, ${lead.yearOrEra}).`,
+      `Primary Engineering Finding (${lead.atmosphereLabel}): ${lead.summary.replace(/\s+/g, ' ').slice(0, 220)}${lead.summary.length > 220 ? '...' : ''}`,
+      `Active Chamber Comparison: Current test chamber (${sliders.material} at ${o2}% O2, ${press} psi, ${grav}g) predicts ${spread} mm/s (${localSim.hazardStatus}, ${minThick} mm minimum safe thickness).`,
+    ];
+    return {
+      blocked: false,
+      answer: steps.join('\n\n'),
+      steps,
+      citations,
+      groundedModel: MODEL_LABEL_LOCAL,
+      flameSpread_mms: localSim.flameSpread_mms,
+      hazardStatus: localSim.hazardStatus,
+      dataTable,
+    };
+  }
+
+  // 2. Cross-Gravity Cabin Comparison
+  if (signals.asksForGravityCompare && !signals.asksForMaterials) {
+    const evalMaterial = resolveCandidateMaterialForQuery(signals, sliders.material);
+    const evalO2 = signals.targetO2 ?? sliders.O2_pct;
+    const envs = [
+      { label: '0g Orbital (ISS)', g: 0.0 },
+      { label: '0.166g Lunar Cabin', g: 0.166 },
+      { label: '0.38g Martian Habitat', g: 0.38 },
+      { label: '1.0g Terrestrial Sea-Level', g: 1.0 },
+    ];
+    const evaluated = envs.map((env) => ({
+      ...env,
+      out: computeFlameSpreadVelocity({
+        O2_pct: evalO2,
+        P_psi: sliders.P_psi,
+        Flow_ms: sliders.Flow_ms,
+        g_eff: env.g,
+        Thickness_mm: sliders.Thickness_mm,
+        material: evalMaterial,
+        ignitionFlux_Wm2: sliders.ignitionFlux_Wm2,
+      }),
+    }));
+    const fastest = [...evaluated].sort((a, b) => b.out.flameSpread_mms - a.out.flameSpread_mms)[0];
+    const slowest = [...evaluated].sort((a, b) => a.out.flameSpread_mms - b.out.flameSpread_mms)[0];
+    const dataTable: StructuredDataTable = {
+      title: `Cross-Gravity Comparison (${evalMaterial} · ${evalO2.toFixed(1)}% O2 · ${press} psi)`,
+      subtitle: `Keyword search: ${keywordLabel}`,
+      columns: ['Environment', 'Gravity (g)', 'Airflow (m/s)', 'Spread (mm/s)', 'Safe Min (mm)', 'Safety Result'],
+      rows: evaluated.map((e) => [
+        e.label,
+        e.g.toFixed(3),
+        flow,
+        e.out.flameSpread_mms.toFixed(2),
+        e.out.minSafeThickness_mm.toFixed(1),
+        e.out.hazardStatus,
+      ]),
+    };
+    const steps = [
+      `Archive Keyword Fallback [${keywordLabel}]: Computed multi-gravity flame spread across Orbital (0g), Lunar (0.166g), Martian (0.38g), and Earth (1.0g) for ${evalMaterial} at ${evalO2.toFixed(1)}% O2 and ${press} psi.`,
+      `Peak Spread Environment: ${fastest.label} reaches ${fastest.out.flameSpread_mms.toFixed(2)} mm/s (${fastest.out.hazardStatus}) vs ${slowest.out.flameSpread_mms.toFixed(2)} mm/s in ${slowest.label} due to reduced buoyant dilution sharpening the forced-flow boundary layer.`,
+      `Design Margin: Minimum safe thickness ranges from ${Math.min(...evaluated.map((e) => e.out.minSafeThickness_mm)).toFixed(1)} mm to ${Math.max(...evaluated.map((e) => e.out.minSafeThickness_mm)).toFixed(1)} mm under ${flow} m/s cabin ventilation.`,
+    ];
+    return {
+      blocked: false,
+      answer: steps.join('\n\n'),
+      steps,
+      citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-69', ...(localSim.assistantReply?.citations ?? [])])).slice(0, 5),
+      groundedModel: MODEL_LABEL_LOCAL,
+      flameSpread_mms: localSim.flameSpread_mms,
+      hazardStatus: localSim.hazardStatus,
+      dataTable,
+    };
+  }
+
+  // 3. Candidate Material Flammability & LOI Comparison
+  if (signals.asksForMaterials && localSim.materialRankings.length > 0 && !signals.asksForRuns) {
+    const ordered = [...localSim.materialRankings].sort((a, b) => {
+      const aMention = signals.materials.some(
+        (m) => a.name.toLowerCase().includes(m.toLowerCase()) || a.code.toLowerCase().includes(m.toLowerCase())
+      )
+        ? 1
+        : 0;
+      const bMention = signals.materials.some(
+        (m) => b.name.toLowerCase().includes(m.toLowerCase()) || b.code.toLowerCase().includes(m.toLowerCase())
+      )
+        ? 1
+        : 0;
+      if (aMention !== bMention) return bMention - aMention;
+      return a.flameSpread_mms - b.flameSpread_mms;
+    });
+    const dataTable: StructuredDataTable = {
+      title: `Material Flammability & LOI Comparison (${o2}% O2 · ${press} psi · ${grav}g)`,
+      subtitle: `Keyword search: ${keywordLabel}`,
+      columns: ['Material', 'Code', 'LOI (%)', 'Spread (mm/s)', 'Cool Flame', 'Toxic Yield', 'Safety Result'],
+      rows: ordered.map((m) => [
+        m.name,
+        m.code,
+        m.limitingO2_pct.toFixed(1),
+        m.flameSpread_mms.toFixed(2),
+        m.coolFlameRiskIndex,
+        m.toxicGasYieldIndex,
+        m.status,
+      ]),
+    };
+    const safest = [...ordered].sort((a, b) => b.limitingO2_pct - a.limitingO2_pct)[0];
+    const fastest = [...ordered].sort((a, b) => b.flameSpread_mms - a.flameSpread_mms)[0];
+    const steps = [
+      `Archive Keyword Fallback [${keywordLabel}]: Evaluated ${ordered.length} spacecraft qualification materials at ${o2}% O2, ${press} psi, ${flow} m/s airflow, and ${grav}g.`,
+      `Highest Oxygen Resistance: ${safest.name} (LOI ${safest.limitingO2_pct.toFixed(1)}%, spread ${safest.flameSpread_mms.toFixed(2)} mm/s, ${safest.status}) vs ${fastest.name} (${fastest.flameSpread_mms.toFixed(2)} mm/s, LOI ${fastest.limitingO2_pct.toFixed(1)}%).`,
+      `Secondary Hazard Check: Monitor PTFE fluoropolymer off-gassing toxicity (index ${ordered.find((x) => x.code.includes('PTFE'))?.toxicGasYieldIndex ?? 84}/100) and PMMA low-flow cool-flame stabilization when ventilation drops below 0.12 m/s.`,
+    ];
+    return {
+      blocked: false,
+      answer: steps.join('\n\n'),
+      steps,
+      citations: Array.from(new Set(['PSI-99', 'PSI-25', 'PSI-159', ...(localSim.assistantReply?.citations ?? [])])).slice(0, 5),
+      groundedModel: MODEL_LABEL_LOCAL,
+      flameSpread_mms: localSim.flameSpread_mms,
+      hazardStatus: localSim.hazardStatus,
+      dataTable,
+    };
+  }
+
+  // 4. PSI Investigations Overview
+  if (
+    matchedInvs.length > 0 &&
+    (signals.asksForInvestigations ||
+      (!signals.asksForRuns && !signals.asksForGuide && topInvScore >= 8 && topRunScore < topInvScore + 3))
+  ) {
+    const topInvs = matchedInvs.slice(0, 6).map((x) => x.item);
+    const dataTable: StructuredDataTable = {
+      title: `Matched PSI Investigations (${topInvs.length} of ${matchedInvs.length})`,
+      subtitle: `Keyword search: ${keywordLabel}`,
+      columns: ['PSI ID', 'Acronym', 'Facility', 'Fuels', 'O2 (%)', 'Spread (mm/s)', 'Regime'],
+      rows: topInvs.map((inv) => [
+        inv.psiId,
+        inv.acronym || '-',
+        inv.facility,
+        inv.fuels.slice(0, 2).join(', ') || '-',
+        `${inv.o2Range[0].toFixed(1)}-${inv.o2Range[1].toFixed(1)}`,
+        `${inv.spreadRange[0].toFixed(2)}-${inv.spreadRange[1].toFixed(2)}`,
+        inv.dominantOutcome,
+      ]),
+    };
+    const leadInv = topInvs[0];
+    const steps = [
+      `Archive Keyword Fallback [${keywordLabel}]: Matched ${matchedInvs.length} PSI investigation(s) in the catalog, led by ${leadInv.psiId} (${leadInv.acronym || leadInv.title}) on ${leadInv.facility}.`,
+      `Investigation Objective: ${leadInv.objective.replace(/\s+/g, ' ').slice(0, 210)}${leadInv.objective.length > 210 ? '...' : ''}`,
+      `Observed Flight Envelope (${leadInv.runCount} runs): O2 ${leadInv.o2Range[0].toFixed(1)}-${leadInv.o2Range[1].toFixed(1)}%, spread ${leadInv.spreadRange[0].toFixed(2)}-${leadInv.spreadRange[1].toFixed(2)} mm/s (dominant outcome: ${leadInv.dominantOutcome}).`,
+    ];
+    return {
+      blocked: false,
+      answer: steps.join('\n\n'),
+      steps,
+      citations: Array.from(new Set([...topInvs.map((i) => i.psiId), ...(localSim.assistantReply?.citations ?? [])])).slice(0, 6),
+      groundedModel: MODEL_LABEL_LOCAL,
+      flameSpread_mms: localSim.flameSpread_mms,
+      hazardStatus: localSim.hazardStatus,
+      dataTable,
+    };
+  }
+
+  // 5. ISS Researcher's Guide & Archive Literature Excerpts
+  if (
+    matchedChunks.length > 0 &&
+    (signals.asksForGuide || (topChunkScore > topRunScore && !signals.asksForRuns))
+  ) {
+    const topChunks = matchedChunks.slice(0, 5).map((x) => x.item);
+    const dataTable: StructuredDataTable = {
+      title: `Matched Researcher's Guide & Literature (${topChunks.length} excerpts)`,
+      subtitle: `Keyword search: ${keywordLabel}`,
+      columns: ['PSI / Source', 'Page', 'Matched Archive Excerpt'],
+      rows: topChunks.map((ch) => [
+        `${ch.psi_id.toUpperCase()} (${ch.source_file.replace(/_/g, ' ').slice(0, 32)})`,
+        `p.${ch.page_number}`,
+        ch.text.replace(/\s+/g, ' ').trim().slice(0, 155),
+      ]),
+    };
+    const leadCh = topChunks[0];
+    const citations = Array.from(
+      new Set([
+        ...topChunks.map((c) => c.psi_id.toUpperCase()),
+        ...(localSim.assistantReply?.citations ?? []),
+      ])
+    ).slice(0, 6);
+    const steps = [
+      `Archive Keyword Fallback [${keywordLabel}]: Found ${topChunks.length} high-relevance literature section(s), led by ${leadCh.psi_id.toUpperCase()} (page ${leadCh.page_number} of ${leadCh.source_file}).`,
+      `Technical Excerpt: "${leadCh.text.replace(/\s+/g, ' ').trim().slice(0, 230)}..."`,
+      `Active Chamber Link: Current test point (${sliders.material}, ${o2}% O2, ${press} psi, ${grav}g) predicts ${spread} mm/s (${localSim.hazardStatus}, peak ${peakTemp} K).`,
+    ];
+    return {
+      blocked: false,
+      answer: steps.join('\n\n'),
+      steps,
+      citations,
+      groundedModel: MODEL_LABEL_LOCAL,
+      flameSpread_mms: localSim.flameSpread_mms,
+      hazardStatus: localSim.hazardStatus,
+      dataTable,
+    };
+  }
+
+  // 6. Flight Experiment Runs Search (or Nearest Reference Baseline fallback)
+  const fallbackRuns =
+    matchedRuns.length > 0
+      ? matchedRuns.map((m) => m.item)
+      : localSim.nearestRuns.slice(0, 6).map((nr) => nr.run);
+
+  const hasWhatIfAlready =
+    mode === 'what-if' && (localSim.assistantReply?.whatIfRows?.length ?? 0) > 0;
+  const shouldIncludeRunTable =
+    fallbackRuns.length > 0 && (!hasWhatIfAlready || matchedRuns.length > 0);
+
+  const spreadVals = fallbackRuns.map((r) => safeFiniteNumber(r.flameSpread_mms, 0));
+  const minSpread = spreadVals.length ? Math.min(...spreadVals).toFixed(2) : spread;
+  const maxSpread = spreadVals.length ? Math.max(...spreadVals).toFixed(2) : spread;
+  const safeCount = fallbackRuns.filter((r) => r.outcome === 'Self-Extinguishing').length;
+  const coolCount = fallbackRuns.filter((r) => r.outcome === 'Cool Flame Caution' || r.coolFlameObserved).length;
+
+  const dataTable: StructuredDataTable | undefined = shouldIncludeRunTable
+    ? {
+        title:
+          matchedRuns.length > 0
+            ? `Matched Flight Experiment Runs (Top ${fallbackRuns.length} of ${totalRunMatches})`
+            : `Nearest Reference Flight Runs (${fallbackRuns.length} matched to chamber)`,
+        subtitle: `Keyword search: ${keywordLabel}`,
+        columns: [
+          'Run Code',
+          'PSI ID',
+          'Material',
+          'O2 (%)',
+          'Press (psi)',
+          'Flow (m/s)',
+          'Gravity (g)',
+          'Spread (mm/s)',
+          'Safety Result',
+        ],
+        rows: fallbackRuns.map((r) => [
+          r.runCode,
+          r.psiId,
+          r.material,
+          safeFiniteNumber(r.O2_pct, 21).toFixed(1),
+          safeFiniteNumber(r.P_psi, 14.7).toFixed(1),
+          safeFiniteNumber(r.Flow_ms, 0.15).toFixed(2),
+          safeFiniteNumber(r.g_eff, 0).toFixed(3),
+          safeFiniteNumber(r.flameSpread_mms, 0).toFixed(2),
+          r.outcome,
+        ]),
+      }
+    : undefined;
+
+  const citations = Array.from(
+    new Set([
+      ...fallbackRuns.map((r) => r.psiId.split(' ')[0].toUpperCase()),
+      ...(localSim.assistantReply?.citations ?? []),
+    ])
+  ).slice(0, 6);
+
+  const steps: string[] = [];
+  if (matchedRuns.length > 0) {
+    steps.push(
+      `Archive Keyword Fallback [${keywordLabel}]: Found ${totalRunMatches} matching flight run(s) across ${runPool.length.toLocaleString()} loaded tests. Tabulated the top ${fallbackRuns.length} representative runs spanning ${minSpread}-${maxSpread} mm/s (${safeCount} Self-Extinguishing, ${coolCount} Cool Flame flagged).`
     );
-  } else if (mode === 'what-if' || mode === 'risk-audit') {
-    baseSteps.unshift(
-      `Active chamber baseline (${sliders.material} @ ${o2}% O2, ${press} psi, ${flow} m/s, ${grav}g): ${spread} mm/s (${localSim.hazardStatus}), matched closely against ${matchLine}.`
+  } else if (matchedChunks.length > 0) {
+    const ch = matchedChunks[0].item;
+    steps.push(
+      `Archive Keyword Fallback [${keywordLabel}]: Matched literature excerpt in ${ch.psi_id.toUpperCase()} p.${ch.page_number}: "${ch.text.replace(/\s+/g, ' ').trim().slice(0, 190)}..."`
+    );
+  } else {
+    steps.push(
+      `Local Physics Evaluation [${sliders.material}]: At ${o2}% O2, ${press} psi, ${flow} m/s airflow, ${grav}g, and ${thick} mm thickness, predicted spread is ${spread} mm/s (${localSim.hazardStatus}, peak ${peakTemp} K).`
     );
   }
 
+  steps.push(
+    `Thickness & Reference Check: ${localSim.safeMaterialCheck?.passed ? 'PASS' : 'FAIL'} against ${minThick} mm safe minimum (${margin >= 0 ? `+${margin.toFixed(1)}` : margin.toFixed(1)} mm margin). Nearest baseline: ${matchLine}.`
+  );
+
   return {
     blocked: false,
-    answer: baseSteps.join('\n\n'),
-    steps: baseSteps,
-    citations: localSim.assistantReply?.citations ?? [],
+    answer: steps.join('\n\n'),
+    steps,
+    citations,
     groundedModel: MODEL_LABEL_LOCAL,
     flameSpread_mms: localSim.flameSpread_mms,
     hazardStatus: localSim.hazardStatus,
+    ...(dataTable ? { dataTable } : {}),
   };
+}
+
+function synthesizeDynamicLocalTelemetryResponse(params: {
+  question: string;
+  mode: ConsoleMode;
+  sliders: VirtualTestConfig;
+  localSim: SimulationResponse;
+  explanationDepth?: 'concise' | 'standard' | 'detailed';
+  catalog?: PsiRun[];
+  archiveContext?: AssistantArchiveContext;
+}): LiveAskResponse {
+  return buildKeywordFallbackResponse(params);
 }
 
 /**
  * Unified 3-step pipeline for Local Combustion Model:
  *   Step A: Local physics, PSI archive & active chart grounding
  *   Step B: Gemini Flash synthesis with multi-model fallback chain (3.8 Flash -> 3.5 Flash-Lite -> 3.6 Flash)
- *   Step C: Dynamic local telemetry failover under identical attribution
+ *   Step C: Keyword-driven archive analyzer & structured table failover under identical attribution
  */
 export async function runLocalCombustionModelPipeline(params: {
   question: string;
@@ -1005,6 +1742,8 @@ export async function runLocalCombustionModelPipeline(params: {
   localSim: SimulationResponse;
   explanationDepth?: 'concise' | 'standard' | 'detailed';
   chartContextSummary?: string;
+  catalog?: PsiRun[];
+  archiveContext?: AssistantArchiveContext;
 }): Promise<LiveAskResponse> {
   const { question, mode, sliders, localSim, explanationDepth, chartContextSummary } = params;
   const apiKey = getGeminiApiKey();

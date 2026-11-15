@@ -12,6 +12,7 @@ import {
   PsiRun,
   SimulationRequest,
   SimulationResponse,
+  StructuredDataTable,
   VirtualTestConfig,
 } from '../types/psi';
 import {
@@ -786,12 +787,13 @@ function sanitizeRemoteSimulationPatch(
     assistantReply: localFallback.assistantReply
       ? {
           ...localFallback.assistantReply,
-          endpointLabel: remoteAttribution,
+          endpointLabel:
+            localFallback.assistantReply.endpointLabel ?? MODEL_LABEL_LOCAL,
         }
       : {
           steps: [],
           citations: [],
-          endpointLabel: remoteAttribution,
+          endpointLabel: MODEL_LABEL_LOCAL,
         },
     ...(isFiniteNum(r.flameSpread_mms) ? { flameSpread_mms: r.flameSpread_mms } : {}),
     ...(isFiniteNum(r.confidenceInterval_mms)
@@ -824,7 +826,16 @@ function sanitizeRemoteSimulationPatch(
     ...(r.assistantReply &&
     typeof r.assistantReply === 'object' &&
     Array.isArray((r.assistantReply as Record<string, unknown>).steps)
-      ? { assistantReply: r.assistantReply as SimulationResponse['assistantReply'] }
+      ? {
+          assistantReply: {
+            ...(r.assistantReply as NonNullable<SimulationResponse['assistantReply']>),
+            endpointLabel:
+              typeof (r.assistantReply as Record<string, unknown>).endpointLabel ===
+              'string'
+                ? String((r.assistantReply as Record<string, unknown>).endpointLabel)
+                : remoteAttribution,
+          },
+        }
       : {}),
   };
 }
@@ -1006,6 +1017,7 @@ export async function runModelConsoleInference(params: {
     groundedModel?: string;
     flameSpread_mms?: number;
     hazardStatus?: SimulationResponse['hazardStatus'];
+    dataTable?: StructuredDataTable;
   } | null = null;
 
   if (apiBaseUrl && activeProfile) {
@@ -1075,6 +1087,8 @@ export async function runModelConsoleInference(params: {
         localSim: response,
         explanationDepth: userProfile.explanationDepth,
         chartContextSummary: params.chartContext?.summaryHeadline,
+        catalog: params.catalog,
+        archiveContext: params.archiveContext,
       });
     }
 
@@ -1096,7 +1110,11 @@ export async function runModelConsoleInference(params: {
       s.includes('Verified Correction Applied')
     );
 
-    const endpointLabel = liveAskResult?.groundedModel || MODEL_LABEL_LOCAL;
+    const endpointLabel =
+      liveAskResult?.groundedModel ||
+      (remoteAnalyzeSucceeded && analyzeEndpointLabel
+        ? analyzeEndpointLabel
+        : MODEL_LABEL_LOCAL);
 
     let combinedSteps =
       liveAskResult && liveAskResult.steps.length > 0
@@ -1133,12 +1151,16 @@ export async function runModelConsoleInference(params: {
       ])
     ).slice(0, 6);
 
+    const resolvedDataTable =
+      liveAskResult?.dataTable ?? response.assistantReply.dataTable;
+
     return {
       ...response,
       assistantReply: {
         ...response.assistantReply,
         steps,
         citations,
+        ...(resolvedDataTable ? { dataTable: resolvedDataTable } : {}),
         inlineChart,
         endpointLabel,
       },

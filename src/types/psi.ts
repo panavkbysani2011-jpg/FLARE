@@ -342,6 +342,13 @@ export interface MaterialCandidate {
   status: HazardOutcome;
 }
 
+export interface StructuredDataTable {
+  title: string;
+  subtitle?: string;
+  columns: string[];
+  rows: Array<Array<string | number>>;
+}
+
 export interface SimulationResponse {
   flameSpread_mms: number;
   confidenceInterval_mms: number;
@@ -374,6 +381,7 @@ export interface SimulationResponse {
     suggestedVizMode?: VizMode;
     recommendedParams?: Partial<VirtualTestConfig>;
     whatIfRows?: WhatIfScenarioResult[];
+    dataTable?: StructuredDataTable;
     inlineChart?: ChatInlineChartPayload;
     endpointLabel?: string;
     appliedCorrectionIds?: string[];
@@ -416,6 +424,7 @@ export interface AssistantMessage {
   suggestedVizMode?: VizMode;
   recommendedParams?: Partial<VirtualTestConfig>;
   whatIfRows?: WhatIfScenarioResult[];
+  dataTable?: StructuredDataTable;
   chartContext?: DecodedChartContext;
   attachments?: ChatAttachment[];
   inlineChart?: ChatInlineChartPayload;

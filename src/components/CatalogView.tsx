@@ -290,103 +290,93 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               }`
         }
       >
-        <section
-          className={`border rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
-          aria-label="Data Archive Sections"
-        >
-          <div
-            className={`flex flex-wrap items-center p-1 rounded-lg border gap-1 ${
-              isDark ? 'bg-[#09090B] border-[#27272A]' : 'bg-zinc-100 border-[#E4E4E7]'
-            }`}
-            role="tablist"
-            aria-label="Data Archive Sub-Tabs"
+        {activeTab === 'psi-investigations' && (
+          <section
+            className={`border rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
+            aria-label="Data Archive Sections"
           >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'psi-investigations'}
-              onClick={() => setActiveTab('psi-investigations')}
-              className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                activeTab === 'psi-investigations'
-                  ? activeMonochrome
-                  : inactiveMonochrome
+            <div
+              className={`flex flex-wrap items-center p-1 rounded-lg border gap-1 ${
+                isDark ? 'bg-[#09090B] border-[#27272A]' : 'bg-zinc-100 border-[#E4E4E7]'
               }`}
+              role="tablist"
+              aria-label="Data Archive Sub-Tabs"
             >
-              <Database className="w-3.5 h-3.5 shrink-0" />
-              <span>PSI Investigations</span>
-              <span className="font-mono text-[11px] opacity-80 tabular-nums">
-                ({investigations.length})
-              </span>
-            </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={true}
+                onClick={() => setActiveTab('psi-investigations')}
+                className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${activeMonochrome}`}
+              >
+                <Database className="w-3.5 h-3.5 shrink-0" />
+                <span>PSI Investigations</span>
+                <span className="font-mono text-[11px] opacity-80 tabular-nums">
+                  ({investigations.length})
+                </span>
+              </button>
 
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'researchers-guide'}
-              onClick={() => setActiveTab('researchers-guide')}
-              className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                activeTab === 'researchers-guide'
-                  ? activeMonochrome
-                  : inactiveMonochrome
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5 shrink-0" />
-              <span>ISS Researcher's Guide</span>
-              <span className="font-mono text-[11px] opacity-80 tabular-nums">
-                (50 pp.)
-              </span>
-            </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={false}
+                onClick={() => setActiveTab('researchers-guide')}
+                className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${inactiveMonochrome}`}
+              >
+                <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                <span>ISS Researcher's Guide</span>
+                <span className="font-mono text-[11px] opacity-80 tabular-nums">
+                  (50 pp.)
+                </span>
+              </button>
 
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'mission-spinoffs'}
-              onClick={() => setActiveTab('mission-spinoffs')}
-              className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                activeTab === 'mission-spinoffs'
-                  ? activeMonochrome
-                  : inactiveMonochrome
-              }`}
-            >
-              <Flame className="w-3.5 h-3.5 shrink-0" />
-              <span>Mission & Spin-Off Cases</span>
-              <span className="font-mono text-[11px] opacity-80 tabular-nums">
-                ({missionCases.length})
-              </span>
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 text-xs">
-            <div className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
-              <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Test Runs ·{' '}
-              {corpusStats ? (
-                <>
-                  <span className="font-mono tabular-nums">
-                    {corpusStats.totalRawChunks.toLocaleString()}
-                  </span>{' '}
-                  Indexed Guide Sections
-                </>
-              ) : (
-                <>
-                  <span className="font-mono tabular-nums">{literatureChunks.length}</span> Indexed Sections
-                </>
-              )}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={false}
+                onClick={() => setActiveTab('mission-spinoffs')}
+                className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${inactiveMonochrome}`}
+              >
+                <Flame className="w-3.5 h-3.5 shrink-0" />
+                <span>Mission & Spin-Off Cases</span>
+                <span className="font-mono text-[11px] opacity-80 tabular-nums">
+                  ({missionCases.length})
+                </span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={onGoToComparator}
-              className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                isDark
-                  ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
-                  : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
-              }`}
-            >
-              <span>Run Comparator ({selectedRunIds.length}/4)</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </section>
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <div className="font-sans text-[11px] text-zinc-500 dark:text-zinc-400">
+                <span className="font-mono tabular-nums">{runs.length.toLocaleString()}</span> Test Runs ·{' '}
+                {corpusStats ? (
+                  <>
+                    <span className="font-mono tabular-nums">
+                      {corpusStats.totalRawChunks.toLocaleString()}
+                    </span>{' '}
+                    Indexed Guide Sections
+                  </>
+                ) : (
+                  <>
+                    <span className="font-mono tabular-nums">{literatureChunks.length}</span> Indexed Sections
+                  </>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={onGoToComparator}
+                className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
+                  isDark
+                    ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                    : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                }`}
+              >
+                <span>Run Comparator ({selectedRunIds.length}/4)</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </section>
+        )}
 
         {activeTab === 'researchers-guide' && (
           <CollapsibleCard
