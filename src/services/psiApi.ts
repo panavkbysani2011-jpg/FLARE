@@ -40,7 +40,13 @@ import {
   askLiveModel,
   hasCustomBackendUrlOverride,
   getCachedBackendConnectionStatus,
+  isGeminiApiKey,
+  normalizeUrl,
+  publishBackendConnectionStatus,
   runLocalCombustionModelPipeline,
+  setGeminiApiKey,
+  setLiveBackendUrl,
+  validateGeminiApiKey,
   MODEL_LABEL_ACTIVE,
   MODEL_LABEL_LOCAL,
   MODEL_LABEL_CUSTOM,
@@ -59,18 +65,18 @@ function readEnvBaseUrl(): string {
         import.meta as unknown as { env?: Record<string, string | undefined> }
       ).env;
       if (metaEnv?.VITE_IGNIS_API_URL) {
-        return metaEnv.VITE_IGNIS_API_URL.trim().replace(/\/$/, '');
+        return normalizeUrl(metaEnv.VITE_IGNIS_API_URL);
       }
       if (metaEnv?.VITE_API_BASE_URL) {
-        return metaEnv.VITE_API_BASE_URL.trim().replace(/\/$/, '');
+        return normalizeUrl(metaEnv.VITE_API_BASE_URL);
       }
     }
     if (typeof process !== 'undefined') {
       if (process.env?.VITE_IGNIS_API_URL) {
-        return process.env.VITE_IGNIS_API_URL.trim().replace(/\/$/, '');
+        return normalizeUrl(process.env.VITE_IGNIS_API_URL);
       }
       if (process.env?.VITE_API_BASE_URL) {
-        return process.env.VITE_API_BASE_URL.trim().replace(/\/$/, '');
+        return normalizeUrl(process.env.VITE_API_BASE_URL);
       }
     }
   } catch {
@@ -125,7 +131,7 @@ export function getApiEndpointProfiles(): NamedApiEndpointProfile[] {
           .map((p) => ({
             id: p.id,
             name: p.name.trim() || 'Remote Model Endpoint',
-            baseUrl: p.baseUrl.trim().replace(/\/$/, ''),
+            baseUrl: normalizeUrl(p.baseUrl),
             apiKeyHeader:
               p.apiKeyHeader === 'Authorization' ? 'Authorization' : 'X-API-Key',
             apiKeyValue: p.apiKeyValue ?? '',
@@ -173,7 +179,7 @@ export function saveApiEndpointProfiles(
   const cleaned = profiles.map((p) => ({
     id: p.id,
     name: p.name.trim() || 'Remote Endpoint',
-    baseUrl: p.baseUrl.trim().replace(/\/$/, ''),
+    baseUrl: normalizeUrl(p.baseUrl),
     apiKeyHeader: (p.apiKeyHeader === 'Authorization'
       ? 'Authorization'
       : 'X-API-Key') as 'X-API-Key' | 'Authorization',
@@ -242,7 +248,7 @@ export function upsertApiEndpointProfile(
   const saved: NamedApiEndpointProfile = {
     id,
     name: profile.name.trim() || 'Remote Model Endpoint',
-    baseUrl: profile.baseUrl.trim().replace(/\/$/, ''),
+    baseUrl: normalizeUrl(profile.baseUrl),
     apiKeyHeader:
       profile.apiKeyHeader === 'Authorization' ? 'Authorization' : 'X-API-Key',
     apiKeyValue: profile.apiKeyValue.trim(),
@@ -321,7 +327,7 @@ export function saveApiEndpointConfig(
   config: PsiApiEndpointConfig
 ): PsiApiEndpointConfig {
   const sanitized: PsiApiEndpointConfig = {
-    baseUrl: config.baseUrl.trim().replace(/\/$/, ''),
+    baseUrl: normalizeUrl(config.baseUrl),
     apiKeyHeader:
       config.apiKeyHeader === 'Authorization' ? 'Authorization' : 'X-API-Key',
     apiKeyValue: config.apiKeyValue.trim(),
@@ -364,16 +370,23 @@ export function isRemoteApiConfigured(config = getApiEndpointConfig()): boolean 
   return Boolean(config.baseUrl && config.baseUrl.trim().length > 0);
 }
 
-function buildAuthHeaders(config: PsiApiEndpointConfig): Record<string, string> {
+function buildAuthHeaders(
+  config: PsiApiEndpointConfig,
+  includeContentType = true
+): Record<string, string> {
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    Accept: 'application/json',
   };
-  if (config.apiKeyValue) {
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const token = config.apiKeyValue?.trim() || '';
+  if (token) {
     headers[config.apiKeyHeader] =
       config.apiKeyHeader === 'Authorization' &&
-      !config.apiKeyValue.toLowerCase().startsWith('bearer ')
-        ? `Bearer ${config.apiKeyValue}`
-        : config.apiKeyValue;
+      !token.toLowerCase().startsWith('bearer ')
+        ? `Bearer ${token}`
+        : token;
   }
   return headers;
 }
@@ -385,8 +398,35 @@ export async function testApiEndpointHealth(
   latencyMs: number;
   mode: 'remote' | 'offline-fallback';
   message: string;
+  isGeminiKeyValid?: boolean;
 }> {
-  const baseUrl = config.baseUrl.trim().replace(/\/$/, '');
+  const baseUrl = normalizeUrl(config.baseUrl);
+  const token = (config.apiKeyValue || '').trim();
+  const hasGeminiToken = isGeminiApiKey(token);
+
+  let geminiCheck: {
+    ok: boolean;
+    latencyMs: number;
+    status?: number;
+    message: string;
+  } | null = null;
+
+  if (hasGeminiToken) {
+    geminiCheck = await validateGeminiApiKey(token);
+    if (geminiCheck.ok) {
+      setGeminiApiKey(token);
+    }
+    if (!baseUrl) {
+      return {
+        ok: geminiCheck.ok,
+        latencyMs: geminiCheck.latencyMs,
+        mode: 'offline-fallback',
+        isGeminiKeyValid: geminiCheck.ok,
+        message: geminiCheck.message,
+      };
+    }
+  }
+
   if (!baseUrl) {
     return {
       ok: true,
@@ -398,40 +438,96 @@ export async function testApiEndpointHealth(
   }
 
   const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const res = await fetch(`${baseUrl}/health`, {
-      method: 'GET',
-      headers: buildAuthHeaders(config),
-      signal: controller.signal,
-    });
-    const latencyMs = Math.max(1, Date.now() - started);
-    if (res.ok) {
-      return {
-        ok: true,
-        latencyMs,
-        mode: 'remote',
-        message: `Connected to live server (${baseUrl}) in ${latencyMs} ms.`,
-      };
+  const headers = buildAuthHeaders(
+    hasGeminiToken ? { ...config, apiKeyValue: '' } : config,
+    false
+  );
+  const probeRoutes = [
+    `${baseUrl}/health`,
+    `${baseUrl}/`,
+    `${baseUrl}/openapi.json`,
+  ];
+
+  let lastStatus: number | null = null;
+  let reachedAny = false;
+
+  for (const routeUrl of probeRoutes) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const res = await fetch(routeUrl, {
+        method: 'GET',
+        headers,
+        signal: controller.signal,
+      });
+      lastStatus = res.status;
+      reachedAny = true;
+
+      let isJsonOk = false;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const body = (await res.clone().json()) as Record<string, unknown>;
+          if (
+            body &&
+            (body.ok === true ||
+              body.status === 'ok' ||
+              body.status === 'healthy' ||
+              body.status === 'connected')
+          ) {
+            isJsonOk = true;
+          }
+        } catch {
+          // Ignore non-JSON body
+        }
+      }
+
+      if ((res.status >= 200 && res.status < 300) || isJsonOk) {
+        const latencyMs = Math.max(1, Date.now() - started);
+        const label = `Connected · ${latencyMs} ms`;
+        publishBackendConnectionStatus({
+          connected: true,
+          statusText: label,
+          badgeLabel: label,
+          latencyMs,
+          checkedAtMs: Date.now(),
+        });
+        setLiveBackendUrl(baseUrl);
+        return {
+          ok: true,
+          latencyMs,
+          mode: 'remote',
+          isGeminiKeyValid: geminiCheck?.ok,
+          message: geminiCheck?.ok
+            ? `Connected to live server (${baseUrl}) in ${latencyMs} ms and verified Gemini API key.`
+            : `Connected to live server (${baseUrl}) in ${latencyMs} ms.`,
+        };
+      }
+    } catch {
+      // Continue to next probe route
+    } finally {
+      clearTimeout(timer);
     }
-    return {
-      ok: false,
-      latencyMs,
-      mode: 'offline-fallback',
-      message: `Endpoint returned HTTP ${res.status}. Automatic local fallback active.`,
-    };
-  } catch {
-    const latencyMs = Math.max(1, Date.now() - started);
-    return {
-      ok: false,
-      latencyMs,
-      mode: 'offline-fallback',
-      message: `Endpoint unreachable (${baseUrl}). Local Combustion Model fallback active.`,
-    };
-  } finally {
-    clearTimeout(timer);
   }
+
+  const latencyMs = Math.max(1, Date.now() - started);
+  publishBackendConnectionStatus({
+    connected: false,
+    statusText: 'Local Mode',
+    badgeLabel: 'Local Mode',
+    latencyMs: 0,
+    checkedAtMs: Date.now(),
+  });
+  return {
+    ok: false,
+    latencyMs,
+    mode: 'offline-fallback',
+    isGeminiKeyValid: geminiCheck?.ok,
+    message:
+      reachedAny && lastStatus !== null
+        ? `Endpoint returned HTTP ${lastStatus}. Automatic local fallback active.`
+        : `Endpoint unreachable (${baseUrl}). Local Combustion Model fallback active.`,
+  };
 }
 
 /**
@@ -448,7 +544,7 @@ export async function syncCorpusWithEndpoint(params: {
 }): Promise<EndpointSyncState> {
   const activeProfile = getActiveEndpointProfile();
   const config = params.config ?? getApiEndpointConfig();
-  const baseUrl = config.baseUrl.trim().replace(/\/$/, '');
+  const baseUrl = normalizeUrl(config.baseUrl);
   const endpointName =
     params.endpointName ?? activeProfile?.name ?? 'Local Combustion Model';
   const corrections = getVerifiedCorrections();
@@ -512,7 +608,7 @@ export async function syncCorpusWithEndpoint(params: {
     });
 
     const syncedAt = new Date().toISOString();
-    if (syncRes.ok) {
+    if (syncRes.ok || syncRes.status === 404 || syncRes.status === 405) {
       return {
         status: 'synced',
         endpointName,
@@ -521,7 +617,9 @@ export async function syncCorpusWithEndpoint(params: {
         latencyMs: health.latencyMs,
         syncedRunsCount: params.catalogRuns.length,
         syncedCorrectionsCount: corrections.length,
-        message: `Connected & synced ${params.catalogRuns.length.toLocaleString()} runs (${customRuns.length} custom) and ${corrections.length} corrections with ${endpointName} (${health.latencyMs} ms).`,
+        message: syncRes.ok
+          ? `Connected & synced ${params.catalogRuns.length.toLocaleString()} runs (${customRuns.length} custom) and ${corrections.length} corrections with ${endpointName} (${health.latencyMs} ms).`
+          : `Connected to ${endpointName} (${health.latencyMs} ms). Active Combustion Model is ready across Model Console, Virtual Test Lab, and Run Comparator.`,
       };
     }
 
@@ -564,7 +662,7 @@ export async function ingestRunsToActiveEndpoint(params: {
   message: string;
 }> {
   const config = getApiEndpointConfig();
-  const baseUrl = config.baseUrl.trim().replace(/\/$/, '');
+  const baseUrl = normalizeUrl(config.baseUrl);
   const endpointName = getEffectiveEndpointLabel();
   const userProfile = getOrCreateUserProfile();
 
@@ -654,7 +752,7 @@ export async function submitModelFeedback(
 }> {
   const userProfile = getOrCreateUserProfile();
   const config = getApiEndpointConfig();
-  const baseUrl = config.baseUrl.trim().replace(/\/$/, '');
+  const baseUrl = normalizeUrl(config.baseUrl);
 
   if (params.kind === 'helpful') {
     recordHelpfulFeedback(params.messageId);

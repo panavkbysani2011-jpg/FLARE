@@ -24,6 +24,13 @@ import {
   testApiEndpointHealth,
   upsertApiEndpointProfile,
 } from '../services/psiApi';
+import {
+  isGeminiApiKey,
+  normalizeUrl,
+  setGeminiApiKey,
+  setLiveBackendUrl,
+  validateGeminiApiKey,
+} from '../lib/flareApi';
 import { getVerifiedCorrections } from '../services/userAdaptation';
 import { StudioSelect } from './StudioSelect';
 
@@ -64,6 +71,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
   onClose,
   onProfilesUpdated,
   onSyncCompleted,
+  onProfileChanged,
 }) => {
   const [form, setForm] = useState(BLANK_FORM);
   const [showKey, setShowKey] = useState(false);
@@ -129,32 +137,63 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
     setIsSyncing(false);
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanedUrl = form.baseUrl.trim();
+    const cleanedUrl = normalizeUrl(form.baseUrl);
+    const cleanedKey = form.apiKeyValue.trim();
+
+    // Support pasting a Google Gemini API key (AQ.... or AIza...) with or without a Base URL
+    if (!cleanedUrl && isGeminiApiKey(cleanedKey)) {
+      setIsSyncing(true);
+      const check = await validateGeminiApiKey(cleanedKey);
+      if (check.ok) {
+        setGeminiApiKey(cleanedKey);
+        setActiveEndpointProfileId(LOCAL_MODEL_ID);
+        onProfilesUpdated(profiles, LOCAL_MODEL_ID);
+        onProfileChanged?.();
+        setForm(BLANK_FORM);
+      }
+      setStatusNotice({
+        ok: check.ok,
+        message: check.message,
+      });
+      setIsSyncing(false);
+      return;
+    }
+
     if (!cleanedUrl) {
       setStatusNotice({
         ok: false,
-        message: 'Enter a Base URL (for example http://127.0.0.1:8000) to save a remote profile.',
+        message: 'Enter a Base URL (for example https://your-tunnel.trycloudflare.com) or paste a Gemini API key.',
       });
       return;
     }
 
+    if (isGeminiApiKey(cleanedKey)) {
+      const check = await validateGeminiApiKey(cleanedKey);
+      if (check.ok) {
+        setGeminiApiKey(cleanedKey);
+      }
+    }
+
+    setLiveBackendUrl(cleanedUrl);
+
     const { profiles: updated, saved } = upsertApiEndpointProfile(
       {
         id: form.id || undefined,
-        name: form.name.trim() || 'Remote Combustion Endpoint',
+        name: form.name.trim() || 'Active Combustion Model',
         baseUrl: cleanedUrl,
         apiKeyHeader: form.apiKeyHeader,
-        apiKeyValue: form.apiKeyValue,
+        apiKeyValue: isGeminiApiKey(cleanedKey) ? '' : cleanedKey,
         modelId: form.modelId.trim(),
       },
       true
     );
 
     onProfilesUpdated(updated, saved.id);
+    onProfileChanged?.();
     setForm(BLANK_FORM);
-    void runHandshakeForProfile(saved);
+    await runHandshakeForProfile(saved);
   };
 
   const handleEditProfile = (profile: NamedApiEndpointProfile) => {
@@ -195,8 +234,12 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const handleTestFormEndpoint = async () => {
     setIsTesting(true);
+    const normalized = normalizeUrl(form.baseUrl);
+    if (normalized !== form.baseUrl) {
+      setForm((p) => ({ ...p, baseUrl: normalized }));
+    }
     const res = await testApiEndpointHealth({
-      baseUrl: form.baseUrl,
+      baseUrl: normalized,
       apiKeyHeader: form.apiKeyHeader,
       apiKeyValue: form.apiKeyValue,
       modelId: form.modelId,

@@ -48,6 +48,7 @@ import {
   getGeminiApiKey,
   getLiveBackendUrl,
   hasCustomGeminiApiKey,
+  normalizeUrl,
   resetGeminiApiKey,
   resetLiveBackendUrl,
   setGeminiApiKey,
@@ -535,7 +536,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           const saved = setLiveBackendUrl(backendUrlDraft);
                           setBackendUrlDraft(saved);
                         }}
-                        placeholder="https://collectables-accommodate-cumulative-chemical.trycloudflare.com"
+                        placeholder="https://soonest-entrepreneurs-formatting-hash.trycloudflare.com"
                         aria-label="Live Backend Endpoint URL"
                         className={`flex-1 h-9 px-3 rounded-lg border text-xs font-mono transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
                       />
@@ -545,8 +546,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           disabled={isTestingBackend}
                           onClick={async () => {
                             setIsTestingBackend(true);
-                            setLiveBackendUrl(backendUrlDraft);
-                            const result = await testFlareApiConnection(backendUrlDraft);
+                            const normalized = normalizeUrl(backendUrlDraft);
+                            const saved = setLiveBackendUrl(normalized);
+                            setBackendUrlDraft(saved);
+                            const result = await testFlareApiConnection(saved);
                             setBackendStatusInfo(result);
                             setIsTestingBackend(false);
                           }}

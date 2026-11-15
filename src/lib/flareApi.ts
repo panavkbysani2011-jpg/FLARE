@@ -23,7 +23,7 @@ import {
 } from '../utils/physicsEngine';
 
 export const DEFAULT_LIVE_API_URL =
-  'https://collectables-accommodate-cumulative-chemical.trycloudflare.com';
+  'https://soonest-entrepreneurs-formatting-hash.trycloudflare.com';
 export const FLARE_API_STORAGE_KEY = 'flare_live_backend_endpoint_url_v2';
 export const FLARE_API_STATUS_STORAGE_KEY = 'flare_live_backend_status_cached_v2';
 export const GEMINI_API_KEY_STORAGE_KEY = 'flare_gemini_api_key_v1';
@@ -164,7 +164,85 @@ function writeStorage(key: string, value: string | null): void {
 }
 
 export function normalizeUrl(url: string): string {
-  return url.trim().replace(/\/+$/, '');
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (!trimmed) return '';
+  return trimmed
+    .replace(/\/(?:health|ask|evaluate|v1|api\/audit-status|openapi\.json)$/i, '')
+    .replace(/\/+$/, '');
+}
+
+export function isGeminiApiKey(token: string): boolean {
+  const clean = token.trim();
+  return clean.startsWith('AQ.') || clean.startsWith('AIza');
+}
+
+export async function validateGeminiApiKey(token: string): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  status?: number;
+  message: string;
+}> {
+  const clean = token.trim();
+  if (!clean) {
+    return {
+      ok: false,
+      latencyMs: 0,
+      message: 'Enter a Gemini API key to validate.',
+    };
+  }
+  const startedAt =
+    typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const controller =
+    typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), 5000) : null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+        clean
+      )}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        signal: controller?.signal,
+      }
+    );
+    const latencyMs = Math.max(
+      1,
+      Math.round(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()) -
+          startedAt
+      )
+    );
+    if (res.ok) {
+      return {
+        ok: true,
+        latencyMs,
+        status: res.status,
+        message: `Gemini API key verified (${latencyMs} ms) and saved for Local Combustion Model.`,
+      };
+    }
+    return {
+      ok: false,
+      latencyMs,
+      status: res.status,
+      message: `Gemini key check returned HTTP ${res.status}.`,
+    };
+  } catch {
+    const latencyMs = Math.max(
+      1,
+      Math.round(
+        (typeof performance !== 'undefined' ? performance.now() : Date.now()) -
+          startedAt
+      )
+    );
+    return {
+      ok: false,
+      latencyMs,
+      message: 'Unable to reach Gemini API endpoint for key validation.',
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function getEnvIgnisUrl(): string {
@@ -535,7 +613,9 @@ export function getCachedBackendConnectionStatus(): BackendConnectionSnapshot {
   };
 }
 
-function publishBackendConnectionStatus(snapshot: BackendConnectionSnapshot): void {
+export function publishBackendConnectionStatus(
+  snapshot: BackendConnectionSnapshot
+): void {
   inMemoryConnectionSnapshot = snapshot;
   writeStorage(FLARE_API_STATUS_STORAGE_KEY, JSON.stringify(snapshot));
   try {
@@ -553,7 +633,10 @@ function publishBackendConnectionStatus(snapshot: BackendConnectionSnapshot): vo
   }
 }
 
-export async function testFlareApiConnection(customUrl?: string): Promise<{
+export async function testFlareApiConnection(
+  customUrl?: string,
+  auth?: { header?: 'X-API-Key' | 'Authorization'; value?: string }
+): Promise<{
   ok: boolean;
   connected: boolean;
   statusText: string;
@@ -576,32 +659,72 @@ export async function testFlareApiConnection(customUrl?: string): Promise<{
   const startedAt =
     typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-  const tryHealth = async (pathSuffix: string): Promise<Response | null> => {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  const token = auth?.value?.trim() || '';
+  if (token) {
+    const headerName =
+      auth?.header === 'Authorization' ? 'Authorization' : 'X-API-Key';
+    headers[headerName] =
+      headerName === 'Authorization' && !token.toLowerCase().startsWith('bearer ')
+        ? `Bearer ${token}`
+        : token;
+  }
+
+  const probeRoute = async (routeUrl: string): Promise<boolean> => {
     const controller =
       typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = controller
       ? setTimeout(() => controller.abort(), 5000)
       : null;
     try {
-      const res = await fetch(`${baseUrl}${pathSuffix}`, {
+      const res = await fetch(routeUrl, {
         method: 'GET',
-        headers: { Accept: 'application/json' },
+        headers,
         signal: controller?.signal,
       });
-      return res;
+      if (res.status >= 200 && res.status < 300) {
+        return true;
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          const body = (await res.json()) as Record<string, unknown>;
+          if (
+            body &&
+            (body.ok === true ||
+              body.status === 'ok' ||
+              body.status === 'healthy' ||
+              body.status === 'connected')
+          ) {
+            return true;
+          }
+        } catch {
+          // Ignore non-JSON body
+        }
+      }
+      return false;
     } catch {
-      return null;
+      return false;
     } finally {
       if (timer) clearTimeout(timer);
     }
   };
 
-  let res = await tryHealth('/health');
-  if (!res || !res.ok) {
-    res = await tryHealth('/api/audit-status');
+  const probeRoutes = [
+    `${baseUrl}/health`,
+    `${baseUrl}/`,
+    `${baseUrl}/openapi.json`,
+  ];
+
+  let connected = false;
+  for (const route of probeRoutes) {
+    if (await probeRoute(route)) {
+      connected = true;
+      break;
+    }
   }
 
-  if (res && res.ok) {
+  if (connected) {
     const elapsed = Math.max(
       1,
       Math.round(
