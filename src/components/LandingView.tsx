@@ -5,18 +5,27 @@ import {
   ChevronDown,
   Flame,
   FlaskConical,
+  LogIn,
   TerminalSquare,
+  UserCheck,
 } from 'lucide-react';
-import { QuickScenarioId, ThemeMode, WorkspaceView } from '../types/psi';
+import {
+  AccountSession,
+  QuickScenarioId,
+  ThemeMode,
+  WorkspaceView,
+} from '../types/psi';
 import { HeroFlameCanvas } from './HeroFlameCanvas';
 
 interface LandingViewProps {
   theme: ThemeMode;
+  session: AccountSession | null;
   investigationCount: number;
   totalRunsCount: number;
   literatureChunksCount: number;
   missionCasesCount: number;
   isArchiveLoading: boolean;
+  onOpenSignIn: () => void;
   onEnterWorkspace: () => void;
   onSelectWorkspace: (view: WorkspaceView) => void;
   onStartQuickScenario: (scenarioId: QuickScenarioId) => void;
@@ -24,11 +33,13 @@ interface LandingViewProps {
 
 export const LandingView: React.FC<LandingViewProps> = ({
   theme,
+  session,
   investigationCount,
   totalRunsCount,
   literatureChunksCount,
   missionCasesCount,
   isArchiveLoading,
+  onOpenSignIn,
   onEnterWorkspace,
   onSelectWorkspace,
   onStartQuickScenario,
@@ -98,18 +109,42 @@ export const LandingView: React.FC<LandingViewProps> = ({
             </span>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 text-xs font-sans text-zinc-400">
-            <span
-              className={`w-1.5 h-1.5 rounded-[2px] ${
-                isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
-              }`}
-              aria-hidden="true"
-            />
-            <span>
-              {isArchiveLoading
-                ? 'Loading flight runs...'
-                : `${displayRuns.toLocaleString()} flight runs loaded`}
-            </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="hidden sm:inline-flex items-center gap-1.5 text-xs font-sans text-zinc-400">
+              <span
+                className={`w-1.5 h-1.5 rounded-[2px] ${
+                  isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+                }`}
+                aria-hidden="true"
+              />
+              <span>
+                {isArchiveLoading
+                  ? 'Loading flight runs...'
+                  : `${displayRuns.toLocaleString()} flight runs loaded`}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenSignIn}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#27272A] bg-[#121215]/90 text-xs font-sans font-medium text-zinc-100 hover:bg-[#18181B] hover:border-zinc-500 transition-colors cursor-pointer"
+            >
+              {session?.isAuthenticated ? (
+                <>
+                  <UserCheck className="w-3.5 h-3.5 text-[#10B981]" />
+                  <span>
+                    {session.mode === 'guest'
+                      ? 'Guest Session'
+                      : session.fullName}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-3.5 h-3.5 text-zinc-300" />
+                  <span>Sign In</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 

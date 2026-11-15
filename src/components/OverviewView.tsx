@@ -10,6 +10,7 @@ import {
   TerminalSquare,
 } from 'lucide-react';
 import { QuickScenarioId, ThemeMode, WorkspaceView } from '../types/psi';
+import { getOrCreateUserProfile } from '../services/userAdaptation';
 
 interface OverviewViewProps {
   theme: ThemeMode;
@@ -39,6 +40,11 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   const displayRuns = totalRunsCount > 0 ? totalRunsCount : 1616;
   const displayGuideSections =
     literatureChunksCount > 0 ? literatureChunksCount : 979;
+  const userProfile = getOrCreateUserProfile();
+  const hasPersonalFocus =
+    userProfile.preferredFuels.length > 0 ||
+    userProfile.preferredGravities.length > 0 ||
+    userProfile.preferredCharts.length > 0;
 
   const staticSurface = isDark
     ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
@@ -282,7 +288,21 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             Quick-Start Examples
           </h2>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Click any ready-made scenario to load its settings right away.
+            {hasPersonalFocus
+              ? `Tailored for ${userProfile.researcherId}: ${[
+                  userProfile.preferredFuels[0]
+                    ? `Preferred fuel ${userProfile.preferredFuels[0]}`
+                    : '',
+                  userProfile.preferredGravities[0]
+                    ? userProfile.preferredGravities[0]
+                    : '',
+                  userProfile.preferredCharts[0]
+                    ? `Default chart ${userProfile.preferredCharts[0]}`
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}.`
+              : 'Click any ready-made scenario to load its settings right away.'}
           </p>
         </div>
 

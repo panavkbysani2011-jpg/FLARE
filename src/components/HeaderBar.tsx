@@ -6,7 +6,14 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
-import { PsiRun, SidebarState, ThemeMode, WorkspaceView } from '../types/psi';
+import {
+  DefaultExportFormat,
+  PsiRun,
+  SidebarState,
+  ThemeMode,
+  ThemeSetting,
+  WorkspaceView,
+} from '../types/psi';
 import { getCanonicalPsiId } from '../utils/investigationArtifacts';
 import {
   HEADER_EXPORT_SECTION_OPTIONS,
@@ -16,7 +23,9 @@ import {
 
 interface HeaderBarProps {
   theme: ThemeMode;
+  themeSetting: ThemeSetting;
   onThemeChange: (mode: ThemeMode) => void;
+  defaultExportFormat?: DefaultExportFormat;
   activeView: WorkspaceView;
   inspectedRun?: PsiRun | null;
   sidebarState: SidebarState;
@@ -47,9 +56,20 @@ const VIEW_BREADCRUMBS: Record<WorkspaceView, { section: string; subPage?: strin
   'investigation-detail': { section: 'Data Archive', subPage: 'Detail' },
 };
 
+function resolveBundleDefaultFormat(
+  preferred?: DefaultExportFormat
+): HeaderExportFormat {
+  if (preferred === 'doc' || preferred === 'pdf' || preferred === 'json') {
+    return preferred;
+  }
+  return 'pdf';
+}
+
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   theme,
+  themeSetting,
   onThemeChange,
+  defaultExportFormat,
   activeView,
   inspectedRun,
   sidebarState,
@@ -63,8 +83,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   const [selectedSections, setSelectedSections] = useState<
     HeaderExportSectionId[]
   >(HEADER_EXPORT_SECTION_OPTIONS.map((o) => o.id));
-  const [exportFormat, setExportFormat] = useState<HeaderExportFormat>('md');
+  const [exportFormat, setExportFormat] = useState<HeaderExportFormat>(() =>
+    resolveBundleDefaultFormat(defaultExportFormat)
+  );
   const exportPopoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setExportFormat(resolveBundleDefaultFormat(defaultExportFormat));
+  }, [defaultExportFormat]);
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -308,28 +334,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                       : 'bg-zinc-100 border-[#E4E4E7]'
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('md')}
-                    className={`px-2 py-1.5 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
-                      exportFormat === 'md'
-                        ? activeMonochrome
-                        : inactiveMonochrome
-                    }`}
-                  >
-                    Markdown (.md)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('json')}
-                    className={`px-2 py-1.5 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
-                      exportFormat === 'json'
-                        ? activeMonochrome
-                        : inactiveMonochrome
-                    }`}
-                  >
-                    JSON Data (.json)
-                  </button>
+                  {(
+                    [
+                      { id: 'pdf', label: 'PDF (.pdf)' },
+                      { id: 'doc', label: 'Word (.doc)' },
+                      { id: 'md', label: 'Markdown (.md)' },
+                      { id: 'json', label: 'JSON Data (.json)' },
+                    ] as Array<{ id: HeaderExportFormat; label: string }>
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setExportFormat(opt.id)}
+                      className={`px-2 py-1.5 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
+                        exportFormat === opt.id
+                          ? activeMonochrome
+                          : inactiveMonochrome
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
 
                 <button
@@ -356,7 +381,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           aria-label="Theme Mode Switcher"
         >
           {(['normal', 'light', 'dark'] as ThemeMode[]).map((mode) => {
-            const active = theme === mode;
+            const active =
+              themeSetting === 'system' ? theme === mode : themeSetting === mode;
             const label = mode.charAt(0).toUpperCase() + mode.slice(1);
             return (
               <button

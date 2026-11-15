@@ -12,14 +12,27 @@ import {
   AlertTriangle,
   Flame,
   ExternalLink,
-  Download,
 } from 'lucide-react';
-import { exportVirtualTestReport } from '../utils/exportHelpers';
+import { exportVirtualTestFormatted } from '../utils/exportGenerators';
+import { ExportDropdown } from './ExportDropdown';
+import {
+  formatAirflow,
+  formatAirflowUnit,
+  formatFlameSpread,
+  formatFlameSpreadValue,
+  formatPressure,
+  formatPressureRiseKpa,
+  formatPressureUnit,
+  formatSpreadUnit,
+  formatTemperature,
+} from '../utils/themePreferences';
 import {
   CandidateMaterialCode,
+  DefaultExportFormat,
   EnvironmentPreset,
   EnvironmentPresetId,
   MaterialCandidate,
+  MeasurementUnits,
   PsiRun,
   SimulationResponse,
   ThemeMode,
@@ -30,6 +43,8 @@ import { CollapsibleCard } from './CollapsibleCard';
 
 interface VirtualTestLabProps {
   theme: ThemeMode;
+  measurementUnits?: MeasurementUnits;
+  defaultExportFormat?: DefaultExportFormat;
   config: VirtualTestConfig;
   activePresetId: EnvironmentPresetId | null;
   simulation: SimulationResponse;
@@ -99,6 +114,8 @@ type MatrixSortField =
 
 export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
   theme,
+  measurementUnits = 'spacecraft',
+  defaultExportFormat,
   config,
   activePresetId,
   simulation,
@@ -243,7 +260,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
         theme={theme}
         title="Test Chamber Configuration"
         subtitle={`${config.g_eff.toFixed(3)}g · ${config.material}`}
-        summaryLine={`${config.g_eff.toFixed(3)}g · ${config.O2_pct.toFixed(1)}% O2 · ${config.P_psi.toFixed(1)} psi · ${config.Flow_ms.toFixed(2)} m/s · ${config.material} · ${config.Thickness_mm.toFixed(1)} mm · ${(config.ignitionFlux_Wm2 / 1000).toFixed(0)} kW/m²`}
+        summaryLine={`${config.g_eff.toFixed(3)}g · ${config.O2_pct.toFixed(1)}% O2 · ${formatPressure(config.P_psi, measurementUnits)} · ${formatAirflow(config.Flow_ms, measurementUnits)} · ${config.material} · ${config.Thickness_mm.toFixed(1)} mm · ${(config.ignitionFlux_Wm2 / 1000).toFixed(0)} kW/m²`}
         rightActions={
           <button
             type="button"
@@ -341,10 +358,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                   htmlFor="vtl-pressure"
                   className="font-sans text-xs font-medium"
                 >
-                  Cabin Pressure (psi)
+                  Cabin Pressure ({formatPressureUnit(measurementUnits)})
                 </label>
                 <span className="font-mono text-xs font-semibold tabular-nums">
-                  {config.P_psi.toFixed(1)} psi
+                  {formatPressure(config.P_psi, measurementUnits)}
                 </span>
               </div>
               <input
@@ -359,13 +376,13 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
-                  <span className="font-mono tabular-nums">4.3</span> psi (EVA)
+                  <span className="font-mono tabular-nums">{formatPressure(4.3, measurementUnits)}</span> (EVA)
                 </span>
                 <span>
-                  <span className="font-mono tabular-nums">8.2</span> Exploration
+                  <span className="font-mono tabular-nums">{formatPressure(8.2, measurementUnits)}</span> Exploration
                 </span>
                 <span>
-                  <span className="font-mono tabular-nums">14.7</span> ISS
+                  <span className="font-mono tabular-nums">{formatPressure(14.7, measurementUnits)}</span> ISS
                 </span>
               </div>
             </div>
@@ -377,10 +394,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                   htmlFor="vtl-flow"
                   className="font-sans text-xs font-medium"
                 >
-                  Forced Airflow (m/s)
+                  Forced Airflow ({formatAirflowUnit(measurementUnits)})
                 </label>
                 <span className="font-mono text-xs font-semibold tabular-nums">
-                  {config.Flow_ms.toFixed(2)} m/s
+                  {formatAirflow(config.Flow_ms, measurementUnits)}
                 </span>
               </div>
               <input
@@ -395,12 +412,12 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
-                  <span className="font-mono tabular-nums">0.00</span> Quiescent
+                  <span className="font-mono tabular-nums">0.0</span> Quiescent
                 </span>
                 <span>
-                  <span className="font-mono tabular-nums">0.14</span> Peak Vent
+                  <span className="font-mono tabular-nums">{formatAirflow(0.14, measurementUnits)}</span> Peak Vent
                 </span>
-                <span className="font-mono tabular-nums">0.45 m/s</span>
+                <span className="font-mono tabular-nums">{formatAirflow(0.45, measurementUnits)}</span>
               </div>
             </div>
 
@@ -562,17 +579,23 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
         theme={theme}
         title="Virtual Test Results & Model Accuracy Report"
         subtitle={`${confidence.confidencePct.toFixed(1)}% Model Confidence`}
-        summaryLine={`${simulation.hazardStatus} · ${simulation.flameSpread_mms.toFixed(2)} ± ${simulation.confidenceInterval_mms.toFixed(2)} mm/s · Confidence ${confidence.confidencePct.toFixed(1)}% (${confidence.physicalTestingRecommendation === 'Avoidable' ? 'Physical test avoidable' : 'Physical test recommended'})`}
+        summaryLine={`${simulation.hazardStatus} · ${formatFlameSpread(simulation.flameSpread_mms, measurementUnits)} ± ${formatFlameSpread(simulation.confidenceInterval_mms, measurementUnits)} · Confidence ${confidence.confidencePct.toFixed(1)}% (${confidence.physicalTestingRecommendation === 'Avoidable' ? 'Physical test avoidable' : 'Physical test recommended'})`}
         rightActions={
-          <button
-            type="button"
-            onClick={() => exportVirtualTestReport(config, simulation)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
-            title="Download active chamber settings, flame spread prediction, confidence score, and nearest flight runs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Test Report</span>
-          </button>
+          <ExportDropdown
+            theme={theme}
+            label="Export Test"
+            formats={['doc', 'pdf', 'json']}
+            defaultFormat={defaultExportFormat}
+            title="Download active chamber settings, prediction, confidence, and nearest runs"
+            onSelectFormat={(fmt) =>
+              exportVirtualTestFormatted({
+                config,
+                simulation,
+                units: measurementUnits,
+                format: fmt,
+              })
+            }
+          />
         }
       >
         <div className="space-y-4">
@@ -595,7 +618,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <div className="mt-1 font-sans text-[11px] text-zinc-500">
                 Peak Temp{' '}
                 <span className="font-mono tabular-nums">
-                  {simulation.peakTemp_K} K
+                  {formatTemperature(simulation.peakTemp_K, measurementUnits)}
                 </span>
               </div>
             </div>
@@ -606,9 +629,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 Flame Spread Speed (95% CI)
               </div>
               <div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">
-                {simulation.flameSpread_mms.toFixed(2)}{' '}
+                {formatFlameSpreadValue(simulation.flameSpread_mms, measurementUnits)}{' '}
                 <span className="text-xs font-normal text-zinc-500">
-                  ± {simulation.confidenceInterval_mms.toFixed(2)} mm/s
+                  ± {formatFlameSpreadValue(simulation.confidenceInterval_mms, measurementUnits)}{' '}
+                  {formatSpreadUnit(measurementUnits)}
                 </span>
               </div>
               <div className="mt-1 font-sans text-[11px] text-zinc-500">
@@ -627,7 +651,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               </div>
               <div className="mt-1 font-sans text-[11px] text-zinc-500">
                 <span className="font-mono tabular-nums">
-                  +{simulation.forecast10s.pressureRise_kPa.toFixed(2)} kPa
+                  {formatPressureRiseKpa(simulation.forecast10s.pressureRise_kPa, measurementUnits)}
                 </span>{' '}
                 cabin rise
               </div>
@@ -779,7 +803,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                     </div>
                     <div className="mt-1.5 flex items-center justify-between font-mono text-[11px] text-zinc-600 dark:text-zinc-300 tabular-nums">
                       <span>
-                        {run.O2_pct.toFixed(1)}% O2 · {run.Flow_ms.toFixed(2)} m/s
+                        {run.O2_pct.toFixed(1)}% O2 · {formatAirflow(run.Flow_ms, measurementUnits)}
                       </span>
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </div>

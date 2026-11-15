@@ -155,6 +155,66 @@ export interface VirtualTestConfig {
   ignitionFlux_Wm2: number;
 }
 
+export type ExplanationDepth = 'concise' | 'standard' | 'detailed';
+
+export interface UserAdaptationProfile {
+  researcherId: string;
+  explanationDepth: ExplanationDepth;
+  fuelCounts: Record<string, number>;
+  gravityCounts: Record<string, number>;
+  chartCounts: Record<string, number>;
+  preferredFuels: string[];
+  preferredGravities: string[];
+  preferredCharts: VizMode[];
+  helpfulMessageIds: string[];
+  updatedAtUtc: string;
+}
+
+export interface ModelFeedbackCorrection {
+  id: string;
+  messageId: string;
+  createdAtUtc: string;
+  researcherId: string;
+  question: string;
+  material: string;
+  O2_pct: number;
+  P_psi: number;
+  Flow_ms: number;
+  g_eff: number;
+  Thickness_mm: number;
+  predictedSpread_mms: number;
+  correctedSpread_mms?: number;
+  correctedMinSafeThickness_mm?: number;
+  correctedOutcome?: HazardOutcome;
+  correctionNote: string;
+  syncedRemote: boolean;
+}
+
+export interface EndpointSyncState {
+  status: 'local-only' | 'syncing' | 'synced' | 'offline-fallback';
+  endpointName: string;
+  baseUrl?: string;
+  lastSyncAtUtc?: string;
+  latencyMs?: number;
+  syncedRunsCount?: number;
+  syncedCorrectionsCount?: number;
+  message: string;
+}
+
+export interface LearnedBundleExport {
+  exportedAtUtc: string;
+  formatVersion: '1.0';
+  researcherProfile: UserAdaptationProfile;
+  verifiedCorrections: ModelFeedbackCorrection[];
+  customImportedRuns: PsiRun[];
+  activeEndpoint: {
+    id: string;
+    name: string;
+    baseUrl: string;
+    modelId?: string;
+  } | null;
+}
+
 export interface SimulationRequest {
   O2_pct: number;
   P_psi: number;
@@ -167,8 +227,46 @@ export interface SimulationRequest {
   material_check?: boolean;
   question?: string;
   selectedRunIds?: string[];
+  comparatorRuns?: PsiRun[];
   consoleMode?: ConsoleMode;
   activeChartContext?: DecodedChartContext;
+  attachments?: ChatAttachment[];
+  requestedVizOutput?: ChatVisualizationOutputMode;
+  userProfile?: UserAdaptationProfile;
+  verifiedCorrections?: ModelFeedbackCorrection[];
+}
+
+export type ChatVisualizationOutputMode = 'auto' | 'none' | VizMode;
+
+export type ChatAttachmentKind =
+  | 'virtual-lab'
+  | 'comparator-runs'
+  | 'visual-studio'
+  | 'psi-investigation';
+
+export interface ChatAttachment {
+  id: string;
+  kind: ChatAttachmentKind;
+  label: string;
+  sublabel?: string;
+  psiId?: string;
+  runId?: string;
+}
+
+export interface ChatInlineChartPayload {
+  status: 'rendered' | 'incompatible';
+  requestedMode: ChatVisualizationOutputMode;
+  resolvedVizMode?: VizMode;
+  techniqueName?: string;
+  datasetScope: DatasetScope;
+  datasetLabel: string;
+  runIds?: string[];
+  xAxisKey?: string;
+  yAxisKey?: string;
+  colorByKey?: string;
+  headline?: string;
+  incompatibilityReason?: string;
+  compatibleAlternatives?: Array<{ vizMode: VizMode; name: string }>;
 }
 
 export interface ModelConfidenceSummary {
@@ -211,6 +309,16 @@ export interface PsiApiEndpointConfig {
   baseUrl: string;
   apiKeyHeader: 'X-API-Key' | 'Authorization';
   apiKeyValue: string;
+  modelId?: string;
+}
+
+export interface NamedApiEndpointProfile {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKeyHeader: 'X-API-Key' | 'Authorization';
+  apiKeyValue: string;
+  modelId?: string;
 }
 
 export interface TimelinePoint {
@@ -266,6 +374,10 @@ export interface SimulationResponse {
     suggestedVizMode?: VizMode;
     recommendedParams?: Partial<VirtualTestConfig>;
     whatIfRows?: WhatIfScenarioResult[];
+    inlineChart?: ChatInlineChartPayload;
+    endpointLabel?: string;
+    appliedCorrectionIds?: string[];
+    adaptiveNote?: string;
   };
 }
 
@@ -305,6 +417,20 @@ export interface AssistantMessage {
   recommendedParams?: Partial<VirtualTestConfig>;
   whatIfRows?: WhatIfScenarioResult[];
   chartContext?: DecodedChartContext;
+  attachments?: ChatAttachment[];
+  inlineChart?: ChatInlineChartPayload;
+  endpointLabel?: string;
+  feedbackStatus?: 'helpful' | 'corrected';
+  appliedCorrectionIds?: string[];
+  adaptiveNote?: string;
+}
+
+export interface ChatThread {
+  id: string;
+  title: string;
+  updatedAt: string;
+  updatedAtMs: number;
+  messages: AssistantMessage[];
 }
 
 export type DataArchiveTab =
@@ -414,4 +540,98 @@ export interface MissionSpinoffCase {
     g_eff: number;
     Thickness_mm: number;
   };
+}
+
+export type MeasurementUnits = 'spacecraft' | 'metric-si';
+
+export type DefaultStartingWorkspace =
+  | 'overview'
+  | 'virtual-lab'
+  | 'model-console';
+
+export type DefaultExportFormat = 'pdf' | 'doc' | 'csv' | 'json';
+
+export type ExportFileFormat = 'pdf' | 'doc' | 'csv' | 'json' | 'md';
+
+export type ThemeSetting = ThemeMode | 'system';
+
+export type ContrastMode = 'default' | 'strong';
+
+export type FontFamilyId =
+  | 'inter'
+  | 'space-grotesk'
+  | 'ibm-plex-sans'
+  | 'opendyslexic-atkinson'
+  | 'jetbrains-mono';
+
+export type FontSizePx = 13 | 14 | 15 | 16;
+
+export type ThemePresetId =
+  | 'monochrome-default'
+  | 'obsidian-amber'
+  | 'deep-ocean-teal'
+  | 'slate-cobalt'
+  | 'forest-emerald'
+  | 'warm-paper-sand'
+  | 'arctic-ice-blue'
+  | 'solarized-dusk'
+  | 'crimson-lab'
+  | 'high-contrast-carbon';
+
+export interface CustomThemeColors {
+  background?: string;
+  foreground?: string;
+  accent?: string;
+}
+
+export interface AppSettings {
+  units: MeasurementUnits;
+  defaultWorkspace: DefaultStartingWorkspace;
+  defaultExportFormat: DefaultExportFormat;
+  themeSetting: ThemeSetting;
+  contrast: ContrastMode;
+  fontFamily: FontFamilyId;
+  fontSizePx: FontSizePx;
+  presetId: ThemePresetId;
+  customColors: CustomThemeColors;
+}
+
+export interface UserProfileDetails {
+  fullName: string;
+  researcherId: string;
+  email: string;
+  bio: string;
+}
+
+export interface AccountSession {
+  mode: 'named' | 'guest';
+  fullName: string;
+  researcherId: string;
+  isAuthenticated: boolean;
+}
+
+export interface SavedUserAccountWorkspace {
+  researcherId: string;
+  fullName: string;
+  email: string;
+  bio: string;
+  settings: AppSettings;
+  adaptationProfile: UserAdaptationProfile;
+  verifiedCorrections: ModelFeedbackCorrection[];
+  chatThreads: ChatThread[];
+  activeChatThreadId: string | null;
+  customRuns: PsiRun[];
+  updatedAtUtc: string;
+}
+
+export interface GlobalSearchResult {
+  id: string;
+  kind: 'investigation' | 'run' | 'guide';
+  title: string;
+  subtitle: string;
+  meta: string;
+  run?: PsiRun;
+  investigation?: PsiInvestigationRecord;
+  guideTopicId?: string;
+  guideSearchHint?: string;
 }

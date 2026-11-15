@@ -24,12 +24,63 @@ import {
   HEADER_EXPORT_SECTION_OPTIONS,
 } from './exportHelpers';
 import {
+  generateClientPdfBytes,
+  generateWordDocHtml,
+} from './exportGenerators';
+import { performGlobalSearch } from './globalSearch';
+import {
+  DEFAULT_APP_SETTINGS,
+  formatAirflow,
+  formatFlameSpread,
+  formatPressure,
+  formatTemperature,
+  THEME_PRESETS,
+} from './themePreferences';
+import {
+  clearChatHistoryForSession,
+  deleteNamedAccount,
+  findSavedAccountByFullName,
+  generateResearcherIdFromName,
+  signInWithFullName,
+  signOutAccountSession,
+  startGuestSession,
+  updateActiveUserProfileDetails,
+} from '../services/accountSession';
+import {
+  LOCAL_MODEL_ID,
   analyzeCombustionState,
+  deleteApiEndpointProfile,
+  generateChartDecodeInsight,
+  generateComparatorInsights,
+  getActiveEndpointProfileId,
   getApiEndpointConfig,
+  getApiEndpointProfiles,
+  ingestRunsToActiveEndpoint,
   runModelConsoleInference,
   saveApiEndpointConfig,
+  setActiveEndpointProfileId,
+  submitModelFeedback,
+  syncCorpusWithEndpoint,
   testApiEndpointHealth,
+  upsertApiEndpointProfile,
 } from '../services/psiApi';
+import {
+  buildLearnedProfileBundle,
+  getOrCreateUserProfile,
+  getVerifiedCorrections,
+  recordChartUsage,
+  recordFuelUsage,
+  recordGravityUsage,
+  setExplanationDepth,
+  setResearcherId,
+} from '../services/userAdaptation';
+import {
+  appendMessagesToThread,
+  createChatThread,
+  deriveChatThreadTitle,
+  sortThreadsNewestFirst,
+} from './chatStorage';
+import { resolveChatVisualization } from './chatVisualizations';
 import {
   STUDIO_CATEGORICAL_COLUMNS,
   STUDIO_DATASET_SOURCES,
@@ -229,6 +280,175 @@ test('VIZ_TECHNIQUE_REGISTRY spans all 5 analytical families and evaluates compa
   });
   assert.equal(filteredUnavailable.length, 1);
   assert.equal(filteredUnavailable[0].definition.id, 'histogram');
+});
+
+test('resolveChatVisualization validates none, auto, and incompatible requests with alternatives', () => {
+  const sliders = {
+    O2_pct: 34.0,
+    P_psi: 8.2,
+    Flow_ms: 0.12,
+    g_eff: 0.166,
+    Thickness_mm: 2.0,
+    material: 'PMMA' as const,
+    ignitionFlux_Wm2: 25000,
+    sampleGeometry: 'Thin Slab' as const,
+    customMaterialLabel: '',
+  };
+  const simulation = runLocalPhysicsSimulation(sliders, REAL_SAMPLE_RUNS);
+  const selected = REAL_SAMPLE_RUNS.slice(0, 3);
+
+  const noneChart = resolveChatVisualization({
+    question: 'Explain why oxygen increases flame speed.',
+    mode: 'literature',
+    requestedVizOutput: 'none',
+    attachments: [],
+    selectedRuns: selected,
+    catalogRuns: REAL_SAMPLE_RUNS,
+    simulation,
+    sliders,
+  });
+  assert.equal(noneChart, undefined);
+
+  const autoChart = resolveChatVisualization({
+    question: 'Compare oxygen vs airflow safety boundary across lunar runs.',
+    mode: 'decoder',
+    requestedVizOutput: 'auto',
+    attachments: [
+      {
+        id: 'att-lab',
+        kind: 'virtual-lab',
+        label: 'Virtual Test Lab Current Run',
+      },
+    ],
+    selectedRuns: selected,
+    catalogRuns: REAL_SAMPLE_RUNS,
+    simulation,
+    sliders,
+  });
+  assert.ok(autoChart && autoChart.status === 'rendered');
+  assert.ok(
+    autoChart.resolvedVizMode &&
+      autoChart.headline &&
+      autoChart.headline.length > 5
+  );
+
+  const incompatibleChart = resolveChatVisualization({
+    question: 'Plot these selected historical runs as a sensor timeline.',
+    mode: 'literature',
+    requestedVizOutput: 'sensor-timeline',
+    attachments: [
+      {
+        id: 'att-comp',
+        kind: 'comparator-runs',
+        label: 'Run Comparator',
+      },
+    ],
+    selectedRuns: selected,
+    catalogRuns: REAL_SAMPLE_RUNS,
+    simulation,
+    sliders,
+  });
+  assert.ok(incompatibleChart && incompatibleChart.status === 'incompatible');
+  assert.ok(
+    incompatibleChart.incompatibilityReason &&
+      incompatibleChart.incompatibilityReason.length > 10
+  );
+  assert.ok(
+    incompatibleChart.compatibleAlternatives &&
+      incompatibleChart.compatibleAlternatives.length > 0
+  );
+  assert.ok(
+    !incompatibleChart.compatibleAlternatives.some(
+      (alt) => alt.vizMode === 'sensor-timeline'
+    )
+  );
+});
+
+test('chatStorage derives titles cleanly and maintains newest-first thread order', () => {
+  const firstThread = createChatThread('New Chat');
+  const olderThread = {
+    ...createChatThread('Older Inquiry'),
+    updatedAtMs: firstThread.updatedAtMs - 60_000,
+  };
+
+  assert.equal(deriveChatThreadTitle('   Compare   PSI-122  and  PSI-138  '), 'Compare PSI-122 and PSI-138');
+  const longTitle = deriveChatThreadTitle('A'.repeat(70));
+  assert.ok(longTitle.endsWith('...') && longTitle.length <= 46);
+
+  const ordered = sortThreadsNewestFirst([olderThread, firstThread]);
+  assert.equal(ordered[0].id, firstThread.id);
+
+  const updatedList = appendMessagesToThread(ordered, olderThread.id, [
+    {
+      id: 'msg-u1',
+      role: 'user',
+      text: 'Why does low gravity sustain cool flames?',
+      mode: 'literature',
+      timestamp: '10:00',
+    },
+  ]);
+  assert.equal(updatedList[0].id, olderThread.id);
+  assert.equal(updatedList[0].messages.length, 1);
+
+  const autoTitled = appendMessagesToThread(ordered, firstThread.id, [
+    {
+      id: 'msg-u2',
+      role: 'user',
+      text: 'Summarize Nomex vs PMMA ignition limits',
+      mode: 'risk-audit',
+      timestamp: '10:05',
+    },
+  ]);
+  const renamedFirst = autoTitled.find((t) => t.id === firstThread.id)!;
+  assert.equal(renamedFirst.title, 'Summarize Nomex vs PMMA ignition limits');
+});
+
+test('psiApi multi-profile endpoint manager persists, switches active model, and falls back to local model', () => {
+  const store = new Map<string, string>();
+  const hadWindow = 'window' in globalThis;
+  const prevWindow = (globalThis as Record<string, unknown>).window;
+  (globalThis as Record<string, unknown>).window = {
+    localStorage: {
+      getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+      setItem: (k: string, v: string) => {
+        store.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        store.delete(k);
+      },
+    },
+  };
+
+  try {
+    assert.equal(getActiveEndpointProfileId(), LOCAL_MODEL_ID);
+    const { profiles: afterAdd, saved } = upsertApiEndpointProfile(
+      {
+        name: 'Lab FastAPI',
+        baseUrl: 'http://127.0.0.1:8000',
+        apiKeyHeader: 'X-API-Key',
+        apiKeyValue: 'test-secret',
+        modelId: 'psi-v2',
+      },
+      true
+    );
+    assert.equal(afterAdd.length, 1);
+    assert.equal(getActiveEndpointProfileId(), saved.id);
+    assert.equal(getApiEndpointProfiles().length, 1);
+
+    setActiveEndpointProfileId(LOCAL_MODEL_ID);
+    assert.equal(getActiveEndpointProfileId(), LOCAL_MODEL_ID);
+
+    setActiveEndpointProfileId(saved.id);
+    const afterDelete = deleteApiEndpointProfile(saved.id);
+    assert.equal(afterDelete.length, 0);
+    assert.equal(getActiveEndpointProfileId(), LOCAL_MODEL_ID);
+  } finally {
+    if (hadWindow) {
+      (globalThis as Record<string, unknown>).window = prevWindow;
+    } else {
+      delete (globalThis as Record<string, unknown>).window;
+    }
+  }
 });
 
 test('Virtual Test Lab accounts for material, ignition flux, and model confidence scoring', () => {
@@ -564,6 +784,7 @@ test('psiApi remote HTTP endpoint adapter authenticates, validates schema, and f
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
 test('typography hierarchy avoids monospace on legends, prose, statuses, and referenced data assets exist on disk', () => {
   const rootDir = path.resolve(import.meta.dirname ?? path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', '..');
   const readComp = (relPath: string) =>
@@ -715,8 +936,8 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
     'LeftSidebar must receive onReturnToLanding callback to return to LandingView'
   );
   assert.ok(
-    appSrc.includes('useState<AssistantMessage[]>([])'),
-    'Model Console must initialize with empty messages array'
+    appSrc.includes('loadChatThreads') && appSrc.includes('createChatThread'),
+    'Model Console must initialize persistent localStorage chat threads with fresh empty welcome thread'
   );
 
   const landingSrc = readFile('src', 'components', 'LandingView.tsx');
@@ -763,10 +984,13 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
     headerSrc.includes('Download Selected') && !headerSrc.includes('Export Safety Brief'),
     'HeaderBar must replace Export Safety Brief with interactive multi-select Export dropdown'
   );
-  assert.ok(readFile('src', 'components', 'VirtualTestLab.tsx').includes('Export Test Report'));
-  assert.ok(readFile('src', 'components', 'RunComparator.tsx').includes('Export Comparison CSV'));
-  assert.ok(readFile('src', 'components', 'VisualAnalyticsStudio.tsx').includes('Export Chart Data'));
-  assert.ok(readFile('src', 'components', 'ExperimentRunsView.tsx').includes('Export Filtered Runs'));
+  assert.ok(readFile('src', 'components', 'VirtualTestLab.tsx').includes('Export Test'));
+  assert.ok(readFile('src', 'components', 'RunComparator.tsx').includes('Export Comparison'));
+  assert.ok(readFile('src', 'components', 'VisualAnalyticsStudio.tsx').includes('Export Chart'));
+  assert.ok(!readFile('src', 'components', 'VisualAnalyticsStudio.tsx').includes('Chart export format'));
+  assert.ok(readFile('src', 'components', 'ExperimentRunsView.tsx').includes('Export Data'));
+  assert.ok(readFile('src', 'components', 'PsiInvestigationDetailView.tsx').includes('Export Data'));
+  assert.ok(readFile('src', 'components', 'ModelConsoleView.tsx').includes('Export Chat'));
 
   const overviewSrc = readFile('src', 'components', 'OverviewView.tsx');
   assert.ok(overviewSrc.includes('How to Use This Platform'), 'OverviewView must include 3-step guide section');
@@ -777,10 +1001,34 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
   assert.ok(sidebarSrc.includes('onClick={onReturnToLanding}') && sidebarSrc.includes('>Overview<'), 'LeftSidebar must rename top item to Overview and return to LandingView on logo click');
 
   const consoleSrc = readFile('src', 'components', 'ModelConsoleView.tsx');
-  const formIdx = consoleSrc.indexOf('<form onSubmit={handleSubmit}');
+  const formIdx = consoleSrc.indexOf('<form');
   const mapIdx = consoleSrc.indexOf('messages.map(');
-  assert.ok(formIdx > 0 && mapIdx > 0 && formIdx < mapIdx, 'Model Console composer must render above output stream');
-  assert.ok(consoleSrc.includes('<textarea') && consoleSrc.includes('min-h-[72px]') && consoleSrc.includes('rounded-xl'), 'Model Console must use taller rounded-xl textarea');
+  assert.ok(
+    formIdx > 0 && mapIdx > 0 && mapIdx < formIdx,
+    'Gemini-style Model Console renders message stream above bottom composer'
+  );
+  assert.ok(
+    consoleSrc.includes('<textarea') && consoleSrc.includes('rounded-2xl'),
+    'Model Console uses floating rounded-2xl composer bar'
+  );
+  assert.ok(
+    consoleSrc.includes('w-[240px]') && consoleSrc.includes('New Chat'),
+    'Model Console includes 240px collapsible Chat History drawer with + New Chat'
+  );
+  assert.ok(
+    consoleSrc.includes('SpeechRecognition') &&
+      consoleSrc.includes('webkitSpeechRecognition'),
+    'Model Console supports Web Speech API voice dictation'
+  );
+  assert.ok(
+    !consoleSrc.includes('>API Config<'),
+    'Model Console removes standalone header API Config button'
+  );
+  const importSyncSrc = readFile('src', 'components', 'ImportSyncView.tsx');
+  assert.ok(
+    !importSyncSrc.includes('Remote Model Endpoint'),
+    'Data Import & Sync removes duplicate Remote Model Endpoint panel'
+  );
 
   const rendererSrc = readFile('src', 'components', 'VizTechniqueRenderer.tsx');
   assert.ok(
@@ -801,4 +1049,448 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
   const engineSrc = readFile('src', 'utils', 'physicsEngine.ts');
   assert.ok(!/public\/data\/nasa-space-apps/i.test(engineSrc), 'Internal public path leaked in physicsEngine.ts');
   assert.ok(!/Antigravity/i.test(engineSrc), 'Workspace tool name leaked in physicsEngine.ts');
+
+  const apiModalSrc = readFile('src', 'components', 'ApiSettingsModal.tsx');
+  assert.ok(
+    !apiModalSrc.includes('Researcher Profile ID') &&
+      !apiModalSrc.includes('Reply Detail Depth'),
+    'ApiSettingsModal must focus strictly on Remote Model Endpoints and API keys'
+  );
+  const settingsModalSrc = readFile('src', 'components', 'SettingsModal.tsx');
+  assert.ok(
+    settingsModalSrc.includes('General Preferences') &&
+      settingsModalSrc.includes('Researcher Profile') &&
+      settingsModalSrc.includes('Appearance &amp; Accessibility') &&
+      settingsModalSrc.includes('Keyboard Shortcuts') &&
+      settingsModalSrc.includes('Account &amp; Learned Memory'),
+    'SettingsModal must expose 5 settings categories cleanly'
+  );
+  assert.ok(
+    consoleSrc.includes('Reply Detail Depth') &&
+      consoleSrc.includes('Brief') &&
+      consoleSrc.includes('Standard') &&
+      consoleSrc.includes('Deep') &&
+      consoleSrc.includes('Helpful') &&
+      consoleSrc.includes('Correct / Teach Model'),
+    'ModelConsoleView must render Reply Detail Depth in model popover plus inline Helpful and Correct / Teach Model actions'
+  );
+  const landingWithAuth = readFile('src', 'components', 'LandingView.tsx');
+  assert.ok(
+    landingWithAuth.includes('Sign In') &&
+      sidebarSrc.includes('Settings') &&
+      sidebarSrc.includes('Ctrl+K'),
+    'LandingView and LeftSidebar must expose Sign In gate, Settings footer, and Ctrl+K global search'
+  );
+});
+
+test('unified psiApi handshake, run ingestion, per-user adaptation, and closed-loop feedback learning work end-to-end', async () => {
+  const capturedPaths: string[] = [];
+  let capturedSyncBody: Record<string, unknown> | null = null;
+  let capturedIngestBody: Record<string, unknown> | null = null;
+  let capturedFeedbackBody: Record<string, unknown> | null = null;
+  let capturedAnalyzeBody: Record<string, unknown> | null = null;
+
+  const server = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(chunk as Buffer));
+    req.on('end', () => {
+      const raw = Buffer.concat(chunks).toString('utf8');
+      const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+      capturedPaths.push(req.url ?? '');
+
+      if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+      if (req.url === '/sync-corpus') {
+        capturedSyncBody = parsed;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'synced' }));
+        return;
+      }
+      if (req.url === '/ingest-runs') {
+        capturedIngestBody = parsed;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ingested: true }));
+        return;
+      }
+      if (req.url === '/feedback') {
+        capturedFeedbackBody = parsed;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ accepted: true }));
+        return;
+      }
+      if (req.url === '/api/analyze') {
+        capturedAnalyzeBody = parsed;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            flameSpread_mms: 2.41,
+            hazardStatus: 'Rapid Flame Spread',
+          })
+        );
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+  });
+
+  await new Promise<void>((resolve) =>
+    server.listen(0, '127.0.0.1', () => resolve())
+  );
+  const addr = server.address();
+  const port = typeof addr === 'object' && addr ? addr.port : 0;
+
+  const store = new Map<string, string>();
+  const origWindow = (globalThis as { window?: unknown }).window;
+  (globalThis as { window?: unknown }).window = {
+    localStorage: {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => store.set(k, v),
+      removeItem: (k: string) => store.delete(k),
+    },
+  };
+
+  try {
+    setResearcherId('RES-ALPHA');
+    setExplanationDepth('detailed');
+    recordFuelUsage('Nomex');
+    recordFuelUsage('Nomex');
+    recordGravityUsage(0.166);
+    recordChartUsage('scatter-plot');
+
+    const profile = getOrCreateUserProfile();
+    assert.equal(profile.researcherId, 'RES-ALPHA');
+    assert.equal(profile.explanationDepth, 'detailed');
+    assert.equal(profile.preferredFuels[0], 'Nomex');
+    assert.equal(profile.preferredGravities[0], 'Lunar (0.166g)');
+    assert.equal(profile.preferredCharts[0], 'scatter-plot');
+
+    upsertApiEndpointProfile(
+      {
+        name: 'Lab FastAPI',
+        baseUrl: `http://127.0.0.1:${port}`,
+        apiKeyHeader: 'X-API-Key',
+        apiKeyValue: 'sync-key',
+      },
+      true
+    );
+
+    const customRun: PsiRun = {
+      ...REAL_SAMPLE_RUNS[0],
+      id: 'custom-sync-1',
+      psiId: 'CUS-999',
+      isCustom: true,
+    };
+
+    const syncRes = await syncCorpusWithEndpoint({
+      catalogRuns: [customRun, ...REAL_SAMPLE_RUNS.slice(0, 5)],
+      investigations: [],
+      literatureChunksCount: 120,
+    });
+    assert.equal(syncRes.status, 'synced');
+    assert.ok(capturedPaths.includes('/health') && capturedPaths.includes('/sync-corpus'));
+    assert.equal((capturedSyncBody as { researcher_id?: string } | null)?.researcher_id, 'RES-ALPHA');
+
+    const ingestRes = await ingestRunsToActiveEndpoint({
+      runs: [customRun],
+      fileName: 'lab_batch.csv',
+      unitConversionsApplied: ['kPa -> psi'],
+    });
+    assert.equal(ingestRes.syncedRemote, true);
+    assert.equal((capturedIngestBody as { source_file?: string } | null)?.source_file, 'lab_batch.csv');
+
+    const feedbackRes = await submitModelFeedback({
+      kind: 'corrected',
+      messageId: 'ast-1',
+      question: 'Nomex lunar cabin flame spread',
+      material: 'Nomex',
+      O2_pct: 32.0,
+      P_psi: 8.2,
+      Flow_ms: 0.12,
+      g_eff: 0.166,
+      Thickness_mm: 2.0,
+      predictedSpread_mms: 0.9,
+      correctedSpread_mms: 0.32,
+      correctedOutcome: 'Self-Extinguishing',
+      correctionNote: 'Verified aramid weave self-extinguishes under 32% O2 at 2.0 mm.',
+    });
+    assert.equal(feedbackRes.remoteSynced, true);
+    assert.equal(getVerifiedCorrections().length, 1);
+    assert.equal(getVerifiedCorrections()[0].syncedRemote, true);
+    assert.equal((capturedFeedbackBody as { feedback_type?: string } | null)?.feedback_type, 'correction');
+
+    // Remote /api/analyze receives user_profile & verified_corrections automatically
+    await runModelConsoleInference({
+      question: 'Evaluate Nomex lunar cabin spread rate',
+      mode: 'literature',
+      request: {
+        O2_pct: 32.0,
+        P_psi: 8.2,
+        Flow_ms: 0.12,
+        g_eff: 0.166,
+        Thickness_mm: 2.0,
+        material: 'Nomex',
+      },
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    const analyzePayload = capturedAnalyzeBody as {
+      user_profile?: { researcherId?: string };
+      verified_corrections?: unknown[];
+    } | null;
+    assert.equal(analyzePayload?.user_profile?.researcherId, 'RES-ALPHA');
+    assert.ok(
+      Array.isArray(analyzePayload?.verified_corrections) &&
+        analyzePayload.verified_corrections.length >= 1
+    );
+
+    // Offline local fallback applies saved verified correction + detailed depth automatically
+    setActiveEndpointProfileId(LOCAL_MODEL_ID);
+    const offlineRecalled = await runModelConsoleInference({
+      question: 'Evaluate Nomex lunar cabin spread rate',
+      mode: 'literature',
+      request: {
+        O2_pct: 32.0,
+        P_psi: 8.2,
+        Flow_ms: 0.12,
+        g_eff: 0.166,
+        Thickness_mm: 2.0,
+        material: 'Nomex',
+      },
+      catalog: REAL_SAMPLE_RUNS,
+    });
+    assert.equal(offlineRecalled.flameSpread_mms, 0.32);
+    assert.equal(offlineRecalled.hazardStatus, 'Self-Extinguishing');
+    assert.ok(
+      offlineRecalled.assistantReply?.steps.some((s) =>
+        s.includes('Verified Correction Applied')
+      )
+    );
+
+    const chartCtx = generateChartDecodeInsight({
+      datasetLabel: 'Full Archive',
+      techniqueName: 'Scatter Plot',
+      xAxisLabel: 'O2 %',
+      yAxisLabel: 'Spread mm/s',
+      colorByLabel: 'Safety Result',
+      plottedRuns: REAL_SAMPLE_RUNS,
+      simulation: offlineRecalled,
+      summaryHeadline: 'Test insight',
+    });
+    assert.ok(chartCtx.anomalies.length >= 1);
+
+    const comparatorSummary = await generateComparatorInsights(
+      REAL_SAMPLE_RUNS.slice(0, 3)
+    );
+    assert.ok(comparatorSummary.highlights.length >= 2);
+
+    const bundle = buildLearnedProfileBundle([customRun], null);
+    assert.equal(bundle.researcherProfile.researcherId, 'RES-ALPHA');
+    assert.equal(bundle.verifiedCorrections.length, 1);
+    assert.equal(bundle.customImportedRuns.length, 1);
+  } finally {
+    if (origWindow === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+    } else {
+      (globalThis as { window?: unknown }).window = origWindow;
+    }
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('sign-in gate, deterministic IDs, guest isolation, account lifecycle, unified PDF/DOC export, unit conversion, and global search work cleanly', () => {
+  const localMap = new Map<string, string>();
+  const sessionMap = new Map<string, string>();
+  const origWindow = (globalThis as { window?: unknown }).window;
+
+  (globalThis as { window?: unknown }).window = {
+    localStorage: {
+      getItem: (k: string) => localMap.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        localMap.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        localMap.delete(k);
+      },
+    },
+    sessionStorage: {
+      getItem: (k: string) => sessionMap.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        sessionMap.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        sessionMap.delete(k);
+      },
+    },
+  };
+
+  try {
+    // 1. Deterministic Researcher ID formatting & normalization
+    const id1 = generateResearcherIdFromName('Achalesh Kooloth');
+    const id2 = generateResearcherIdFromName('  achalesh   kooloth ');
+    assert.equal(id1, id2);
+    assert.match(id1, /^RES-AK-\d{4}$/);
+
+    // 2. Named account sign-in & returning profile confirmation lookup
+    const firstLogin = signInWithFullName('Achalesh Kooloth');
+    assert.equal(firstLogin.isReturning, false);
+    assert.equal(firstLogin.session.researcherId, id1);
+
+    const updatedProfile = updateActiveUserProfileDetails(
+      firstLogin.session,
+      {
+        fullName: 'Achalesh Kooloth',
+        email: 'achalesh@lab.org',
+        bio: 'Microgravity flammability researcher',
+      },
+      []
+    );
+    assert.equal(updatedProfile.workspace.email, 'achalesh@lab.org');
+
+    signOutAccountSession();
+    const returningLookup = findSavedAccountByFullName('Achalesh Kooloth');
+    assert.ok(returningLookup !== null);
+    assert.equal(returningLookup?.researcherId, id1);
+    assert.equal(returningLookup?.email, 'achalesh@lab.org');
+
+    const secondLogin = signInWithFullName('Achalesh Kooloth');
+    assert.equal(secondLogin.isReturning, true);
+    assert.equal(secondLogin.workspace.bio, 'Microgravity flammability researcher');
+
+    // Clear chat history without touching account identity
+    const cleared = clearChatHistoryForSession(secondLogin.session);
+    assert.equal(cleared.threads.length, 1);
+    assert.equal(cleared.threads[0].messages.length, 0);
+
+    // 3. Guest session isolation & Delete Account check
+    const guest = startGuestSession();
+    assert.equal(guest.session.mode, 'guest');
+    assert.equal(guest.session.researcherId, 'GUEST-SESSION');
+    // Returning lookup for Achalesh remains intact even after starting guest session
+    assert.ok(findSavedAccountByFullName('Achalesh Kooloth') !== null);
+
+    // Delete named account permanently
+    deleteNamedAccount(id1);
+    assert.equal(findSavedAccountByFullName('Achalesh Kooloth'), null);
+
+    // 4. Appearance presets & Measurement unit conversion verification
+    assert.equal(THEME_PRESETS.length, 10);
+    assert.equal(DEFAULT_APP_SETTINGS.units, 'spacecraft');
+    assert.equal(formatPressure(14.7, 'spacecraft'), '14.7 psi');
+    assert.equal(formatPressure(14.7, 'metric-si'), '101.4 kPa');
+    assert.equal(formatTemperature(300, 'spacecraft'), '300 K');
+    assert.equal(formatTemperature(300, 'metric-si'), '27 °C');
+    assert.equal(formatFlameSpread(2.5, 'spacecraft'), '2.50 mm/s');
+    assert.equal(formatFlameSpread(2.5, 'metric-si'), '0.250 cm/s');
+    assert.equal(formatAirflow(0.15, 'spacecraft'), '0.15 m/s');
+    assert.equal(formatAirflow(0.15, 'metric-si'), '15.0 cm/s');
+
+    // 5. Pure client-side binary PDF & Word DOC generator verification
+    const pdfBytes = generateClientPdfBytes({
+      title: 'Virtual Test Lab Report',
+      subtitle: 'PMMA Acrylic · Lunar Cabin',
+      generatedAtIso: '2026-11-15T00:00:00Z',
+      sections: [
+        {
+          heading: 'Chamber Conditions',
+          keyValues: [
+            { label: 'Oxygen', value: '34.0% O2' },
+            { label: 'Flame Spread', value: '2.18 mm/s' },
+          ],
+          table: {
+            headers: ['PSI ID', 'Material', 'Outcome'],
+            rows: [['PSI-99', 'PMMA', 'Rapid Flame Spread']],
+          },
+        },
+      ],
+    });
+    const pdfText = new TextDecoder().decode(pdfBytes);
+    assert.ok(pdfText.startsWith('%PDF-1.4'));
+    assert.ok(pdfText.includes('/Type /Page'));
+    assert.ok(pdfText.includes('xref') && pdfText.includes('%%EOF'));
+    assert.ok(pdfText.includes('Virtual Test Lab Report'));
+    assert.ok(pdfText.includes('PSI-99 | PMMA | Rapid Flame Spread'));
+
+    const docHtml = generateWordDocHtml({
+      title: 'Comparison Report',
+      generatedAtIso: '2026-11-15T00:00:00Z',
+      sections: [{ heading: 'Summary', paragraphs: ['Verified spaceflight run match.'] }],
+    });
+    assert.ok(
+      docHtml.includes('urn:schemas-microsoft-com:office:word') &&
+        docHtml.includes('Comparison Report')
+    );
+
+    // 6. Unified Global Search across Investigations, Runs & ISS Guide
+    const searchRes = performGlobalSearch({
+      query: 'BASS',
+      investigations: [
+        {
+          psiId: 'PSI-25',
+          acronym: 'BASS-II',
+          title: 'Burning and Suppression of Solids - II',
+          facility: 'MSG',
+          hardwareRaw: 'MSG / MWA',
+          flightPlatform: 'ISS',
+          managingCenter: 'Glenn Research Center',
+          researchArea: 'Combustion',
+          subResearchArea: 'Solid',
+          doi: '',
+          objective: 'Evaluate opposed and concurrent flame spread.',
+          approach: '',
+          hypothesis: '',
+          principalInvestigators: [],
+          affiliations: [],
+          publications: [],
+          spreadsheets: [],
+          pdfs: [],
+          auditStatus: 'Verified',
+          runCount: 120,
+          fuels: ['PMMA'],
+          o2Range: [15, 21],
+          pressureRange: [14.7, 14.7],
+          flowRange: [0.05, 0.3],
+          spreadRange: [0.5, 3.0],
+          dominantOutcome: 'Self-Extinguishing',
+          representativeRun: REAL_SAMPLE_RUNS[1],
+          psiSourceUrl: '',
+        },
+      ],
+      runs: [
+        ...REAL_SAMPLE_RUNS,
+        {
+          ...REAL_SAMPLE_RUNS[0],
+          id: 'run-bass-search-test',
+          psiId: 'PSI-25',
+          runCode: 'BASS-II-01',
+          investigationTitle: 'Burning and Suppression of Solids - II',
+        },
+      ],
+      guideTopics: [
+        {
+          id: 'guide-sec-bass',
+          sectionNumber: '3.2',
+          title: 'BASS Solid Flammability Screening',
+          category: 'Solid Flammability',
+          pageRange: '14-18',
+          startPage: 14,
+          summary: 'Microgravity flame spread thresholds measured on ISS.',
+          keyTakeaways: ['Low-flow extinction boundary'],
+          chunks: [],
+          pdfUrl: '',
+        },
+      ],
+    });
+    assert.equal(searchRes.investigations.length, 1);
+    assert.equal(searchRes.runs.length, 1);
+    assert.equal(searchRes.guide.length, 1);
+  } finally {
+    if (origWindow === undefined) {
+      delete (globalThis as { window?: unknown }).window;
+    } else {
+      (globalThis as { window?: unknown }).window = origWindow;
+    }
+  }
 });

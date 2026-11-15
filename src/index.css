@@ -6,10 +6,52 @@
     --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    --psi-bg: #f3f4f6;
+    --psi-fg: #18181b;
+    --psi-surface: #ffffff;
+    --psi-border: #e4e4e7;
+    --psi-accent: #18181b;
+    --psi-accent-fg: #ffffff;
+  }
+
+  .dark:root {
+    --psi-bg: #09090b;
+    --psi-fg: #fafafa;
+    --psi-surface: #121215;
+    --psi-border: #27272a;
+    --psi-accent: #fafafa;
+    --psi-accent-fg: #09090b;
   }
 
   body {
     font-family: var(--font-sans);
+    background-color: var(--psi-bg);
+    color: var(--psi-fg);
+  }
+
+  [data-theme-customized="true"] .psi-app-shell {
+    background-color: var(--psi-bg) !important;
+    color: var(--psi-fg) !important;
+  }
+
+  [data-theme-customized="true"] .psi-app-shell aside,
+  [data-theme-customized="true"] .psi-app-shell header {
+    background-color: var(--psi-surface) !important;
+    color: var(--psi-fg) !important;
+    border-color: var(--psi-border) !important;
+  }
+
+  [data-theme-customized="true"] .psi-app-shell main section,
+  [data-theme-customized="true"] .psi-app-shell main > div > div {
+    border-color: var(--psi-border);
+  }
+
+  [data-contrast="strong"] .psi-app-shell {
+    filter: contrast(1.06);
+  }
+
+  [data-contrast="strong"] .psi-app-shell * {
+    border-color: color-mix(in srgb, currentColor 24%, transparent);
   }
 
   h1, h2, h3, .font-display {

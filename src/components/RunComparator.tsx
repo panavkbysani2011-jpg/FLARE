@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Table,
   X,
@@ -8,9 +8,19 @@ import {
   Layers,
   ArrowUpRight,
   LineChart as LineChartIcon,
-  Download,
 } from 'lucide-react';
-import { exportComparisonRunsCsv } from '../utils/exportHelpers';
+import { exportComparisonFormatted } from '../utils/exportGenerators';
+import { ExportDropdown } from './ExportDropdown';
+import {
+  formatAirflow,
+  formatFlameSpread,
+  formatPressure,
+  formatTemperature,
+} from '../utils/themePreferences';
+import {
+  ComparatorInsightSummary,
+  generateComparatorInsights,
+} from '../services/psiApi';
 import {
   ResponsiveContainer,
   BarChart,
@@ -22,12 +32,20 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts';
-import { PsiRun, ThemeMode, VizMode } from '../types/psi';
+import {
+  DefaultExportFormat,
+  MeasurementUnits,
+  PsiRun,
+  ThemeMode,
+  VizMode,
+} from '../types/psi';
 import { generateTimelineSeries } from '../utils/physicsEngine';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface RunComparatorProps {
   theme: ThemeMode;
+  measurementUnits?: MeasurementUnits;
+  defaultExportFormat?: DefaultExportFormat;
   selectedRuns: PsiRun[];
   hoveredRunId: string | null;
   onHoverRun: (runId: string | null) => void;
@@ -51,6 +69,8 @@ const RUN_COLORS = ['#10B981', '#F59E0B', '#64748B', '#EF4444'];
 
 export const RunComparator: React.FC<RunComparatorProps> = ({
   theme,
+  measurementUnits = 'spacecraft',
+  defaultExportFormat,
   selectedRuns,
   hoveredRunId,
   onHoverRun,
@@ -64,6 +84,18 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
 }) => {
   const [showExtendedCols, setShowExtendedCols] = useState(false);
   const [chartMode, setChartMode] = useState<ComparatorChartMode>('parallel');
+  const [insightSummary, setInsightSummary] =
+    useState<ComparatorInsightSummary | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    generateComparatorInsights(selectedRuns).then((res) => {
+      if (active) setInsightSummary(res);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedRuns]);
 
   const isDark = theme === 'dark';
 
@@ -136,6 +168,36 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
         )}
       </div>
 
+      {/* Model Comparison Summary */}
+      {selectedRuns.length > 0 && insightSummary && (
+        <div
+          className={`p-3.5 rounded-[5px] border space-y-1.5 ${
+            isDark
+              ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
+              : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-display font-semibold">
+              {insightSummary.headline}
+            </span>
+            <span className="text-[11px] font-sans text-zinc-500">
+              {insightSummary.endpointLabel}
+              {insightSummary.matchedCorrectionsCount > 0
+                ? ` · ${insightSummary.matchedCorrectionsCount} saved correction(s) matched`
+                : ''}
+            </span>
+          </div>
+          {insightSummary.highlights.length > 0 && (
+            <ul className="space-y-1 text-xs font-sans text-zinc-600 dark:text-zinc-300">
+              {insightSummary.highlights.map((line, i) => (
+                <li key={i}>• {line}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {/* 1. Side-by-Side Comparison Matrix */}
       <CollapsibleCard
         theme={theme}
@@ -144,20 +206,21 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
         summaryLine={`${selectedRuns.length}/4 selected runs · Baseline ${baselineRun?.psiId ?? 'None'}`}
         rightActions={
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => exportComparisonRunsCsv(selectedRuns)}
+            <ExportDropdown
+              theme={theme}
+              label="Export Comparison"
+              formats={['csv', 'doc', 'pdf', 'json']}
+              defaultFormat={defaultExportFormat}
               disabled={selectedRuns.length === 0}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all disabled:opacity-45 cursor-pointer ${
-                isDark
-                  ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
-                  : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
-              }`}
-              title="Download selected comparison table rows as CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Comparison CSV</span>
-            </button>
+              title="Download selected comparison matrix as CSV, Word, PDF, or JSON"
+              onSelectFormat={(fmt) =>
+                exportComparisonFormatted({
+                  selectedRuns,
+                  units: measurementUnits,
+                  format: fmt,
+                })
+              }
+            />
 
             <button
               type="button"
@@ -367,7 +430,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         )}
                       </td>
                       <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
-                        <span>{run.P_psi.toFixed(1)} psi</span>
+                        <span>{formatPressure(run.P_psi, measurementUnits)}</span>
                         {pDelta && (
                           <span className="ml-1 text-[10px] text-zinc-400">
                             ({pDelta})
@@ -375,7 +438,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         )}
                       </td>
                       <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
-                        <span>{run.Flow_ms.toFixed(2)} m/s</span>
+                        <span>{formatAirflow(run.Flow_ms, measurementUnits)}</span>
                         {flowDelta && (
                           <span className="ml-1 text-[10px] text-zinc-400">
                             ({flowDelta})
@@ -401,7 +464,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                             )}
                           </td>
                           <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap">
-                            <span>{run.peakTemp_K} K</span>
+                            <span>{formatTemperature(run.peakTemp_K, measurementUnits)}</span>
                             {tempDelta && (
                               <span className="ml-1 text-[10px] text-zinc-400">
                                 ({tempDelta})
@@ -411,7 +474,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         </>
                       )}
                       <td className="py-2 px-1.5 font-mono tabular-nums whitespace-nowrap font-bold">
-                        <span>{run.flameSpread_mms.toFixed(2)} mm/s</span>
+                        <span>{formatFlameSpread(run.flameSpread_mms, measurementUnits)}</span>
                         {spreadDelta && (
                           <span
                             className={`ml-1 text-[10px] ${

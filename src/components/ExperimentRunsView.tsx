@@ -5,18 +5,26 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Download,
   Search,
   Sliders,
   Square,
   X,
 } from 'lucide-react';
-import { exportFilteredRunsCsv } from '../utils/exportHelpers';
-import { HazardOutcome, PsiRun, ThemeMode } from '../types/psi';
+import { exportRunsDataFormatted } from '../utils/exportGenerators';
+import { ExportDropdown } from './ExportDropdown';
+import {
+  DefaultExportFormat,
+  HazardOutcome,
+  MeasurementUnits,
+  PsiRun,
+  ThemeMode,
+} from '../types/psi';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface ExperimentRunsViewProps {
   theme: ThemeMode;
+  measurementUnits?: MeasurementUnits;
+  defaultExportFormat?: DefaultExportFormat;
   runs: PsiRun[];
   selectedRunIds: string[];
   highlightedRunId: string | null;
@@ -40,6 +48,8 @@ type SortKey =
 
 export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
   theme,
+  measurementUnits = 'spacecraft',
+  defaultExportFormat,
   runs,
   selectedRunIds,
   highlightedRunId,
@@ -267,22 +277,23 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() =>
-                exportFilteredRunsCsv(filteredAndSortedRuns, selectedRunIds)
-              }
+            <ExportDropdown
+              theme={theme}
+              label="Export Data"
+              formats={['csv', 'json', 'doc', 'pdf']}
+              defaultFormat={defaultExportFormat}
               disabled={filteredAndSortedRuns.length === 0}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] disabled:opacity-45 cursor-pointer ${
-                isDark
-                  ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
-                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
-              }`}
-              title="Download currently filtered test runs as CSV"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Filtered Runs</span>
-            </button>
+              title="Download currently filtered test runs as CSV, JSON, Word, or PDF"
+              onSelectFormat={(fmt) =>
+                exportRunsDataFormatted({
+                  runs: filteredAndSortedRuns,
+                  selectedRunIds,
+                  title: 'PSI Filtered Experiment Runs',
+                  units: measurementUnits,
+                  format: fmt,
+                })
+              }
+            />
           </div>
         </div>
       </CollapsibleCard>

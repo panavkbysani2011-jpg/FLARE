@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ArrowUpRight,
   BarChart3,
@@ -12,15 +12,29 @@ import {
   GitCompare,
   Home,
   Layers,
+  LogIn,
   PanelLeftClose,
   RefreshCw,
   Search,
+  Settings,
   TerminalSquare,
+  UserCheck,
 } from 'lucide-react';
-import { PsiRun, SidebarState, ThemeMode, WorkspaceView } from '../types/psi';
+import {
+  AccountSession,
+  LiteratureChunk,
+  PsiInvestigationRecord,
+  PsiRun,
+  ResearchersGuideTopic,
+  SidebarState,
+  ThemeMode,
+  WorkspaceView,
+} from '../types/psi';
+import { performGlobalSearch } from '../utils/globalSearch';
 
 interface LeftSidebarProps {
   theme: ThemeMode;
+  session: AccountSession | null;
   activeView: WorkspaceView;
   onSelectView: (view: WorkspaceView) => void;
   onReturnToLanding: () => void;
@@ -33,7 +47,15 @@ interface LeftSidebarProps {
   isArchiveLoading?: boolean;
   customUploadsCount?: number;
   runs: PsiRun[];
+  investigations: PsiInvestigationRecord[];
+  guideTopics: ResearchersGuideTopic[];
+  literatureChunks: LiteratureChunk[];
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
   onQuickJumpRun: (run: PsiRun) => void;
+  onQuickJumpInvestigation: (inv: PsiInvestigationRecord) => void;
+  onQuickJumpGuideTopic: (topicId?: string, searchHint?: string) => void;
+  onOpenSettings: () => void;
+  onOpenSignIn: () => void;
 }
 
 const ARCHIVE_CHILD_VIEWS: WorkspaceView[] = [
@@ -46,6 +68,7 @@ const ARCHIVE_CHILD_VIEWS: WorkspaceView[] = [
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   theme,
+  session,
   activeView,
   onSelectView,
   onReturnToLanding,
@@ -58,7 +81,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   isArchiveLoading = false,
   customUploadsCount = 0,
   runs,
+  investigations,
+  guideTopics,
+  literatureChunks,
+  searchInputRef,
   onQuickJumpRun,
+  onQuickJumpInvestigation,
+  onQuickJumpGuideTopic,
+  onOpenSettings,
+  onOpenSignIn,
 }) => {
   const [quickFind, setQuickFind] = useState('');
   const [virtualLabExpanded, setVirtualLabExpanded] = useState(true);
@@ -92,21 +123,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         : 'text-zinc-300'
       : 'text-zinc-400';
 
-  const quickResults =
-    quickFind.trim().length > 0
-      ? runs
-          .filter(
-            (r) =>
-              r.psiId.toLowerCase().includes(quickFind.toLowerCase()) ||
-              r.material.toLowerCase().includes(quickFind.toLowerCase()) ||
-              r.investigationTitle
-                .toLowerCase()
-                .includes(quickFind.toLowerCase()) ||
-              r.facility.toLowerCase().includes(quickFind.toLowerCase()) ||
-              r.runCode.toLowerCase().includes(quickFind.toLowerCase())
-          )
-          .slice(0, 6)
-      : [];
+  const searchResults = useMemo(
+    () =>
+      performGlobalSearch({
+        query: quickFind,
+        investigations,
+        runs,
+        guideTopics,
+        literatureChunks,
+        limitPerGroup: 4,
+      }),
+    [quickFind, investigations, runs, guideTopics, literatureChunks]
+  );
+  const hasSearchQuery = quickFind.trim().length > 0;
 
   const isArchiveGroupActive = ARCHIVE_CHILD_VIEWS.includes(activeView);
 
@@ -258,13 +287,33 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </nav>
         </div>
 
-        <div
-          className="hidden lg:flex flex-col items-center gap-1 pt-2"
-          title={`${investigationCount} PSI Investigations • ${totalRunsCount.toLocaleString()} Runs • Ready`}
-        >
+        <div className="hidden lg:flex flex-col items-center gap-2 pt-2">
+          <button
+            type="button"
+            onClick={session?.isAuthenticated ? onOpenSettings : onOpenSignIn}
+            title={
+              session?.isAuthenticated
+                ? `Settings (${session.fullName})`
+                : 'Sign In'
+            }
+            aria-label={session?.isAuthenticated ? 'Open Workspace Settings' : 'Sign In'}
+            className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-colors cursor-pointer ${
+              isDark
+                ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:text-white hover:border-zinc-500'
+                : 'bg-white border-[#E4E4E7] text-zinc-700 hover:text-zinc-950 hover:border-zinc-300'
+            }`}
+          >
+            {session?.isAuthenticated ? (
+              <Settings className="w-4 h-4" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+          </button>
           <span
-            className="w-2 h-2 rounded-[2px] bg-[#10B981]"
-            aria-label="Archive Ready"
+            className={`w-2 h-2 rounded-[2px] ${
+              isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+            }`}
+            aria-label="Archive Status"
           />
         </div>
       </aside>
@@ -314,57 +363,154 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </button>
         </div>
 
-        {/* Quick Command / Filter Input */}
+        {/* Global Quick Search Bar (Ctrl/Cmd + K) */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
             value={quickFind}
             onChange={(e) => setQuickFind(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setQuickFind('');
+              }
+            }}
             placeholder="Find PSI ID, run, fuel..."
-            aria-label="Find PSI investigation or run"
-            className={`w-full pl-8 pr-2.5 py-1.5 text-xs font-sans rounded-[4px] border transition-colors focus:outline-none ${
+            aria-label="Global search across PSI investigations, runs, and researcher guide"
+            className={`w-full pl-8 pr-11 py-1.5 text-xs font-sans rounded-[4px] border transition-colors focus:outline-none ${
               isDark
                 ? 'bg-[#18181B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
                 : 'bg-white border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
             }`}
           />
+          {!hasSearchQuery && (
+            <kbd
+              className={`pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-[3px] border text-[9px] font-mono ${
+                isDark
+                  ? 'bg-[#09090B] border-[#27272A] text-zinc-500'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-400'
+              }`}
+            >
+              Ctrl+K
+            </kbd>
+          )}
 
-          {quickResults.length > 0 && (
+          {hasSearchQuery && (
             <div
-              className={`absolute left-0 right-0 top-full mt-1 z-40 rounded-[4px] border shadow-lg p-1 space-y-0.5 ${
+              className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-1.5 max-h-[340px] overflow-y-auto space-y-2 ${
                 isDark
                   ? 'bg-[#18181B] border-[#27272A] text-zinc-100'
                   : 'bg-white border-[#E4E4E7] text-zinc-900'
               }`}
             >
-              {quickResults.map((run) => (
-                <button
-                  key={run.id}
-                  type="button"
-                  onClick={() => {
-                    onQuickJumpRun(run);
-                    setQuickFind('');
-                  }}
-                  className={`w-full text-left px-2 py-1.5 rounded-[4px] text-xs flex items-center justify-between gap-1 cursor-pointer ${
-                    isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="font-mono font-semibold text-[11px] truncate">
-                      {run.psiId} · {run.runCode}
+              {searchResults.all.length === 0 ? (
+                <div className="px-2 py-2.5 text-[11px] font-sans text-zinc-500 text-center">
+                  No matches across investigations, runs, or guide sections.
+                </div>
+              ) : (
+                <>
+                  {searchResults.investigations.length > 0 && (
+                    <div className="space-y-0.5">
+                      <div className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
+                        Investigations ({searchResults.investigations.length})
+                      </div>
+                      {searchResults.investigations.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (item.investigation) {
+                              onQuickJumpInvestigation(item.investigation);
+                            }
+                            setQuickFind('');
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-[4px] text-xs flex items-center justify-between gap-1 cursor-pointer ${
+                            isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="font-mono font-semibold text-[11px] truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-[10px] font-sans text-zinc-500 truncate">
+                              {item.subtitle}
+                            </div>
+                          </div>
+                          <ArrowUpRight className="w-3 h-3 text-zinc-400 shrink-0" />
+                        </button>
+                      ))}
                     </div>
-                    <div className="text-[10px] font-sans text-zinc-500 truncate">
-                      {run.material} ·{' '}
-                      <span className="font-mono tabular-nums">
-                        {run.O2_pct.toFixed(0)}%
-                      </span>{' '}
-                      O₂
+                  )}
+
+                  {searchResults.runs.length > 0 && (
+                    <div className="space-y-0.5">
+                      <div className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
+                        Experiment Runs ({searchResults.runs.length})
+                      </div>
+                      {searchResults.runs.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            if (item.run) {
+                              onQuickJumpRun(item.run);
+                            }
+                            setQuickFind('');
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-[4px] text-xs flex items-center justify-between gap-1 cursor-pointer ${
+                            isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="font-mono font-semibold text-[11px] truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-[10px] font-sans text-zinc-500 truncate">
+                              {item.subtitle} · {item.meta}
+                            </div>
+                          </div>
+                          <ArrowUpRight className="w-3 h-3 text-zinc-400 shrink-0" />
+                        </button>
+                      ))}
                     </div>
-                  </div>
-                  <ArrowUpRight className="w-3 h-3 text-zinc-400 shrink-0" />
-                </button>
-              ))}
+                  )}
+
+                  {searchResults.guide.length > 0 && (
+                    <div className="space-y-0.5">
+                      <div className="px-2 py-0.5 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
+                        ISS Researcher&apos;s Guide ({searchResults.guide.length})
+                      </div>
+                      {searchResults.guide.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            onQuickJumpGuideTopic(
+                              item.guideTopicId,
+                              item.guideSearchHint
+                            );
+                            setQuickFind('');
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-[4px] text-xs flex items-center justify-between gap-1 cursor-pointer ${
+                            isDark ? 'hover:bg-zinc-800' : 'hover:bg-zinc-100'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="font-sans font-semibold text-[11px] truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-[10px] font-sans text-zinc-500 truncate">
+                              {item.meta}
+                            </div>
+                          </div>
+                          <ArrowUpRight className="w-3 h-3 text-zinc-400 shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -630,36 +776,81 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Footer: Quiet Single-Line Status Only (No Chat Button) */}
+      {/* Bottom Footer: Active Researcher Profile Card & Settings */}
       <div
-        className={`px-3.5 py-3 border-t ${
+        className={`p-3 border-t ${
           isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
         }`}
       >
-        <div className="flex items-center gap-1.5 text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate">
-          <span
-            className={`w-1.5 h-1.5 rounded-[2px] shrink-0 ${
-              isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+        {session?.isAuthenticated ? (
+          <div
+            className={`p-2.5 rounded-lg border flex items-center justify-between gap-2 ${
+              isDark
+                ? 'bg-[#121215] border-[#27272A]'
+                : 'bg-white border-[#E4E4E7]'
             }`}
-            aria-hidden="true"
-          />
-          <span className="truncate">
-            {isArchiveLoading ? (
-              'Loading PSI Archive...'
-            ) : (
-              <>
-                <span className="font-mono tabular-nums">
-                  {investigationCount}
-                </span>{' '}
-                PSI Investigations •{' '}
-                <span className="font-mono tabular-nums">
-                  {totalRunsCount.toLocaleString()}
-                </span>{' '}
-                Runs • Ready
-              </>
-            )}
-          </span>
-        </div>
+          >
+            <div className="min-w-0 flex items-center gap-2">
+              <div
+                className={`w-7 h-7 rounded-md border flex items-center justify-center shrink-0 ${
+                  isDark
+                    ? 'bg-[#18181B] border-[#27272A] text-zinc-200'
+                    : 'bg-zinc-100 border-[#E4E4E7] text-zinc-800'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5 text-[#10B981]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-sans font-semibold truncate">
+                  {session.mode === 'guest'
+                    ? 'Guest Session'
+                    : session.fullName}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 truncate">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-[2px] shrink-0 ${
+                      isArchiveLoading ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">
+                    {session.mode === 'guest'
+                      ? 'Sandbox'
+                      : session.researcherId}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] font-sans font-medium shrink-0 transition-colors cursor-pointer ${
+                isDark
+                  ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-500'
+                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
+              }`}
+              title="Open Workspace Settings"
+            >
+              <Settings className="w-3 h-3" />
+              <span>Settings</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-sans text-zinc-500 truncate">
+              Not signed in
+            </span>
+            <button
+              type="button"
+              onClick={onOpenSignIn}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-semibold cursor-pointer ${activeItemClass}`}
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

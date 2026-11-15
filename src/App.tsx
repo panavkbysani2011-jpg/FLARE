@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccountSession,
+  AppSettings,
   AssistantMessage,
   CandidateMaterialCode,
+  ChatThread,
   ConsoleMode,
   DataManifestFileRecord,
   DecodedChartContext,
@@ -13,6 +16,7 @@ import {
   PsiRun,
   QuickScenarioId,
   ResearchersGuideTopic,
+  SavedUserAccountWorkspace,
   SessionIngestionEvent,
   SidebarState,
   SimulationResponse,
@@ -30,16 +34,44 @@ import {
 import { runLocalPhysicsSimulation } from './utils/physicsEngine';
 import {
   analyzeCombustionState,
+  getActiveEndpointProfile,
+  ingestRunsToActiveEndpoint,
   runModelConsoleInference,
+  syncCorpusWithEndpoint,
 } from './services/psiApi';
+import {
+  getOrCreateUserProfile,
+  recordFuelUsage,
+  recordGravityUsage,
+} from './services/userAdaptation';
+import {
+  clearChatHistoryForSession,
+  deleteNamedAccount,
+  loadActiveSessionOnStartup,
+  persistActiveUserWorkspace,
+  signInWithFullName,
+  signOutAccountSession,
+  startGuestSession,
+  updateActiveUserProfileDetails,
+} from './services/accountSession';
+import {
+  applyAppearanceSettings,
+  DEFAULT_APP_SETTINGS,
+  resolveThemePolarity,
+} from './utils/themePreferences';
 import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
 import { LeftSidebar } from './components/LeftSidebar';
 import { LandingView } from './components/LandingView';
+import { SignInModal } from './components/SignInModal';
+import { SettingsModal } from './components/SettingsModal';
 import { OverviewView } from './components/OverviewView';
 import { VirtualTestLab } from './components/VirtualTestLab';
 import { VisualAnalyticsStudio } from './components/VisualAnalyticsStudio';
-import { ModelConsoleView } from './components/ModelConsoleView';
+import {
+  ModelConsoleSubmitPayload,
+  ModelConsoleView,
+} from './components/ModelConsoleView';
 import { CatalogView } from './components/CatalogView';
 import { ExperimentRunsView } from './components/ExperimentRunsView';
 import { RunComparator } from './components/RunComparator';
@@ -47,27 +79,95 @@ import { ImportSyncView } from './components/ImportSyncView';
 import { PsiInvestigationDetailView } from './components/PsiInvestigationDetailView';
 import {
   ActiveChartExportSnapshot,
-  exportHeaderBundle,
   HeaderExportFormat,
   HeaderExportSectionId,
 } from './utils/exportHelpers';
+import { exportHeaderBundleFormatted } from './utils/exportGenerators';
 import {
   getTechniqueHeadline,
   VIZ_TECHNIQUE_REGISTRY,
 } from './utils/vizRegistry';
+import {
+  appendMessagesToThread,
+  createChatThread,
+  formatChatTimestamp,
+  loadActiveChatThreadId,
+  loadChatThreads,
+  saveActiveChatThreadId,
+  saveChatThreads,
+  sortThreadsNewestFirst,
+} from './utils/chatStorage';
 
 export default function App() {
-  // 1. Theme State ('normal' default #F3F4F6, 'light' #FFFFFF, 'dark' #09090B)
-  const [theme, setTheme] = useState<ThemeMode>('normal');
+  const initialStartup = useMemo(() => loadActiveSessionOnStartup(), []);
+
+  // 1. Account Session, Settings & Dynamic Theme Resolution
+  const [accountSession, setAccountSession] = useState<AccountSession | null>(
+    () => initialStartup.session
+  );
+  const [appSettings, setAppSettings] = useState<AppSettings>(() =>
+    initialStartup.workspace?.settings
+      ? {
+          ...DEFAULT_APP_SETTINGS,
+          ...initialStartup.workspace.settings,
+          customColors: {
+            ...(initialStartup.workspace.settings.customColors ?? {}),
+          },
+        }
+      : { ...DEFAULT_APP_SETTINGS, customColors: {} }
+  );
+  const [profileEmail, setProfileEmail] = useState<string>(
+    () => initialStartup.workspace?.email ?? ''
+  );
+  const [profileBio, setProfileBio] = useState<string>(
+    () => initialStartup.workspace?.bio ?? ''
+  );
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false
+  );
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
+      return;
     }
-  }, [theme]);
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => setSystemPrefersDark(e.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+
+  const theme: ThemeMode = useMemo(() => {
+    void systemPrefersDark;
+    return resolveThemePolarity(appSettings.themeSetting);
+  }, [appSettings.themeSetting, systemPrefersDark]);
+
+  useEffect(() => {
+    applyAppearanceSettings(appSettings, theme);
+  }, [appSettings, theme]);
+
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [signInContextLabel, setSignInContextLabel] = useState<
+    string | undefined
+  >(undefined);
+  const [pendingLandingIntent, setPendingLandingIntent] = useState<
+    | { kind: 'enter' }
+    | { kind: 'workspace'; view: WorkspaceView }
+    | { kind: 'scenario'; scenarioId: QuickScenarioId }
+    | null
+  >(null);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [guideJumpHint, setGuideJumpHint] = useState<{
+    topicId?: string;
+    searchHint?: string;
+    nonce: number;
+  } | null>(null);
+  const globalSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   // 2. Full-Screen Landing Page vs. Inside-App Overview & Collapsible Sidebar State
   const [showLanding, setShowLanding] = useState<boolean>(true);
@@ -77,7 +177,9 @@ export default function App() {
   const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
 
   // 3. Catalog, Real Loaded Archive & Selected Runs
-  const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>([]);
+  const [catalogRuns, setCatalogRuns] = useState<PsiRun[]>(
+    () => initialStartup.workspace?.customRuns ?? []
+  );
   const [investigations, setInvestigations] = useState<
     PsiInvestigationRecord[]
   >([]);
@@ -120,8 +222,10 @@ export default function App() {
   const [lastVirtualRunTimestamp, setLastVirtualRunTimestamp] =
     useState<string | null>('Ready');
 
-  // 6. Visualization Mode & Active Export Snapshot
-  const [vizMode, setVizMode] = useState<VizMode>('safety-map');
+  // 6. Visualization Mode & Active Export Snapshot (adapts default chart pick to researcher history)
+  const [vizMode, setVizMode] = useState<VizMode>(
+    () => getOrCreateUserProfile().preferredCharts[0] ?? 'safety-map'
+  );
   const [studioExportSnapshot, setStudioExportSnapshot] =
     useState<ActiveChartExportSnapshot | null>(null);
 
@@ -132,7 +236,9 @@ export default function App() {
   const [sessionEvents, setSessionEvents] = useState<SessionIngestionEvent[]>(
     []
   );
-  const [customUploadsCount, setCustomUploadsCount] = useState(0);
+  const [customUploadsCount, setCustomUploadsCount] = useState(
+    () => initialStartup.workspace?.customRuns.length ?? 0
+  );
   const [investigationCount, setInvestigationCount] = useState(0);
   const [totalRunsCount, setTotalRunsCount] = useState(0);
 
@@ -171,6 +277,15 @@ export default function App() {
             },
           ];
         });
+
+        // Automatic background corpus sync if a remote model or VITE_API_BASE_URL is configured
+        if (getActiveEndpointProfile()) {
+          void syncCorpusWithEndpoint({
+            catalogRuns: loaded.runs,
+            investigations: loaded.investigations,
+            literatureChunksCount: loaded.literatureChunks.length,
+          });
+        }
       })
       .catch((err) => {
         if (!active) return;
@@ -196,9 +311,21 @@ export default function App() {
     };
   }, []);
 
-  // Support [ keyboard shortcut to cycle sidebar (Expanded -> Compact -> Hidden -> Expanded)
+  // Support [ to cycle sidebar & Ctrl/Cmd+K to focus global search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        if (!showLanding) {
+          e.preventDefault();
+          setSidebarState('expanded');
+          setTimeout(() => {
+            globalSearchInputRef.current?.focus();
+            globalSearchInputRef.current?.select();
+          }, 25);
+        }
+        return;
+      }
+
       const target = e.target as HTMLElement | null;
       const isInput =
         target &&
@@ -219,7 +346,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [showLanding]);
 
   // 8. Simulation & Model Console State
   const initialSim = useMemo(
@@ -232,7 +359,43 @@ export default function App() {
   const [consoleMode, setConsoleMode] = useState<ConsoleMode>('decoder');
   const [activeChartContext, setActiveChartContext] =
     useState<DecodedChartContext | null>(null);
-  const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  const [chatThreads, setChatThreads] = useState<ChatThread[]>(() =>
+    loadChatThreads()
+  );
+  const [activeChatThreadId, setActiveChatThreadId] = useState<string>(() => {
+    const saved = loadChatThreads();
+    const savedActiveId = loadActiveChatThreadId();
+    if (savedActiveId && saved.some((t) => t.id === savedActiveId)) {
+      return savedActiveId;
+    }
+    return createChatThread().id;
+  });
+
+  useEffect(() => {
+    saveChatThreads(chatThreads);
+  }, [chatThreads]);
+
+  useEffect(() => {
+    saveActiveChatThreadId(activeChatThreadId);
+  }, [activeChatThreadId]);
+
+  // Continuously persist settings, chats, custom runs, and learned memory per signed-in session
+  useEffect(() => {
+    if (!accountSession?.isAuthenticated) return;
+    const customRuns = catalogRuns.filter((r) => Boolean(r.isCustom));
+    persistActiveUserWorkspace(accountSession, {
+      settings: appSettings,
+      chatThreads,
+      activeChatThreadId,
+      customRuns,
+    });
+  }, [accountSession, appSettings, chatThreads, activeChatThreadId, catalogRuns]);
+
+  const messages: AssistantMessage[] = useMemo(
+    () =>
+      chatThreads.find((t) => t.id === activeChatThreadId)?.messages ?? [],
+    [chatThreads, activeChatThreadId]
+  );
 
   const archiveContext = useMemo(
     () => ({
@@ -299,6 +462,7 @@ export default function App() {
   // Handlers
   const handleSelectPreset = (preset: EnvironmentPreset) => {
     setActivePresetId(preset.id);
+    recordGravityUsage(preset.g_eff);
     setSliders((prev) => ({
       ...prev,
       O2_pct: preset.O2_pct,
@@ -325,6 +489,11 @@ export default function App() {
     value: VirtualTestConfig[K]
   ) => {
     setActivePresetId(null);
+    if (key === 'material') {
+      recordFuelUsage(String(value));
+    } else if (key === 'g_eff') {
+      recordGravityUsage(Number(value));
+    }
     setSliders((prev) => ({
       ...prev,
       [key]: value,
@@ -347,6 +516,8 @@ export default function App() {
 
   const handleRunVirtualTest = async () => {
     setIsRunningVirtualTest(true);
+    recordFuelUsage(sliders.material);
+    recordGravityUsage(sliders.g_eff);
     try {
       const result = await analyzeCombustionState(
         sliders,
@@ -500,7 +671,7 @@ export default function App() {
     sections: HeaderExportSectionId[],
     format: HeaderExportFormat
   ) => {
-    exportHeaderBundle({
+    exportHeaderBundleFormatted({
       sections,
       format,
       config: sliders,
@@ -508,51 +679,76 @@ export default function App() {
       selectedRuns,
       activeChart: resolvedActiveChart,
       consoleMessages: messages,
+      units: appSettings.units,
     });
   };
 
   const handleSendPrompt = async (
-    promptText: string,
+    input: string | ModelConsoleSubmitPayload,
     modeOverride?: ConsoleMode,
     chartContextOverride?: DecodedChartContext | null
   ) => {
-    const modeToUse = modeOverride ?? consoleMode;
+    const payloadObj: ModelConsoleSubmitPayload =
+      typeof input === 'string'
+        ? {
+            promptText: input,
+            mode: modeOverride ?? consoleMode,
+            attachments: [],
+            vizOutput: 'auto',
+            chartContextOverride,
+          }
+        : input;
+
+    const modeToUse = payloadObj.mode ?? consoleMode;
     const chartCtx =
-      chartContextOverride !== undefined
-        ? chartContextOverride
+      payloadObj.chartContextOverride !== undefined
+        ? payloadObj.chartContextOverride
         : activeChartContext;
+    const targetThreadId = activeChatThreadId;
+    const msgTimestamp = formatChatTimestamp();
 
     const userMsg: AssistantMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      timestamp: 'Now',
+      timestamp: msgTimestamp,
       mode: modeToUse,
-      text: promptText,
+      text: payloadObj.promptText,
+      attachments:
+        payloadObj.attachments.length > 0 ? payloadObj.attachments : undefined,
     };
-    setMessages((prev) => [...prev, userMsg]);
+    setChatThreads((prev) =>
+      appendMessagesToThread(prev, targetThreadId, [userMsg])
+    );
     setIsThinking(true);
 
     const response = await runModelConsoleInference({
-      question: promptText,
+      question: payloadObj.promptText,
       mode: modeToUse,
       request: {
         ...sliders,
         selectedRunIds,
+        attachments: payloadObj.attachments,
+        requestedVizOutput: payloadObj.vizOutput,
       },
       catalog: catalogRuns,
       archiveContext,
       chartContext: chartCtx,
+      attachments: payloadObj.attachments,
+      requestedVizOutput: payloadObj.vizOutput,
+      selectedRuns,
     });
     setIsThinking(false);
 
     if (response.assistantReply) {
-      if (response.assistantReply.suggestedVizMode) {
+      if (response.assistantReply.inlineChart?.resolvedVizMode) {
+        setVizMode(response.assistantReply.inlineChart.resolvedVizMode);
+      } else if (response.assistantReply.suggestedVizMode) {
         setVizMode(response.assistantReply.suggestedVizMode);
       }
       const assistantMsg: AssistantMessage = {
         id: `ast-${Date.now()}`,
         role: 'assistant',
-        timestamp: 'Synced',
+        timestamp: formatChatTimestamp(),
         mode: modeToUse,
         steps: response.assistantReply.steps,
         citations: response.assistantReply.citations,
@@ -560,13 +756,76 @@ export default function App() {
         recommendedParams: response.assistantReply.recommendedParams,
         whatIfRows: response.assistantReply.whatIfRows,
         chartContext: chartCtx ?? undefined,
+        inlineChart: response.assistantReply.inlineChart,
+        endpointLabel: response.assistantReply.endpointLabel,
+        appliedCorrectionIds: response.assistantReply.appliedCorrectionIds,
+        adaptiveNote: response.assistantReply.adaptiveNote,
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setChatThreads((prev) =>
+        appendMessagesToThread(prev, targetThreadId, [assistantMsg])
+      );
     }
   };
 
-  const handleResetConsole = () => {
-    setMessages([]);
+  const handleMarkMessageFeedback = (
+    messageId: string,
+    status: 'helpful' | 'corrected'
+  ) => {
+    setChatThreads((prev) =>
+      prev.map((t) => ({
+        ...t,
+        messages: t.messages.map((m) =>
+          m.id === messageId ? { ...m, feedbackStatus: status } : m
+        ),
+      }))
+    );
+  };
+
+  const handleRefreshSimulation = () => {
+    void analyzeCombustionState(sliders, catalogRuns, archiveContext).then(
+      (res) => setSimulation(res)
+    );
+  };
+
+  const handleCreateNewThread = () => {
+    const fresh = createChatThread();
+    setActiveChatThreadId(fresh.id);
+    setActiveChartContext(null);
+  };
+
+  const handleSelectThread = (threadId: string) => {
+    setActiveChatThreadId(threadId);
+  };
+
+  const handleDeleteThread = (threadId: string) => {
+    setChatThreads((prev) => {
+      const remaining = prev.filter((t) => t.id !== threadId);
+      if (activeChatThreadId === threadId) {
+        if (remaining.length > 0) {
+          setActiveChatThreadId(remaining[0].id);
+        } else {
+          setActiveChatThreadId(createChatThread().id);
+        }
+      }
+      return remaining;
+    });
+  };
+
+  const handleRenameThread = (threadId: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    setChatThreads((prev) =>
+      sortThreadsNewestFirst(
+        prev.map((t) =>
+          t.id === threadId
+            ? {
+                ...t,
+                title: trimmed,
+              }
+            : t
+        )
+      )
+    );
   };
 
   const handleStartQuickScenario = (scenarioId: QuickScenarioId) => {
@@ -616,10 +875,10 @@ export default function App() {
     }));
   };
 
-  const handleImportSuccess = (
+  const handleImportSuccess = async (
     newRuns: PsiRun[],
     meta: { fileName: string; unitConversionsApplied: string[] }
-  ) => {
+  ): Promise<{ message: string }> => {
     setCatalogRuns((prev) => [...newRuns, ...prev]);
     setTotalRunsCount((prev) => prev + newRuns.length);
     setCustomUploadsCount((prev) => prev + newRuns.length);
@@ -628,6 +887,13 @@ export default function App() {
     if (newRuns[0]) {
       setHighlightedRunId(newRuns[0].id);
     }
+
+    const ingestResult = await ingestRunsToActiveEndpoint({
+      runs: newRuns,
+      fileName: meta.fileName,
+      unitConversionsApplied: meta.unitConversionsApplied,
+    });
+
     setSessionEvents((prev) => [
       {
         id: `evt-upload-${Date.now()}`,
@@ -635,14 +901,14 @@ export default function App() {
         eventType: 'custom-upload',
         timestampUtc: formatUtcTimestamp(new Date()),
         runsIndexed: newRuns.length,
-        summary: `Checked and added ${newRuns.length} test run${
-          newRuns.length === 1 ? '' : 's'
-        } into the Experiment Catalog & Comparator.`,
+        summary: ingestResult.message,
         targetRunId: newRuns[0]?.id,
         unitConversions: meta.unitConversionsApplied,
       },
       ...prev,
     ]);
+
+    return { message: ingestResult.message };
   };
 
   const detailBackTarget: WorkspaceView =
@@ -693,6 +959,186 @@ export default function App() {
     setSidebarState((prev) => (prev === 'expanded' ? 'compact' : 'expanded'));
   };
 
+  const applyWorkspaceSnapshotToRuntime = (
+    workspace: SavedUserAccountWorkspace
+  ) => {
+    const mergedSettings: AppSettings = {
+      ...DEFAULT_APP_SETTINGS,
+      ...workspace.settings,
+      customColors: {
+        ...(workspace.settings?.customColors ?? {}),
+      },
+    };
+    setAppSettings(mergedSettings);
+    setProfileEmail(workspace.email ?? '');
+    setProfileBio(workspace.bio ?? '');
+
+    const nextThreads =
+      workspace.chatThreads.length > 0
+        ? sortThreadsNewestFirst(workspace.chatThreads)
+        : [createChatThread('New Chat')];
+    setChatThreads(nextThreads);
+    const nextActiveId =
+      workspace.activeChatThreadId &&
+      nextThreads.some((t) => t.id === workspace.activeChatThreadId)
+        ? workspace.activeChatThreadId
+        : nextThreads[0].id;
+    setActiveChatThreadId(nextActiveId);
+
+    setVizMode(workspace.adaptationProfile.preferredCharts?.[0] ?? 'safety-map');
+
+    const userCustom = workspace.customRuns ?? [];
+    setCatalogRuns((prev) => {
+      const baseArchive = prev.filter((r) => !r.isCustom);
+      return [...userCustom, ...baseArchive];
+    });
+    setCustomUploadsCount(userCustom.length);
+    return mergedSettings;
+  };
+
+  const executeLandingIntent = (
+    intent:
+      | { kind: 'enter' }
+      | { kind: 'workspace'; view: WorkspaceView }
+      | { kind: 'scenario'; scenarioId: QuickScenarioId }
+      | null,
+    overrideDefaultWorkspace?: AppSettings['defaultWorkspace']
+  ) => {
+    if (!intent) return;
+    if (intent.kind === 'enter') {
+      setActiveView(overrideDefaultWorkspace ?? appSettings.defaultWorkspace);
+      setShowLanding(false);
+    } else if (intent.kind === 'workspace') {
+      setActiveView(intent.view);
+      setShowLanding(false);
+    } else {
+      handleStartQuickScenario(intent.scenarioId);
+    }
+  };
+
+  const handleCompleteNameSignIn = (fullName: string) => {
+    const { session, workspace } = signInWithFullName(fullName);
+    setAccountSession(session);
+    const restoredSettings = applyWorkspaceSnapshotToRuntime(workspace);
+    setIsSignInModalOpen(false);
+    const intent = pendingLandingIntent;
+    setPendingLandingIntent(null);
+    setSignInContextLabel(undefined);
+    executeLandingIntent(intent, restoredSettings.defaultWorkspace);
+  };
+
+  const handleCompleteGuestSignIn = () => {
+    const { session, workspace } = startGuestSession();
+    setAccountSession(session);
+    const guestSettings = applyWorkspaceSnapshotToRuntime(workspace);
+    setIsSignInModalOpen(false);
+    const intent = pendingLandingIntent;
+    setPendingLandingIntent(null);
+    setSignInContextLabel(undefined);
+    executeLandingIntent(intent, guestSettings.defaultWorkspace);
+  };
+
+  const handleUpdateSettings = (patch: Partial<AppSettings>) => {
+    setAppSettings((prev) => {
+      const next: AppSettings = {
+        ...prev,
+        ...patch,
+        customColors: patch.customColors
+          ? patch.customColors
+          : prev.customColors,
+      };
+      return next;
+    });
+  };
+
+  const handleSaveProfileDetails = (updates: {
+    fullName: string;
+    email: string;
+    bio: string;
+  }) => {
+    if (!accountSession) return;
+    const customRuns = catalogRuns.filter((r) => Boolean(r.isCustom));
+    const { session: nextSession, workspace: nextWorkspace } =
+      updateActiveUserProfileDetails(accountSession, updates, customRuns);
+    setAccountSession(nextSession);
+    setProfileEmail(nextWorkspace.email);
+    setProfileBio(nextWorkspace.bio);
+  };
+
+  const handleClearChatHistoryOnly = () => {
+    const { threads, activeThreadId } =
+      clearChatHistoryForSession(accountSession);
+    setChatThreads(threads);
+    setActiveChatThreadId(activeThreadId);
+  };
+
+  const handleSignOut = () => {
+    signOutAccountSession();
+    setAccountSession(null);
+    setAppSettings({ ...DEFAULT_APP_SETTINGS, customColors: {} });
+    setProfileEmail('');
+    setProfileBio('');
+    const fresh = createChatThread('New Chat');
+    setChatThreads([fresh]);
+    setActiveChatThreadId(fresh.id);
+    setCatalogRuns((prev) => prev.filter((r) => !r.isCustom));
+    setCustomUploadsCount(0);
+    setShowLanding(true);
+  };
+
+  const handleDeleteAccount = () => {
+    if (!accountSession || accountSession.mode === 'guest') return;
+    deleteNamedAccount(accountSession.researcherId);
+    setAccountSession(null);
+    setAppSettings({ ...DEFAULT_APP_SETTINGS, customColors: {} });
+    setProfileEmail('');
+    setProfileBio('');
+    const fresh = createChatThread('New Chat');
+    setChatThreads([fresh]);
+    setActiveChatThreadId(fresh.id);
+    setCatalogRuns((prev) => prev.filter((r) => !r.isCustom));
+    setCustomUploadsCount(0);
+    setShowLanding(true);
+  };
+
+  const handleLandingEnterRequest = () => {
+    if (accountSession?.isAuthenticated) {
+      setActiveView(appSettings.defaultWorkspace);
+      setShowLanding(false);
+      return;
+    }
+    setPendingLandingIntent({ kind: 'enter' });
+    setSignInContextLabel('PSI Data Manager');
+    setIsSignInModalOpen(true);
+  };
+
+  const handleLandingWorkspaceRequest = (view: WorkspaceView) => {
+    if (accountSession?.isAuthenticated) {
+      setActiveView(view);
+      setShowLanding(false);
+      return;
+    }
+    setPendingLandingIntent({ kind: 'workspace', view });
+    setSignInContextLabel(
+      view === 'virtual-lab'
+        ? 'Virtual Test Lab'
+        : view === 'visual-studio'
+        ? 'Visual Analytics Studio'
+        : 'Model Console'
+    );
+    setIsSignInModalOpen(true);
+  };
+
+  const handleLandingScenarioRequest = (scenarioId: QuickScenarioId) => {
+    if (accountSession?.isAuthenticated) {
+      handleStartQuickScenario(scenarioId);
+      return;
+    }
+    setPendingLandingIntent({ kind: 'scenario', scenarioId });
+    setSignInContextLabel('Lunar Cabin Scenario');
+    setIsSignInModalOpen(true);
+  };
+
   const canvasClass =
     theme === 'dark'
       ? 'bg-[#09090B] text-[#FAFAFA]'
@@ -702,33 +1148,47 @@ export default function App() {
 
   if (showLanding) {
     return (
-      <LandingView
-        theme={theme}
-        investigationCount={investigationCount}
-        totalRunsCount={totalRunsCount}
-        literatureChunksCount={literatureChunks.length}
-        missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
-        isArchiveLoading={isArchiveLoading}
-        onEnterWorkspace={() => {
-          setActiveView('overview');
-          setShowLanding(false);
-        }}
-        onSelectWorkspace={(view) => {
-          setActiveView(view);
-          setShowLanding(false);
-        }}
-        onStartQuickScenario={handleStartQuickScenario}
-      />
+      <>
+        <LandingView
+          theme={theme}
+          session={accountSession}
+          investigationCount={investigationCount}
+          totalRunsCount={totalRunsCount}
+          literatureChunksCount={literatureChunks.length}
+          missionCasesCount={MISSION_AND_SPINOFF_CASES.length}
+          isArchiveLoading={isArchiveLoading}
+          onOpenSignIn={() => {
+            setPendingLandingIntent(null);
+            setSignInContextLabel(undefined);
+            setIsSignInModalOpen(true);
+          }}
+          onEnterWorkspace={handleLandingEnterRequest}
+          onSelectWorkspace={handleLandingWorkspaceRequest}
+          onStartQuickScenario={handleLandingScenarioRequest}
+        />
+        <SignInModal
+          isOpen={isSignInModalOpen}
+          contextLabel={signInContextLabel}
+          onClose={() => {
+            setIsSignInModalOpen(false);
+            setPendingLandingIntent(null);
+            setSignInContextLabel(undefined);
+          }}
+          onConfirmNameSignIn={handleCompleteNameSignIn}
+          onContinueAsGuest={handleCompleteGuestSignIn}
+        />
+      </>
     );
   }
 
   return (
     <div
-      className={`min-h-screen flex flex-col lg:flex-row transition-colors duration-150 ${canvasClass}`}
+      className={`psi-app-shell min-h-screen flex flex-col lg:flex-row transition-colors duration-150 ${canvasClass}`}
     >
       {/* Left Hierarchical Collapsible Navigation Sidebar */}
       <LeftSidebar
         theme={theme}
+        session={accountSession}
         activeView={activeView}
         onSelectView={setActiveView}
         onReturnToLanding={() => setShowLanding(true)}
@@ -741,14 +1201,37 @@ export default function App() {
         isArchiveLoading={isArchiveLoading}
         customUploadsCount={customUploadsCount}
         runs={catalogRuns}
+        investigations={investigations}
+        guideTopics={guideTopics}
+        literatureChunks={literatureChunks}
+        searchInputRef={globalSearchInputRef}
         onQuickJumpRun={handleQuickJumpRun}
+        onQuickJumpInvestigation={(inv) =>
+          handleQuickJumpRun(inv.representativeRun)
+        }
+        onQuickJumpGuideTopic={(topicId, searchHint) => {
+          setGuideJumpHint({
+            topicId,
+            searchHint,
+            nonce: Date.now(),
+          });
+          setActiveView('researchers-guide');
+        }}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenSignIn={() => {
+          setPendingLandingIntent(null);
+          setSignInContextLabel(undefined);
+          setIsSignInModalOpen(true);
+        }}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
         <HeaderBar
           theme={theme}
-          onThemeChange={setTheme}
+          themeSetting={appSettings.themeSetting}
+          onThemeChange={(mode) => handleUpdateSettings({ themeSetting: mode })}
+          defaultExportFormat={appSettings.defaultExportFormat}
           activeView={activeView}
           inspectedRun={inspectedRun}
           sidebarState={sidebarState}
@@ -773,6 +1256,8 @@ export default function App() {
           {activeView === 'virtual-lab' && (
             <VirtualTestLab
               theme={theme}
+              measurementUnits={appSettings.units}
+              defaultExportFormat={appSettings.defaultExportFormat}
               config={sliders}
               activePresetId={activePresetId}
               simulation={simulation}
@@ -789,7 +1274,18 @@ export default function App() {
                 setActiveChartContext(null);
                 setActiveView('model-console');
                 handleSendPrompt(
-                  `Analyze Virtual Test Lab output (${sliders.material}, ${sliders.O2_pct.toFixed(1)}% O2, ${sliders.P_psi.toFixed(1)} psi, ${sliders.Flow_ms.toFixed(2)} m/s, ${sliders.g_eff.toFixed(3)}g, ${sliders.Thickness_mm.toFixed(1)} mm) yielding ${simulation.flameSpread_mms.toFixed(2)} mm/s (${simulation.hazardStatus}).`,
+                  {
+                    promptText: `Analyze Virtual Test Lab output (${sliders.material}, ${sliders.O2_pct.toFixed(1)}% O2, ${sliders.P_psi.toFixed(1)} psi, ${sliders.Flow_ms.toFixed(2)} m/s, ${sliders.g_eff.toFixed(3)}g, ${sliders.Thickness_mm.toFixed(1)} mm) yielding ${simulation.flameSpread_mms.toFixed(2)} mm/s (${simulation.hazardStatus}).`,
+                    mode: 'decoder',
+                    attachments: [
+                      {
+                        id: 'attach-virtual-lab',
+                        kind: 'virtual-lab',
+                        label: 'Virtual Test Lab Current Run',
+                      },
+                    ],
+                    vizOutput: 'auto',
+                  },
                   'decoder',
                   null
                 );
@@ -805,6 +1301,7 @@ export default function App() {
             <VisualAnalyticsStudio
               onExportSnapshotChange={setStudioExportSnapshot}
               theme={theme}
+              defaultExportFormat={appSettings.defaultExportFormat}
               vizMode={vizMode}
               onChangeVizMode={setVizMode}
               sliders={sliders}
@@ -823,7 +1320,19 @@ export default function App() {
                 setConsoleMode('decoder');
                 setActiveView('model-console');
                 handleSendPrompt(
-                  `Decode active Visual Analytics view: ${chartContext.techniqueName} (${chartContext.xAxisLabel} vs ${chartContext.yAxisLabel}) across ${chartContext.runCount} points. ${chartContext.anomalies[0] ?? ''}`,
+                  {
+                    promptText: `Decode active Visual Analytics view: ${chartContext.techniqueName} (${chartContext.xAxisLabel} vs ${chartContext.yAxisLabel}) across ${chartContext.runCount} points. ${chartContext.anomalies[0] ?? ''}`,
+                    mode: 'decoder',
+                    attachments: [
+                      {
+                        id: 'attach-visual-studio',
+                        kind: 'visual-studio',
+                        label: 'Visual Analytics Studio Active View',
+                      },
+                    ],
+                    vizOutput: 'auto',
+                    chartContextOverride: chartContext,
+                  },
                   'decoder',
                   chartContext
                 );
@@ -834,28 +1343,51 @@ export default function App() {
           {activeView === 'model-console' && (
             <ModelConsoleView
               theme={theme}
+              measurementUnits={appSettings.units}
+              defaultExportFormat={appSettings.defaultExportFormat}
+              activeResearcherLabel={
+                accountSession?.mode === 'guest'
+                  ? 'Guest Session'
+                  : accountSession?.researcherId
+              }
               activeMode={consoleMode}
               onChangeMode={setConsoleMode}
               virtualConfig={sliders}
               simulation={simulation}
-              messages={messages}
+              runs={catalogRuns}
+              investigations={investigations}
+              selectedRuns={selectedRuns}
+              studioVizMode={vizMode}
+              threads={chatThreads}
+              activeThreadId={activeChatThreadId}
               isRunningInference={isThinking}
               activeChartContext={activeChartContext}
               onClearChartContext={() => setActiveChartContext(null)}
               totalRunsCount={totalRunsCount}
               investigationCount={investigationCount}
               literatureChunksCount={literatureChunks.length}
-              onSubmitInference={(text, mode) => handleSendPrompt(text, mode)}
-              onResetConsole={handleResetConsole}
+              onSubmitInference={(payload) => handleSendPrompt(payload)}
+              onCreateNewThread={handleCreateNewThread}
+              onSelectThread={handleSelectThread}
+              onDeleteThread={handleDeleteThread}
+              onRenameThread={handleRenameThread}
+              onMarkMessageFeedback={handleMarkMessageFeedback}
+              onEndpointSyncedOrProfileChanged={handleRefreshSimulation}
               onApplyParamsToVirtualLab={handleApplyParamsToVirtualLab}
+              onChangeSlider={handleChangeSlider}
               onOpenInvestigation={handleOpenInspector}
-              onGoToEndpointConfig={() => setActiveView('import-sync')}
+              onOpenInVisualStudio={(targetViz) => {
+                setVizMode(targetViz);
+                setActiveView('visual-studio');
+              }}
             />
           )}
 
           {activeView === 'comparator' && (
             <RunComparator
               theme={theme}
+              measurementUnits={appSettings.units}
+              defaultExportFormat={appSettings.defaultExportFormat}
               selectedRuns={selectedRuns}
               hoveredRunId={hoveredRunId}
               onHoverRun={setHoveredRunId}
@@ -893,6 +1425,7 @@ export default function App() {
                     : 'investigations'
                 )
               }
+              guideJumpHint={guideJumpHint}
               runs={catalogRuns}
               investigations={investigations}
               guideTopics={guideTopics}
@@ -913,6 +1446,8 @@ export default function App() {
           {activeView === 'experiment-runs' && (
             <ExperimentRunsView
               theme={theme}
+              measurementUnits={appSettings.units}
+              defaultExportFormat={appSettings.defaultExportFormat}
               runs={catalogRuns}
               selectedRunIds={selectedRunIds}
               highlightedRunId={highlightedRunId}
@@ -945,6 +1480,8 @@ export default function App() {
               literatureChunks={literatureChunks}
               selectedRunIds={selectedRunIds}
               theme={theme}
+              measurementUnits={appSettings.units}
+              defaultExportFormat={appSettings.defaultExportFormat}
               backLabel={detailBackLabel}
               isSelectedForComparison={
                 inspectedRun ? selectedRunIds.includes(inspectedRun.id) : false
@@ -958,6 +1495,35 @@ export default function App() {
           )}
         </main>
       </div>
+
+      <SignInModal
+        isOpen={isSignInModalOpen}
+        contextLabel={signInContextLabel}
+        onClose={() => {
+          setIsSignInModalOpen(false);
+          setPendingLandingIntent(null);
+          setSignInContextLabel(undefined);
+        }}
+        onConfirmNameSignIn={handleCompleteNameSignIn}
+        onContinueAsGuest={handleCompleteGuestSignIn}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        session={accountSession}
+        resolvedTheme={theme}
+        settings={appSettings}
+        onUpdateSettings={handleUpdateSettings}
+        initialEmail={profileEmail}
+        initialBio={profileBio}
+        onSaveProfileDetails={handleSaveProfileDetails}
+        savedChatsCount={chatThreads.length}
+        customRuns={catalogRuns.filter((r) => Boolean(r.isCustom))}
+        onClearChatHistory={handleClearChatHistoryOnly}
+        onSignOut={handleSignOut}
+        onDeleteAccount={handleDeleteAccount}
+      />
     </div>
   );
 }

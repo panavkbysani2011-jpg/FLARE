@@ -38,6 +38,7 @@ interface CatalogViewProps {
   theme: ThemeMode;
   activeTabOverride?: DataArchiveTab;
   onChangeTab?: (tab: DataArchiveTab) => void;
+  guideJumpHint?: { topicId?: string; searchHint?: string; nonce: number } | null;
   runs: PsiRun[];
   investigations: PsiInvestigationRecord[];
   guideTopics: ResearchersGuideTopic[];
@@ -60,6 +61,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   theme,
   activeTabOverride,
   onChangeTab,
+  guideJumpHint,
   runs,
   investigations,
   guideTopics,
@@ -102,6 +104,20 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   // Tab 3: Mission & Spin-Off Cases states
   const [caseSearch, setCaseSearch] = useState('');
   const [caseCategory, setCaseCategory] = useState<string>('ALL');
+
+  React.useEffect(() => {
+    if (!guideJumpHint) return;
+    if (guideJumpHint.topicId) {
+      setGuideSearch('');
+      setExpandedTopicIds((prev) =>
+        prev.includes(guideJumpHint.topicId!)
+          ? prev
+          : [guideJumpHint.topicId!, ...prev]
+      );
+    } else if (guideJumpHint.searchHint) {
+      setGuideSearch(guideJumpHint.searchHint);
+    }
+  }, [guideJumpHint]);
 
   const isDark = theme === 'dark';
 

@@ -13,7 +13,7 @@ export type HeaderExportSectionId =
   | 'visual-chart'
   | 'console-notes';
 
-export type HeaderExportFormat = 'md' | 'json';
+export type HeaderExportFormat = 'doc' | 'pdf' | 'md' | 'json';
 
 export interface ActiveChartExportSnapshot {
   vizMode: VizMode;
@@ -93,7 +93,7 @@ export function buildCsvDocument(
   return lines.join('\n');
 }
 
-function runRowsToCsv(
+export function runRowsToCsv(
   runs: PsiRun[],
   extraSelectedIds?: string[]
 ): string {

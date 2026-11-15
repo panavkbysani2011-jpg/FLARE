@@ -6,14 +6,9 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   Database,
-  Server,
-  Eye,
-  EyeOff,
-  Activity,
 } from 'lucide-react';
 import {
   DataManifestFileRecord,
-  PsiApiEndpointConfig,
   PsiRun,
   SessionIngestionEvent,
   ThemeMode,
@@ -24,12 +19,7 @@ import {
   SAMPLE_COMBUSTION_CSV,
   SAMPLE_UNRELATED_CSV,
 } from '../utils/dataImporter';
-import {
-  getApiEndpointConfig,
-  processCustomDatasetUpload,
-  saveApiEndpointConfig,
-  testApiEndpointHealth,
-} from '../services/psiApi';
+import { processCustomDatasetUpload } from '../services/psiApi';
 import { CollapsibleCard } from './CollapsibleCard';
 
 interface ImportSyncViewProps {
@@ -37,7 +27,7 @@ interface ImportSyncViewProps {
   onImportSuccess: (
     newRuns: PsiRun[],
     meta: { fileName: string; unitConversionsApplied: string[] }
-  ) => void;
+  ) => Promise<{ message: string } | void> | void;
   manifestFiles: DataManifestFileRecord[];
   sessionEvents: SessionIngestionEvent[];
   isArchiveLoading: boolean;
@@ -71,18 +61,6 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
     string | null
   >(null);
 
-  // Runtime FastAPI + API Key Endpoint Settings
-  const [endpointConfig, setEndpointConfig] = useState<PsiApiEndpointConfig>(() =>
-    getApiEndpointConfig()
-  );
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [isTestingEndpoint, setIsTestingEndpoint] = useState(false);
-  const [endpointHealthNotice, setEndpointHealthNotice] = useState<{
-    mode: 'remote' | 'offline-fallback';
-    ok: boolean;
-    message: string;
-  } | null>(null);
-
   const isDark = theme === 'dark';
   const cardSurface = isDark
     ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
@@ -90,46 +68,6 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
   const subSurface = isDark
     ? 'bg-[#09090B]/70 border-[#27272A]'
     : 'bg-zinc-50/80 border-[#E4E4E7]';
-
-  const handleSaveEndpointConfig = () => {
-    const saved = saveApiEndpointConfig(endpointConfig);
-    setEndpointConfig(saved);
-    setEndpointHealthNotice({
-      ok: true,
-      mode: saved.baseUrl ? 'remote' : 'offline-fallback',
-      message: saved.baseUrl
-        ? `Saved server address: ${saved.baseUrl} (automatic local mode remains active if unreachable).`
-        : 'Cleared remote server address. Running on Local Fire Physics & Flight Data.',
-    });
-  };
-
-  const handleTestEndpoint = async () => {
-    setIsTestingEndpoint(true);
-    const saved = saveApiEndpointConfig(endpointConfig);
-    setEndpointConfig(saved);
-    const result = await testApiEndpointHealth(saved);
-    setEndpointHealthNotice({
-      ok: result.ok,
-      mode: result.mode,
-      message: result.message,
-    });
-    setIsTestingEndpoint(false);
-  };
-
-  const handleUseOfflineEngine = () => {
-    const cleared = saveApiEndpointConfig({
-      baseUrl: '',
-      apiKeyHeader: endpointConfig.apiKeyHeader,
-      apiKeyValue: '',
-    });
-    setEndpointConfig(cleared);
-    setEndpointHealthNotice({
-      ok: true,
-      mode: 'offline-fallback',
-      message:
-        'Switched cleanly to Local Fire Physics & Flight Data (no external server needed).',
-    });
-  };
 
   const triggerValidationWithSkeleton = (content: string, name: string) => {
     setImportedCommitMessage(null);
@@ -160,18 +98,23 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
     handleFileUpload(file);
   };
 
-  const handleCommitImport = () => {
+  const handleCommitImport = async () => {
     if (
       validationResult &&
       validationResult.valid &&
       validationResult.parsedRuns.length > 0
     ) {
-      onImportSuccess(validationResult.parsedRuns, {
+      setImportedCommitMessage(
+        `Adding ${validationResult.parsedRuns.length} formatted test runs and syncing active endpoint...`
+      );
+      const result = await onImportSuccess(validationResult.parsedRuns, {
         fileName,
         unitConversionsApplied: validationResult.unitConversionsApplied,
       });
       setImportedCommitMessage(
-        `Added ${validationResult.parsedRuns.length} formatted test runs to Experiment Catalog & Virtual Test Lab.`
+        result && typeof result === 'object' && result.message
+          ? result.message
+          : `Added ${validationResult.parsedRuns.length} formatted test runs to Experiment Catalog, Visual Studio & Virtual Test Lab.`
       );
     }
   };
@@ -183,174 +126,9 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
           Data Import &amp; Archive Sync
         </h1>
         <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-          Upload CSV/JSON test runs, convert units automatically, or connect a remote model service
+          Upload CSV/JSON test runs, convert units automatically, and inspect loaded datasets
         </span>
       </div>
-
-      {/* Top Collapsible FastAPI & Model Endpoint Configuration Panel */}
-      <CollapsibleCard
-        theme={theme}
-        title="Remote Model Endpoint (Optional)"
-        subtitle={
-          endpointConfig.baseUrl
-            ? `Configured: ${endpointConfig.baseUrl}`
-            : 'Local Mode Active (Runs in Browser)'
-        }
-        summaryLine={
-          endpointConfig.baseUrl
-            ? `Remote API Target: ${endpointConfig.baseUrl} (${endpointConfig.apiKeyHeader})`
-            : 'No external server required · Local Combustion Engine Active'
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-            Optionally connect an external FastAPI prediction service (`POST /api/analyze`, `GET /health`) with an API key. Leave the URL blank to run all Virtual Test Lab and Model Console calculations locally in your browser.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div className="md:col-span-6 space-y-1">
-              <label
-                htmlFor="psi-api-base-url"
-                className="block text-[11px] font-sans font-medium text-zinc-500"
-              >
-                FastAPI Base URL (Optional — overrides VITE_API_BASE_URL)
-              </label>
-              <div className="relative">
-                <Server className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  id="psi-api-base-url"
-                  type="url"
-                  value={endpointConfig.baseUrl}
-                  onChange={(e) =>
-                    setEndpointConfig((prev) => ({
-                      ...prev,
-                      baseUrl: e.target.value,
-                    }))
-                  }
-                  placeholder="http://127.0.0.1:8000 (leave blank for local offline engine)"
-                  className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${subSurface}`}
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2 space-y-1">
-              <label
-                htmlFor="psi-api-key-header"
-                className="block text-[11px] font-sans font-medium text-zinc-500"
-              >
-                Auth Header
-              </label>
-              <select
-                id="psi-api-key-header"
-                value={endpointConfig.apiKeyHeader}
-                onChange={(e) =>
-                  setEndpointConfig((prev) => ({
-                    ...prev,
-                    apiKeyHeader: e.target.value as 'X-API-Key' | 'Authorization',
-                  }))
-                }
-                className={`w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${cardSurface}`}
-              >
-                <option value="X-API-Key">X-API-Key</option>
-                <option value="Authorization">Authorization</option>
-              </select>
-            </div>
-
-            <div className="md:col-span-4 space-y-1">
-              <label
-                htmlFor="psi-api-key-value"
-                className="block text-[11px] font-sans font-medium text-zinc-500"
-              >
-                API Key / Bearer Token (Optional)
-              </label>
-              <div className="relative">
-                <input
-                  id="psi-api-key-value"
-                  type={showApiKey ? 'text' : 'password'}
-                  value={endpointConfig.apiKeyValue}
-                  onChange={(e) =>
-                    setEndpointConfig((prev) => ({
-                      ...prev,
-                      apiKeyValue: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter secret token if required..."
-                  className={`w-full pl-3 pr-8 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${subSurface}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey((prev) => !prev)}
-                  aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
-                >
-                  {showApiKey ? (
-                    <EyeOff className="w-3.5 h-3.5" />
-                  ) : (
-                    <Eye className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={handleSaveEndpointConfig}
-                className={`px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
-                  isDark
-                    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
-                    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
-                }`}
-              >
-                Save Endpoint Config
-              </button>
-
-              <button
-                type="button"
-                disabled={isTestingEndpoint}
-                onClick={handleTestEndpoint}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60 ${
-                  isDark
-                    ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
-                    : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
-                }`}
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>{isTestingEndpoint ? 'Testing...' : 'Test Connection'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleUseOfflineEngine}
-                className={`px-3 py-2 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
-                  isDark
-                    ? 'border-[#27272A] text-zinc-400 hover:bg-zinc-800 hover:border-zinc-600'
-                    : 'border-[#E4E4E7] text-zinc-600 hover:bg-zinc-100 hover:border-zinc-300'
-                }`}
-              >
-                Use Local Mode
-              </button>
-            </div>
-
-            {endpointHealthNotice && (
-              <div className="flex items-center gap-2 text-xs font-sans">
-                <span
-                  className={`w-2 h-2 rounded-[2px] ${
-                    endpointHealthNotice.mode === 'remote' && endpointHealthNotice.ok
-                      ? 'bg-[#10B981]'
-                      : 'bg-[#F59E0B]'
-                  }`}
-                />
-                <span className="text-zinc-700 dark:text-zinc-200">
-                  {endpointHealthNotice.message}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </CollapsibleCard>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
       {/* Left 7 Columns: Domain-Gated CSV/JSON Custom Data Importer */}

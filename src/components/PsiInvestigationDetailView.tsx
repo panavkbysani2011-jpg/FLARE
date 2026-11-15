@@ -19,11 +19,15 @@ import {
   Square,
 } from 'lucide-react';
 import {
+  DefaultExportFormat,
   LiteratureChunk,
+  MeasurementUnits,
   PsiInvestigationRecord,
   PsiRun,
   ThemeMode,
 } from '../types/psi';
+import { exportRunsDataFormatted } from '../utils/exportGenerators';
+import { ExportDropdown } from './ExportDropdown';
 import {
   FACILITY_DESCRIPTIONS,
   buildInvestigationArtifacts,
@@ -40,6 +44,8 @@ interface PsiInvestigationDetailViewProps {
   literatureChunks?: LiteratureChunk[];
   selectedRunIds: string[];
   theme: ThemeMode;
+  measurementUnits?: MeasurementUnits;
+  defaultExportFormat?: DefaultExportFormat;
   backLabel: string;
   isSelectedForComparison: boolean;
   selectedRunsCount: number;
@@ -60,6 +66,8 @@ export const PsiInvestigationDetailView: React.FC<
   literatureChunks = [],
   selectedRunIds,
   theme,
+  measurementUnits = 'spacecraft',
+  defaultExportFormat,
   backLabel,
   isSelectedForComparison,
   selectedRunsCount,
@@ -541,6 +549,24 @@ export const PsiInvestigationDetailView: React.FC<
                   }`}
                 />
               </div>
+
+              <ExportDropdown
+                theme={theme}
+                label="Export Data"
+                formats={['csv', 'json', 'doc', 'pdf']}
+                defaultFormat={defaultExportFormat}
+                disabled={investigationRuns.length === 0}
+                title="Download investigation test runs as CSV, JSON, Word, or PDF"
+                onSelectFormat={(fmt) =>
+                  exportRunsDataFormatted({
+                    runs: investigationRuns,
+                    selectedRunIds,
+                    title: `${canonicalId} Experimental Runs`,
+                    units: measurementUnits,
+                    format: fmt,
+                  })
+                }
+              />
 
               {totalRunPages > 1 && (
                 <div className="flex items-center gap-1 text-xs font-sans">

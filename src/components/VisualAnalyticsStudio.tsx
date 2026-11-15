@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   ChevronDown,
-  Download,
   Lock,
   RotateCcw,
   Search,
@@ -10,12 +9,12 @@ import {
   TerminalSquare,
   X,
 } from 'lucide-react';
-import {
-  ActiveChartExportSnapshot,
-  exportStudioChartData,
-} from '../utils/exportHelpers';
+import { ActiveChartExportSnapshot } from '../utils/exportHelpers';
+import { exportStudioChartFormatted } from '../utils/exportGenerators';
+import { ExportDropdown } from './ExportDropdown';
 import {
   DecodedChartContext,
+  DefaultExportFormat,
   PsiRun,
   SimulationResponse,
   StudioDatasetSource,
@@ -37,12 +36,14 @@ import {
   STUDIO_DATASET_SOURCES,
   STUDIO_NUMERIC_COLUMNS,
 } from '../utils/vizRegistry';
-import { computeFlameSpreadVelocity } from '../utils/physicsEngine';
+import { generateChartDecodeInsight } from '../services/psiApi';
+import { recordChartUsage } from '../services/userAdaptation';
 import { CollapsibleCard } from './CollapsibleCard';
 import { VizTechniqueRenderer } from './VizTechniqueRenderer';
 
 interface VisualAnalyticsStudioProps {
   theme: ThemeMode;
+  defaultExportFormat?: DefaultExportFormat;
   vizMode: VizMode;
   onChangeVizMode: (mode: VizMode) => void;
   sliders: {
@@ -71,6 +72,7 @@ interface VisualAnalyticsStudioProps {
 
 export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
   theme,
+  defaultExportFormat,
   vizMode,
   onChangeVizMode,
   sliders,
@@ -89,9 +91,6 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
 }) => {
   const isDark = theme === 'dark';
 
-  const [chartExportFormat, setChartExportFormat] = useState<'csv' | 'json'>(
-    'csv'
-  );
   const [datasetSource, setDatasetSource] =
     useState<StudioDatasetSource>('full-archive');
   const [axisMap, setAxisMap] = useState<{
@@ -232,63 +231,17 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
   }, [chartExportSnapshot, onExportSnapshotChange]);
 
   const handleDecodeView = () => {
-    const runs = datasetContext.activeRuns;
-    const anomalies: string[] = [];
-    const coolCount = runs.filter((r) => r.outcome === 'Cool Flame Caution').length;
-    const rapidRuns = [...runs]
-      .filter((r) => r.outcome === 'Rapid Flame Spread')
-      .sort((a, b) => b.flameSpread_mms - a.flameSpread_mms);
-    if (coolCount > 0) {
-      anomalies.push(
-        `${coolCount} run(s) exhibit non-luminous 550K–800K Cool-Flame NTC behavior with low optical emission.`
-      );
-    }
-    if (rapidRuns[0]) {
-      anomalies.push(
-        `Peak spread outlier: ${rapidRuns[0].psiId} (${rapidRuns[0].material}) at ${rapidRuns[0].flameSpread_mms.toFixed(
-          2
-        )} mm/s under ${rapidRuns[0].O2_pct.toFixed(1)}% O₂.`
-      );
-    }
-    const maxResidual = runs
-      .slice(0, 60)
-      .map((r) => {
-        const pred = computeFlameSpreadVelocity({
-          O2_pct: r.O2_pct,
-          P_psi: r.P_psi,
-          Flow_ms: r.Flow_ms,
-          g_eff: r.g_eff,
-          Thickness_mm: r.Thickness_mm,
-          material: r.material,
-        }).flameSpread_mms;
-        return { run: r, diff: Math.abs(r.flameSpread_mms - pred) };
-      })
-      .sort((a, b) => b.diff - a.diff)[0];
-    if (maxResidual && maxResidual.diff > 0.35) {
-      anomalies.push(
-        `Largest difference between real test and model: ${maxResidual.run.psiId} (Δ = ${maxResidual.diff.toFixed(
-          2
-        )} mm/s).`
-      );
-    }
-    if (anomalies.length === 0) {
-      anomalies.push(
-        `Active virtual operating point predicts ${simulation.flameSpread_mms.toFixed(
-          2
-        )} mm/s (${simulation.hazardStatus}) with ${simulation.modelConfidence?.confidencePct ?? 92}% model confidence.`
-      );
-    }
-
-    onDecodeInModelConsole({
+    const context = generateChartDecodeInsight({
       datasetLabel: activeDatasetMeta.label,
       techniqueName: activeTechnique.definition.name,
       xAxisLabel: xAxisMeta.label,
       yAxisLabel: yAxisMeta.label,
       colorByLabel: colorByMeta.label,
-      runCount: runs.length,
-      anomalies,
+      plottedRuns: datasetContext.activeRuns,
+      simulation,
       summaryHeadline: headline,
     });
+    onDecodeInModelConsole(context);
   };
 
   const selectClass = `w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none transition-colors ${
@@ -534,6 +487,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                           disabled={disabled}
                           title={compatibility.reason}
                           onClick={() => {
+                            recordChartUsage(definition.id);
                             onChangeVizMode(definition.id);
                             setIsTechOpen(false);
                           }}
@@ -735,61 +689,21 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <div
-                className={`flex items-center p-0.5 rounded-md border ${
-                  isDark
-                    ? 'bg-[#09090B] border-[#27272A]'
-                    : 'bg-zinc-100 border-[#E4E4E7]'
-                }`}
-                role="group"
-                aria-label="Chart export format"
-              >
-                <button
-                  type="button"
-                  onClick={() => setChartExportFormat('csv')}
-                  className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] cursor-pointer transition-colors ${
-                    chartExportFormat === 'csv'
-                      ? activeMonoBtn
-                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-                  }`}
-                >
-                  CSV
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChartExportFormat('json')}
-                  className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] cursor-pointer transition-colors ${
-                    chartExportFormat === 'json'
-                      ? activeMonoBtn
-                      : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
-                  }`}
-                >
-                  JSON
-                </button>
-              </div>
-
-              <button
-                type="button"
-                disabled={isUnavailable}
-                onClick={() =>
-                  exportStudioChartData({
-                    snapshot: chartExportSnapshot,
-                    simulation,
-                    format: chartExportFormat,
-                  })
-                }
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] disabled:opacity-45 cursor-pointer ${
-                  isDark
-                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
-                }`}
-                title="Download the currently plotted chart data and axis metadata"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Export Chart Data</span>
-              </button>
-            </div>
+            <ExportDropdown
+              theme={theme}
+              label="Export Chart"
+              formats={['csv', 'json', 'doc', 'pdf']}
+              defaultFormat={defaultExportFormat}
+              disabled={isUnavailable}
+              title="Download the currently plotted chart data as CSV, JSON, Word, or PDF"
+              onSelectFormat={(fmt) =>
+                exportStudioChartFormatted({
+                  snapshot: chartExportSnapshot,
+                  simulation,
+                  format: fmt,
+                })
+              }
+            />
           </div>
         </div>
 
