@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Flame,
   ExternalLink,
+  ChevronDown,
 } from 'lucide-react';
 import { exportVirtualTestFormatted } from '../utils/exportGenerators';
 import { ExportDropdown } from './ExportDropdown';
@@ -223,11 +224,11 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Page Intro Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-lg font-semibold tracking-tight">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
             Virtual Test Lab
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -265,7 +266,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           <button
             type="button"
             onClick={onResetConfig}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs font-sans font-medium rounded-lg border cursor-pointer focus-visible:outline-none ${secondaryButton}`}
           >
             <RotateCcw className="w-3 h-3" />
             <span>Reset Baseline</span>
@@ -278,7 +279,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
               Mission Cabin Presets
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {ENVIRONMENT_PRESETS.map((preset) => {
                 const isActive = activePresetId === preset.id;
                 return (
@@ -286,10 +287,10 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                     key={preset.id}
                     type="button"
                     onClick={() => onSelectPreset(preset)}
-                    className={`text-left p-3 rounded-lg border cursor-pointer ${
+                    className={`text-left p-3.5 rounded-lg border cursor-pointer focus-visible:outline-none ${
                       isActive
                         ? primaryButton
-                        : `${subSurface} shadow-xs hover:shadow-sm hover:border-zinc-400 dark:hover:border-zinc-600 active:scale-[0.98] transition-all`
+                        : `${subSurface} shadow-2xs hover:shadow-sm hover:border-zinc-400 dark:hover:border-zinc-600 active:scale-[0.98] transition-all duration-150`
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -314,17 +315,17 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           </div>
 
           {/* Numeric Parameters Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
             {/* O2 Concentration */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-o2"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Oxygen Concentration (%)
                 </label>
-                <span className="font-mono text-xs font-semibold tabular-nums">
+                <span className="font-mono text-xs font-semibold tabular-nums shrink-0">
                   {config.O2_pct.toFixed(1)}%
                 </span>
               </div>
@@ -336,7 +337,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.5}
                 value={config.O2_pct}
                 onChange={(e) => onChangeConfig('O2_pct', Number(e.target.value))}
-                className="w-full accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -352,15 +353,15 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             </div>
 
             {/* Cabin Pressure */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-pressure"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Cabin Pressure ({formatPressureUnit(measurementUnits)})
                 </label>
-                <span className="font-mono text-xs font-semibold tabular-nums">
+                <span className="font-mono text-xs font-semibold tabular-nums shrink-0">
                   {formatPressure(config.P_psi, measurementUnits)}
                 </span>
               </div>
@@ -372,7 +373,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.1}
                 value={config.P_psi}
                 onChange={(e) => onChangeConfig('P_psi', Number(e.target.value))}
-                className="w-full accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -388,15 +389,15 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             </div>
 
             {/* Forced Airflow */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-flow"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Forced Airflow ({formatAirflowUnit(measurementUnits)})
                 </label>
-                <span className="font-mono text-xs font-semibold tabular-nums">
+                <span className="font-mono text-xs font-semibold tabular-nums shrink-0">
                   {formatAirflow(config.Flow_ms, measurementUnits)}
                 </span>
               </div>
@@ -408,7 +409,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.01}
                 value={config.Flow_ms}
                 onChange={(e) => onChangeConfig('Flow_ms', Number(e.target.value))}
-                className="w-full accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -422,53 +423,60 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             </div>
 
             {/* Candidate Material Selector */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-material"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Candidate Material
                 </label>
-                <span className="font-sans text-[11px] text-zinc-500">
+                <span className="font-sans text-[11px] text-zinc-500 shrink-0">
                   LOI{' '}
                   <span className="font-mono tabular-nums">
                     {activeMaterialMeta.loiPct.toFixed(1)}%
                   </span>
                 </span>
               </div>
-              <select
-                id="vtl-material"
-                value={config.material}
-                onChange={(e) =>
-                  onChangeConfig(
-                    'material',
-                    e.target.value as CandidateMaterialCode
-                  )
-                }
-                className={`w-full px-2.5 py-1.5 text-xs font-sans font-medium rounded-[4px] border outline-none ${cardSurface}`}
-              >
-                {MATERIAL_OPTIONS.map((opt) => (
-                  <option key={opt.code} value={opt.code}>
-                    {opt.label} ({opt.code})
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+              <div className="relative">
+                <select
+                  id="vtl-material"
+                  value={config.material}
+                  onChange={(e) =>
+                    onChangeConfig(
+                      'material',
+                      e.target.value as CandidateMaterialCode
+                    )
+                  }
+                  className={`w-full h-9 appearance-none pl-3 pr-9 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 outline-none cursor-pointer ${
+                    isDark
+                      ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-500/30'
+                      : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B] hover:border-zinc-300 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400/30'
+                  }`}
+                >
+                  {MATERIAL_OPTIONS.map((opt) => (
+                    <option key={opt.code} value={opt.code}>
+                      {opt.label} ({opt.code})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
+              <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate">
                 {activeMaterialMeta.note}
               </p>
             </div>
 
             {/* Material Thickness */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-thickness"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Material Thickness (mm)
                 </label>
-                <span className="font-mono text-xs font-semibold tabular-nums">
+                <span className="font-mono text-xs font-semibold tabular-nums shrink-0">
                   {config.Thickness_mm.toFixed(1)} mm
                 </span>
               </div>
@@ -482,7 +490,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 onChange={(e) =>
                   onChangeConfig('Thickness_mm', Number(e.target.value))
                 }
-                className="w-full accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -498,15 +506,15 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             </div>
 
             {/* Ignition Heat Flux + Gravity Fine Control */}
-            <div className={`p-3.5 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="flex items-center justify-between">
+            <div className={`p-4 rounded-lg border ${subSurface} flex flex-col justify-between gap-2.5`}>
+              <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="vtl-flux"
-                  className="font-sans text-xs font-medium"
+                  className="font-sans text-xs font-medium truncate"
                 >
                   Ignition Heat Flux (W/m²)
                 </label>
-                <span className="font-mono text-xs font-semibold tabular-nums">
+                <span className="font-mono text-xs font-semibold tabular-nums shrink-0">
                   {config.ignitionFlux_Wm2.toLocaleString()} W/m²
                 </span>
               </div>
@@ -520,9 +528,9 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 onChange={(e) =>
                   onChangeConfig('ignitionFlux_Wm2', Number(e.target.value))
                 }
-                className="w-full accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
               />
-              <div className="flex items-center justify-between pt-0.5 text-[10px] font-sans text-zinc-500">
+              <div className="flex items-center justify-between text-[10px] font-sans text-zinc-500">
                 <span>
                   <span className="font-mono tabular-nums">10 kW/m²</span> Wire
                 </span>
@@ -565,7 +573,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               type="button"
               onClick={onRunVirtualTest}
               disabled={isRunningTest}
-              className={`inline-flex items-center gap-2 px-5 py-2.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer disabled:opacity-60 ${primaryButton}`}
+              className={`inline-flex items-center gap-2 h-10 px-5 text-xs font-sans font-semibold rounded-lg border cursor-pointer focus-visible:outline-none disabled:opacity-60 ${primaryButton}`}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span>{isRunningTest ? 'Running Virtual Test...' : 'Run Virtual Test'}</span>
@@ -741,7 +749,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <button
                 type="button"
                 onClick={onInspectInVisualStudio}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
+                className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border cursor-pointer focus-visible:outline-none ${secondaryButton}`}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 <span>Open in Visual Analytics Studio</span>
@@ -750,7 +758,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <button
                 type="button"
                 onClick={onAnalyzeInModelConsole}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium rounded-lg border cursor-pointer ${secondaryButton}`}
+                className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border cursor-pointer focus-visible:outline-none ${secondaryButton}`}
               >
                 <Terminal className="w-3.5 h-3.5" />
                 <span>Ask Model Console</span>
@@ -759,7 +767,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <button
                 type="button"
                 onClick={handleAddToComparator}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${primaryButton}`}
+                className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer focus-visible:outline-none ${primaryButton}`}
               >
                 <GitCompareArrows className="w-3.5 h-3.5" />
                 <span>Add to Run Comparator</span>

@@ -945,7 +945,7 @@ test('full-screen landing view, inside-app overview guide, sidebar logo return, 
   assert.ok(landingSrc.includes('1616') && landingSrc.includes('Calibrated Test Runs'), 'LandingView must render 1616 Calibrated Test Runs stat');
   assert.ok(landingSrc.includes('979') && landingSrc.includes('Guide &amp; Report Sections'), 'LandingView must render 979 Guide & Report Sections stat');
   assert.ok(landingSrc.includes('missionCasesCount') && landingSrc.includes('Fire History &amp; Spin-Off Cases'), 'LandingView must render 8 Fire History & Spin-Off Cases stat');
-  assert.ok(landingSrc.includes('Open PSI Data Manager') && landingSrc.includes('Try Lunar Cabin Scenario'), 'LandingView must include hero CTAs');
+  assert.ok(landingSrc.includes('Open FLARE') && landingSrc.includes('Try Lunar Cabin Scenario'), 'LandingView must include hero CTAs');
   assert.ok(
     landingSrc.includes('<HeroFlameCanvas') &&
       landingSrc.includes('min-h-screen') &&

@@ -1108,7 +1108,7 @@ export default function App() {
       return;
     }
     setPendingLandingIntent({ kind: 'enter' });
-    setSignInContextLabel('PSI Data Manager');
+    setSignInContextLabel('FLARE');
     setIsSignInModalOpen(true);
   };
 

@@ -789,7 +789,7 @@ function sanitizeRemoteSimulationPatch(
 }
 
 /**
- * Centralized API adapter for PSI Data Manager.
+ * Centralized API adapter for FLARE — Flight & Lunar Atmosphere Risk Engine.
  * Attaches Researcher Profile & verified corrections automatically and routes predictions
  * to the active remote endpoint (or seamless Local Combustion Model fallback offline).
  */

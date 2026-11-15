@@ -533,7 +533,7 @@ export const PsiInvestigationDetailView: React.FC<
 
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search className="w-3 h-3 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   value={runTableSearch}
@@ -542,10 +542,10 @@ export const PsiInvestigationDetailView: React.FC<
                     setRunPage(1);
                   }}
                   placeholder="Filter runs by fuel or code..."
-                  className={`pl-7 pr-2.5 py-1 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                  className={`h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
                     isDark
-                      ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500'
-                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400'
+                      ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
                   }`}
                 />
               </div>
@@ -574,8 +574,8 @@ export const PsiInvestigationDetailView: React.FC<
                     type="button"
                     disabled={clampedPage <= 1}
                     onClick={() => setRunPage((p) => Math.max(1, p - 1))}
-                    className={`p-1 rounded-[4px] border disabled:opacity-40 cursor-pointer ${
-                      isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                    className={`h-9 w-9 inline-flex items-center justify-center rounded-lg border transition-colors duration-150 disabled:opacity-40 cursor-pointer ${
+                      isDark ? 'border-[#27272A] hover:bg-zinc-800' : 'border-[#E4E4E7] hover:bg-zinc-100'
                     }`}
                     aria-label="Previous runs page"
                   >
@@ -590,8 +590,8 @@ export const PsiInvestigationDetailView: React.FC<
                     onClick={() =>
                       setRunPage((p) => Math.min(totalRunPages, p + 1))
                     }
-                    className={`p-1 rounded-[4px] border disabled:opacity-40 cursor-pointer ${
-                      isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                    className={`h-9 w-9 inline-flex items-center justify-center rounded-lg border transition-colors duration-150 disabled:opacity-40 cursor-pointer ${
+                      isDark ? 'border-[#27272A] hover:bg-zinc-800' : 'border-[#E4E4E7] hover:bg-zinc-100'
                     }`}
                     aria-label="Next runs page"
                   >

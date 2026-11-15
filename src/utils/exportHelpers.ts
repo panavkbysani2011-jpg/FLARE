@@ -228,7 +228,7 @@ export function exportHeaderBundle(params: {
 
     triggerFileDownload(
       JSON.stringify(payload, null, 2),
-      `psi-custom-export-${stamp}.json`,
+      `FLARE-Custom-Bundle-${stamp}.json`,
       'application/json;charset=utf-8'
     );
     return;
@@ -236,7 +236,7 @@ export function exportHeaderBundle(params: {
 
   // Markdown bundle
   const lines: string[] = [
-    '# PSI Data Manager — Custom Export Report',
+    '# FLARE — Flight & Lunar Atmosphere Risk Engine — Custom Export Report',
     `Generated: ${timestampIso}`,
     `Included Sections: ${sections.length}`,
     '',
@@ -329,7 +329,7 @@ export function exportHeaderBundle(params: {
 
   triggerFileDownload(
     lines.join('\n'),
-    `psi-custom-report-${stamp}.md`,
+    `FLARE-Custom-Bundle-${stamp}.md`,
     'text/markdown;charset=utf-8'
   );
 }
@@ -343,7 +343,7 @@ export function exportVirtualTestReport(
 ): void {
   const conf = simulation.modelConfidence;
   const lines = [
-    '# PSI Virtual Test Lab — Test Report',
+    '# FLARE — Flight & Lunar Atmosphere Risk Engine · Virtual Test Report',
     `Generated: ${new Date().toISOString()}`,
     '',
     '## Chamber Test Settings',
@@ -375,7 +375,7 @@ export function exportVirtualTestReport(
 
   triggerFileDownload(
     lines.join('\n'),
-    `psi-virtual-test-report-${Date.now()}.md`,
+    `FLARE-Safety-Report-${Date.now()}.md`,
     'text/markdown;charset=utf-8'
   );
 }
@@ -388,7 +388,7 @@ export function exportComparisonRunsCsv(selectedRuns: PsiRun[]): void {
   const csv = runRowsToCsv(selectedRuns);
   triggerFileDownload(
     csv,
-    `psi-run-comparison-${Date.now()}.csv`,
+    `FLARE-Comparison-${Date.now()}.csv`,
     'text/csv;charset=utf-8'
   );
 }
@@ -451,7 +451,7 @@ export function exportStudioChartData(params: {
 
     triggerFileDownload(
       JSON.stringify(payload, null, 2),
-      `psi-chart-${snapshot.vizMode}-${stamp}.json`,
+      `FLARE-Chart-${snapshot.vizMode}-${stamp}.json`,
       'application/json;charset=utf-8'
     );
     return;
@@ -538,7 +538,7 @@ export function exportStudioChartData(params: {
 
   triggerFileDownload(
     csv,
-    `psi-chart-${snapshot.vizMode}-${stamp}.csv`,
+    `FLARE-Chart-${snapshot.vizMode}-${stamp}.csv`,
     'text/csv;charset=utf-8'
   );
 }
@@ -554,7 +554,7 @@ export function exportFilteredRunsCsv(
   const csv = runRowsToCsv(filteredRuns, selectedRunIds);
   triggerFileDownload(
     csv,
-    `psi-filtered-runs-${Date.now()}.csv`,
+    `FLARE-Runs-Export-${Date.now()}.csv`,
     'text/csv;charset=utf-8'
   );
 }

@@ -1,0 +1,23 @@
+{
+  "name": "FLARE — Flight & Lunar Atmosphere Risk Engine",
+  "short_name": "FLARE",
+  "description": "Spacecraft fire safety engineering workbench powered by 1,616 calibrated microgravity PSI flight runs and real-time thermal risk modeling.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#09090B",
+  "background_color": "#09090B",
+  "icons": [
+    {
+      "src": "/images/flare-logo-dark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/flare-logo-light.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

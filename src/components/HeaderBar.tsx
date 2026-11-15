@@ -183,8 +183,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           aria-label="Breadcrumb"
           className="flex items-center gap-1.5 min-w-0 truncate"
         >
-          <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
-            PSI Data Manager
+          <span className="text-zinc-500 dark:text-zinc-400 whitespace-nowrap font-medium">
+            FLARE
           </span>
           <span className="text-zinc-300 dark:text-zinc-700" aria-hidden="true">
             /

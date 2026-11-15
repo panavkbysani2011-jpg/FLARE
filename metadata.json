@@ -1,6 +1,0 @@
-{
-  "name": "PSI Data Manager",
-  "description": "Interactive scientific data workbench for analyzing, comparing, and interpreting microgravity combustion experiments from the Physical Science Informatics (PSI) archive.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

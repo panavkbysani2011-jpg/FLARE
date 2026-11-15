@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   Database,
   Download,
   Keyboard,
@@ -374,7 +375,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Default Starting Workspace
                     </div>
                     <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
-                      Screen shown right after clicking Open PSI Data Manager
+                      Screen shown right after clicking Open FLARE
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -644,33 +645,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 {/* Font Family + Font Size */}
                 <div className={`p-4 rounded-lg border space-y-3 ${panelBox}`}>
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                    <div className="md:col-span-8 space-y-1.5">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                    <div className="md:col-span-8 flex flex-col justify-end gap-1.5">
                       <label
                         htmlFor="settings-font-family"
                         className="block text-xs font-sans font-semibold"
                       >
                         Font Family
                       </label>
-                      <select
-                        id="settings-font-family"
-                        value={settings.fontFamily}
-                        onChange={(e) =>
-                          onUpdateSettings({
-                            fontFamily: e.target.value as FontFamilyId,
-                          })
-                        }
-                        className={`w-full px-3 py-2 rounded-lg border text-xs font-sans focus:outline-none ${inputSurface}`}
-                      >
-                        {FONT_FAMILY_OPTIONS.map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label} — {f.subtitle}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          id="settings-font-family"
+                          value={settings.fontFamily}
+                          onChange={(e) =>
+                            onUpdateSettings({
+                              fontFamily: e.target.value as FontFamilyId,
+                            })
+                          }
+                          className={`w-full h-10 appearance-none pl-3 pr-9 rounded-lg border text-xs font-sans font-medium transition-all duration-150 focus:outline-none cursor-pointer ${inputSurface}`}
+                        >
+                          {FONT_FAMILY_OPTIONS.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.label} — {f.subtitle}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      </div>
                     </div>
 
-                    <div className="md:col-span-4 space-y-1.5">
+                    <div className="md:col-span-4 flex flex-col justify-end gap-1.5">
                       <div className="text-xs font-sans font-semibold">
                         Font Size
                       </div>
@@ -680,7 +684,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             key={px}
                             type="button"
                             onClick={() => onUpdateSettings({ fontSizePx: px })}
-                            className={`py-2 rounded-md border text-xs font-mono cursor-pointer ${
+                            className={`h-10 rounded-lg border text-xs font-mono tabular-nums transition-all duration-150 cursor-pointer ${
                               settings.fontSizePx === px
                                 ? activeOptionBtn
                                 : inactiveOptionBtn
@@ -844,7 +848,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     Keyboard Shortcuts
                   </h3>
                   <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-                    Read-only quick reference for keyboard navigation across PSI Data Manager
+                    Read-only quick reference for keyboard navigation across FLARE
                   </p>
                 </div>
 

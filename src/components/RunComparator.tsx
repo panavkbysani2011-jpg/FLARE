@@ -141,11 +141,11 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
   const gridStroke = isDark ? 'rgba(255,255,255,0.08)' : '#E4E4E7';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Page Title */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-lg font-semibold tracking-tight">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
             Run Comparator
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -156,7 +156,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
           <button
             type="button"
             onClick={onAddActiveVirtualRun}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 h-10 px-4 text-xs font-sans font-semibold rounded-lg border shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
               isDark
                 ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
                 : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800'
@@ -171,14 +171,14 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
       {/* Model Comparison Summary */}
       {selectedRuns.length > 0 && insightSummary && (
         <div
-          className={`p-3.5 rounded-[5px] border space-y-1.5 ${
+          className={`p-5 rounded-lg border space-y-2 transition-colors duration-150 ${
             isDark
               ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
               : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
           }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-display font-semibold">
+            <span className="text-sm font-display font-semibold tracking-[-0.01em]">
               {insightSummary.headline}
             </span>
             <span className="text-[11px] font-sans text-zinc-500">
@@ -225,7 +225,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
             <button
               type="button"
               onClick={() => setShowExtendedCols((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                 showExtendedCols
                   ? isDark
                     ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold'
@@ -247,7 +247,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               <button
                 type="button"
                 onClick={onGoToCatalog}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                   isDark
                     ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
                     : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
@@ -603,14 +603,14 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       key={tab.id}
                       type="button"
                       onClick={() => setChartMode(tab.id)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-md transition-all cursor-pointer ${
+                      className={`h-8 px-3 text-[11px] font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                         active
                           ? isDark
-                            ? 'bg-[#FAFAFA] text-[#09090B] font-semibold'
-                            : 'bg-[#18181B] text-[#FFFFFF] font-semibold'
+                            ? 'bg-[#FAFAFA] text-[#09090B] font-semibold shadow-2xs'
+                            : 'bg-[#18181B] text-[#FFFFFF] font-semibold shadow-2xs'
                           : isDark
-                          ? 'text-zinc-400 hover:text-zinc-100'
-                          : 'text-zinc-600 hover:text-zinc-950'
+                          ? 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/60'
+                          : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60'
                       }`}
                     >
                       {tab.label}

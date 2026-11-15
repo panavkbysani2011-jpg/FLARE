@@ -244,28 +244,28 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
     onDecodeInModelConsole(context);
   };
 
-  const selectClass = `w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none transition-colors ${
+  const selectClass = `w-full h-10 appearance-none pl-3 pr-9 text-xs font-sans font-medium rounded-lg border shadow-2xs focus:outline-none transition-all duration-150 cursor-pointer ${
     isDark
-      ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] focus:border-zinc-500'
-      : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] focus:border-zinc-500'
+      ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-500/30'
+      : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:border-zinc-300 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400/30'
   }`;
 
   const activeMonoBtn = isDark
-    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold shadow-xs hover:bg-zinc-200 hover:shadow-sm active:scale-[0.98] transition-all'
-    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold shadow-xs hover:bg-zinc-800 hover:shadow-sm active:scale-[0.98] transition-all';
+    ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold shadow-xs hover:bg-zinc-200 hover:shadow-sm active:scale-[0.98] transition-all duration-150'
+    : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] font-semibold shadow-xs hover:bg-zinc-800 hover:shadow-sm active:scale-[0.98] transition-all duration-150';
 
   const inactiveMonoBtn = isDark
-    ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 shadow-xs active:scale-[0.98] transition-all'
-    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 shadow-xs active:scale-[0.98] transition-all';
+    ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600 shadow-xs active:scale-[0.98] transition-all duration-150'
+    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 shadow-xs active:scale-[0.98] transition-all duration-150';
 
   const isUnavailable = activeTechnique.compatibility.status === 'unavailable';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Page Title Row + Model Console Decode CTA */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-lg sm:text-xl font-semibold tracking-tight">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
             Visual Analytics Studio
           </h1>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -276,7 +276,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
         <button
           type="button"
           onClick={handleDecodeView}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${activeMonoBtn}`}
+          className={`inline-flex items-center gap-2 h-10 px-4 text-xs font-sans font-semibold rounded-lg border cursor-pointer focus-visible:outline-none ${activeMonoBtn}`}
         >
           <TerminalSquare className="w-3.5 h-3.5" />
           <span>Explain Chart in Model Console</span>
@@ -289,6 +289,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
         theme={theme}
         title="Chart Controls: Dataset, Chart Type & Variables"
         subtitle="Choose a dataset scope, chart method, and dynamic X / Y / Color variables"
+        bodyClassName="p-5 space-y-3.5"
         summaryLine={
           <span>
             {activeDatasetMeta.label} (<span className="font-mono tabular-nums">{datasetContext.activeRuns.length}</span>) •{' '}
@@ -297,45 +298,50 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
           </span>
         }
       >
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-end">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 items-end">
           {/* Control 1: Active Dataset Source Dropdown */}
-          <div className="xl:col-span-3 space-y-1.5">
+          <div className="xl:col-span-3 flex flex-col justify-end gap-1.5">
             <label
               htmlFor="studio-dataset-source"
-              className="block text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+              className="h-5 flex items-center justify-between gap-1 text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none truncate"
             >
-              1. Active Dataset Source
+              <span className="truncate">1. Active Dataset Source</span>
             </label>
-            <select
-              id="studio-dataset-source"
-              value={datasetSource}
-              onChange={(e) => setDatasetSource(e.target.value as StudioDatasetSource)}
-              className={selectClass}
-            >
-              <option value="full-archive">
-                Full PSI Archive ({catalogRuns.length.toLocaleString()} runs)
-              </option>
-              <option value="selected-comparison">
-                Selected Comparison Runs ({selectedRuns.length})
-              </option>
-              <option value="virtual-lab-output">
-                Virtual Test Lab Output ({simulation.nearestRuns.length} validated neighbors)
-              </option>
-              <option value="material-qualification">
-                Material Safety Comparison ({simulation.materialRankings.length} materials)
-              </option>
-              <option value="imported-custom">
-                Imported Custom CSV/JSON ({customRunsCount} runs)
-              </option>
-            </select>
+            <div className="relative">
+              <select
+                id="studio-dataset-source"
+                value={datasetSource}
+                onChange={(e) => setDatasetSource(e.target.value as StudioDatasetSource)}
+                className={selectClass}
+              >
+                <option value="full-archive">
+                  Full PSI Archive ({catalogRuns.length.toLocaleString()} runs)
+                </option>
+                <option value="selected-comparison">
+                  Selected Comparison Runs ({selectedRuns.length})
+                </option>
+                <option value="virtual-lab-output">
+                  Virtual Test Lab Output ({simulation.nearestRuns.length} validated neighbors)
+                </option>
+                <option value="material-qualification">
+                  Material Safety Comparison ({simulation.materialRankings.length} materials)
+                </option>
+                <option value="imported-custom">
+                  Imported Custom CSV/JSON ({customRunsCount} runs)
+                </option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            </div>
           </div>
 
           {/* Control 2: Generic Visualization Technique Searchable Popover Dropdown */}
-          <div className="xl:col-span-4 space-y-1.5 relative" ref={popoverRef}>
-            <div className="flex items-center justify-between text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-              <span>2. Visualization Technique ({evaluatedTechniques.length})</span>
-              <span className="font-sans text-[10px] font-normal text-zinc-400">
-                {activeTechnique.definition.familyLabel}
+          <div
+            className="xl:col-span-4 flex flex-col justify-end gap-1.5 relative"
+            ref={popoverRef}
+          >
+            <div className="h-5 flex items-center justify-between gap-1 text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none truncate">
+              <span className="truncate">
+                2. Visualization Technique ({evaluatedTechniques.length})
               </span>
             </div>
 
@@ -344,8 +350,12 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               aria-haspopup="listbox"
               aria-expanded={isTechOpen}
               onClick={() => setIsTechOpen((p) => !p)}
-              className={`w-full px-3 py-1.5 text-xs font-sans rounded-lg border flex items-center justify-between gap-2 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
-                isDark
+              className={`w-full h-10 px-3 text-xs font-sans rounded-lg border flex items-center justify-between gap-2 shadow-2xs transition-all duration-150 cursor-pointer focus-visible:outline-none ${
+                isTechOpen
+                  ? isDark
+                    ? 'bg-[#09090B] border-zinc-400 text-[#FAFAFA] ring-1 ring-zinc-500/30'
+                    : 'bg-zinc-100 border-zinc-400 text-[#18181B] ring-1 ring-zinc-400/30'
+                  : isDark
                   ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500'
                   : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100 hover:border-zinc-300'
               }`}
@@ -366,7 +376,11 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                       : 'bg-zinc-400'
                   }`}
                 />
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-zinc-400 transition-transform duration-150 ${
+                    isTechOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </span>
             </button>
 
@@ -375,30 +389,41 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               <div
                 role="listbox"
                 aria-label="Select analytical visualization method"
-                className={`absolute left-0 top-full mt-1.5 w-[min(92vw,680px)] max-h-[430px] overflow-y-auto z-50 rounded-[6px] border backdrop-blur-md shadow-2xl ${
+                className={`absolute left-0 top-full mt-1.5 w-[min(92vw,680px)] max-h-[430px] overflow-y-auto z-50 rounded-lg border backdrop-blur-md shadow-2xl ${
                   isDark
                     ? 'bg-[#18181B]/95 border-[#27272A] text-[#FAFAFA]'
                     : 'bg-white/98 border-[#E4E4E7] text-[#18181B]'
                 }`}
               >
                 <div
-                  className={`sticky top-0 z-10 p-2.5 border-b space-y-2 backdrop-blur-md ${
+                  className={`sticky top-0 z-10 p-3 border-b space-y-2 backdrop-blur-md ${
                     isDark
                       ? 'bg-[#18181B]/95 border-[#27272A]'
                       : 'bg-white/95 border-[#E4E4E7]'
                   }`}
                 >
+                  <div className="flex items-center justify-between gap-2 text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+                    <span>
+                      Active Category:{' '}
+                      <strong className="font-semibold text-zinc-700 dark:text-zinc-200">
+                        {activeTechnique.definition.familyLabel}
+                      </strong>
+                    </span>
+                    <span className="font-mono tabular-nums">
+                      {filteredTechniques.length} of {evaluatedTechniques.length} methods
+                    </span>
+                  </div>
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       autoFocus
                       value={techSearch}
                       onChange={(e) => setTechSearch(e.target.value)}
                       placeholder="Search analytical technique (e.g., Heatmap, Parallel, Scatter, Box, Correlation)..."
-                      className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                      className={`w-full h-9 pl-8 pr-8 text-xs font-sans rounded-lg border transition-colors duration-150 focus:outline-none ${
                         isDark
-                          ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
+                          ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-400'
                           : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
                       }`}
                     />
@@ -407,7 +432,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                         type="button"
                         onClick={() => setTechSearch('')}
                         aria-label="Clear search"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -415,7 +440,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                   </div>
 
                   {/* Rectangular Status Tabs */}
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {(
                       [
                         { id: 'all', label: `All (${statusCounts.all})`, dot: null },
@@ -442,7 +467,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                           key={tab.id}
                           type="button"
                           onClick={() => setStatusFilter(tab.id)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-sans rounded-lg border cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-sans rounded-lg border cursor-pointer ${
                             active ? activeMonoBtn : inactiveMonoBtn
                           }`}
                         >
@@ -491,7 +516,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                             onChangeVizMode(definition.id);
                             setIsTechOpen(false);
                           }}
-                          className={`w-full px-2.5 py-2 flex items-center justify-between gap-3 text-left text-xs rounded-[4px] transition-colors ${
+                          className={`w-full px-2.5 py-2 flex items-center justify-between gap-3 text-left text-xs rounded-md transition-colors duration-150 ${
                             disabled
                               ? 'opacity-55 cursor-not-allowed text-zinc-400 dark:text-zinc-500'
                               : selected
@@ -562,64 +587,70 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
           </div>
 
           {/* Control 3: Dynamic Variable / Axis Mapper */}
-          <div className="xl:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <div className="space-y-1.5">
+          <div className="xl:col-span-5 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="studio-x-axis"
-                className="block text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                className="h-5 flex items-center justify-between gap-1 text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none truncate"
               >
-                3a. X-Axis
+                <span className="truncate">3a. X-Axis</span>
               </label>
-              <select
-                id="studio-x-axis"
-                value={axisMap.xAxis}
-                onChange={(e) =>
-                  setAxisMap((prev) => ({
-                    ...prev,
-                    xAxis: e.target.value as AxisVariableKey,
-                  }))
-                }
-                className={selectClass}
-              >
-                {ALL_STUDIO_AXIS_COLUMNS.map((col) => (
-                  <option key={col.key} value={col.key}>
-                    {col.shortLabel}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="studio-x-axis"
+                  value={axisMap.xAxis}
+                  onChange={(e) =>
+                    setAxisMap((prev) => ({
+                      ...prev,
+                      xAxis: e.target.value as AxisVariableKey,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  {ALL_STUDIO_AXIS_COLUMNS.map((col) => (
+                    <option key={col.key} value={col.key}>
+                      {col.shortLabel}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="studio-y-axis"
-                className="block text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                className="h-5 flex items-center justify-between gap-1 text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 leading-none truncate"
               >
-                3b. Y-Axis
+                <span className="truncate">3b. Y-Axis</span>
               </label>
-              <select
-                id="studio-y-axis"
-                value={axisMap.yAxis}
-                onChange={(e) =>
-                  setAxisMap((prev) => ({
-                    ...prev,
-                    yAxis: e.target.value as NumericAxisKey,
-                  }))
-                }
-                className={selectClass}
-              >
-                {STUDIO_NUMERIC_COLUMNS.map((col) => (
-                  <option key={col.key} value={col.key}>
-                    {col.shortLabel}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="studio-y-axis"
+                  value={axisMap.yAxis}
+                  onChange={(e) =>
+                    setAxisMap((prev) => ({
+                      ...prev,
+                      yAxis: e.target.value as NumericAxisKey,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  {STUDIO_NUMERIC_COLUMNS.map((col) => (
+                    <option key={col.key} value={col.key}>
+                      {col.shortLabel}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col justify-end gap-1.5">
+              <div className="h-5 flex items-center justify-between gap-1 leading-none">
                 <label
                   htmlFor="studio-color-by"
-                  className="block text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400"
+                  className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 truncate"
                 >
                   3c. Color / Group
                 </label>
@@ -627,37 +658,61 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                   type="button"
                   onClick={() => setAxisMap(getDefaultAxesForTechnique(vizMode))}
                   title="Reset axes to recommended pair"
-                  className="text-[10px] font-sans text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 inline-flex items-center gap-0.5 cursor-pointer"
+                  className="text-[10px] font-sans font-medium text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 inline-flex items-center gap-0.5 shrink-0 transition-colors duration-150 cursor-pointer"
                 >
                   <RotateCcw className="w-2.5 h-2.5" />
                   <span>Default</span>
                 </button>
               </div>
-              <select
-                id="studio-color-by"
-                value={axisMap.colorBy}
-                onChange={(e) =>
-                  setAxisMap((prev) => ({
-                    ...prev,
-                    colorBy: e.target.value as CategoricalGroupKey,
-                  }))
-                }
-                className={selectClass}
-              >
-                {STUDIO_CATEGORICAL_COLUMNS.map((col) => (
-                  <option key={col.key} value={col.key}>
-                    {col.shortLabel}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  id="studio-color-by"
+                  value={axisMap.colorBy}
+                  onChange={(e) =>
+                    setAxisMap((prev) => ({
+                      ...prev,
+                      colorBy: e.target.value as CategoricalGroupKey,
+                    }))
+                  }
+                  className={selectClass}
+                >
+                  {STUDIO_CATEGORICAL_COLUMNS.map((col) => (
+                    <option key={col.key} value={col.key}>
+                      {col.shortLabel}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Subtle Inline Category & Axis Summary Strip Below Control Bar */}
+        <div
+          className={`pt-2.5 border-t flex flex-wrap items-center justify-between gap-2 text-[11px] font-sans text-zinc-500 dark:text-zinc-400 ${
+            isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300">
+              {activeTechnique.definition.familyLabel}
+            </span>
+            <span>·</span>
+            <span>
+              Axes: <strong className="font-medium text-zinc-700 dark:text-zinc-200">{xAxisMeta.shortLabel}</strong> vs.{' '}
+              <strong className="font-medium text-zinc-700 dark:text-zinc-200">{yAxisMeta.shortLabel}</strong>
+            </span>
+          </div>
+          <span className="font-mono tabular-nums">
+            Grouping: {colorByMeta.shortLabel} · {datasetContext.activeRuns.length.toLocaleString()} active runs
+          </span>
         </div>
       </CollapsibleCard>
 
       {/* Main Dedicated Spacious Chart Stage */}
       <div
-        className={`rounded-[6px] border p-4 sm:p-5 space-y-4 ${
+        className={`rounded-lg border p-5 sm:p-6 space-y-4 transition-colors duration-150 ${
           isDark
             ? 'bg-[#18181B] border-[#27272A] text-[#FAFAFA]'
             : 'bg-white border-[#E4E4E7] text-[#18181B]'

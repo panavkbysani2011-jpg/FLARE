@@ -267,9 +267,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-lg font-bold tracking-tight">
+        <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
           {activeTab === 'psi-investigations'
             ? `PSI Investigations Archive (${investigations.length})`
             : activeTab === 'researchers-guide'
@@ -283,11 +283,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
       {/* Top Unified Data Archive Navigation Bar */}
       <section
-        className={`border rounded-[6px] p-3.5 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
+        className={`border rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 ${cardSurface}`}
         aria-label="Data Archive Sections"
       >
         <div
-          className={`flex flex-wrap items-center p-0.5 rounded-[5px] border gap-0.5 ${
+          className={`flex flex-wrap items-center p-1 rounded-lg border gap-1 ${
             isDark ? 'bg-[#09090B] border-[#27272A]' : 'bg-zinc-100 border-[#E4E4E7]'
           }`}
           role="tablist"
@@ -298,7 +298,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'psi-investigations'}
             onClick={() => setActiveTab('psi-investigations')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
               activeTab === 'psi-investigations'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -316,7 +316,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'researchers-guide'}
             onClick={() => setActiveTab('researchers-guide')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
               activeTab === 'researchers-guide'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -334,7 +334,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             role="tab"
             aria-selected={activeTab === 'mission-spinoffs'}
             onClick={() => setActiveTab('mission-spinoffs')}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-sans rounded-lg transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 h-8 px-3 text-xs font-sans rounded-md transition-all duration-150 focus-visible:outline-none cursor-pointer ${
               activeTab === 'mission-spinoffs'
                 ? activeMonochrome
                 : inactiveMonochrome
@@ -368,7 +368,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           <button
             type="button"
             onClick={onGoToComparator}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
               isDark
                 ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                 : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -863,24 +863,24 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               </div>
 
               {/* Search & Chapter Category Filter */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
                 <div className="relative flex-1 min-w-[240px]">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={guideSearch}
                     onChange={(e) => setGuideSearch(e.target.value)}
                     placeholder="Search Researcher's Guide & PSI literature (e.g. cool flame, soot, radiometer, BASS, PMMA)..."
                     aria-label="Search ISS Researcher's Guide"
-                    className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                    className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
                       isDark
-                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
                     }`}
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {[
                     'ALL',
                     'Environment & Physics',
@@ -893,7 +893,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={cat}
                       type="button"
                       onClick={() => setGuideCategory(cat)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                      className={`h-9 px-3 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                         guideCategory === cat
                           ? activeMonochrome +
                             (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
@@ -1112,24 +1112,24 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 Eight engineering reference cases linking Apollo 1, Apollo 13, and Mir fire lessons to ISS microgravity combustion research and firefighter safety hardware.
               </p>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative flex-1 min-w-[220px]">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={caseSearch}
                     onChange={(e) => setCaseSearch(e.target.value)}
                     placeholder="Filter by Apollo 1, Mir, SCBA, smoke detector, Nomex..."
                     aria-label="Search Mission & Spin-Off Cases"
-                    className={`w-full pl-8 pr-3 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                    className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
                       isDark
-                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
                     }`}
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {[
                     { id: 'ALL', label: 'All Cases (8)' },
                     {
@@ -1143,7 +1143,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={cat.id}
                       type="button"
                       onClick={() => setCaseCategory(cat.id)}
-                      className={`px-2.5 py-1 text-[11px] font-sans rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                      className={`h-9 px-3 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                         caseCategory === cat.id
                           ? activeMonochrome +
                             (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')

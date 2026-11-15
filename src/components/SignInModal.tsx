@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   CheckCircle2,
-  Flame,
   Lock,
   UserCheck,
   UserPlus,
@@ -13,6 +12,7 @@ import {
   findSavedAccountByFullName,
   generateResearcherIdFromName,
 } from '../services/accountSession';
+import { FlareLogo } from './FlareLogo';
 
 interface SignInModalProps {
   isOpen: boolean;
@@ -81,20 +81,18 @@ export const SignInModal: React.FC<SignInModalProps> = ({
         {/* Top Modal Header */}
         <div className="px-5 py-4 border-b border-[#27272A] flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#18181B] border border-[#27272A] flex items-center justify-center shrink-0">
-              <Flame className="w-3.5 h-3.5 text-[#FAFAFA]" />
-            </div>
+            <FlareLogo variant="dark" size="sm" />
             <div>
               <h2
                 id="signin-modal-title"
                 className="font-display text-sm font-semibold tracking-tight text-white"
               >
-                Researcher Sign In
+                FLARE — Flight &amp; Lunar Atmosphere Risk Engine
               </h2>
               <p className="text-[11px] font-sans text-zinc-400">
                 {contextLabel
-                  ? `Sign in to continue to ${contextLabel}`
-                  : 'Save your chats, preferences, and model corrections locally'}
+                  ? `Researcher Sign In to continue to ${contextLabel}`
+                  : 'Researcher Sign In — save chats, preferences, and model corrections locally'}
               </p>
             </div>
           </div>

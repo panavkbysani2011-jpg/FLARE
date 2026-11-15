@@ -57,7 +57,7 @@ export function ExportDropdown<F extends ExportFileFormat>({
         aria-expanded={open}
         aria-haspopup="menu"
         title={title ?? `${label} format options`}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] disabled:opacity-45 whitespace-nowrap cursor-pointer ${
+        className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 active:scale-[0.98] focus-visible:outline-none disabled:opacity-45 whitespace-nowrap cursor-pointer ${
           open
             ? isDark
               ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'

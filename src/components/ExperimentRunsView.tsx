@@ -3,8 +3,10 @@ import {
   ArrowUpDown,
   ArrowUpRight,
   CheckSquare,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
   Search,
   Sliders,
   Square,
@@ -156,9 +158,9 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-lg font-bold tracking-tight">
+        <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
           Experiment Runs Catalog ({runs.length.toLocaleString()})
         </h1>
         <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -183,7 +185,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
             <button
               type="button"
               onClick={onGoToComparator}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-sans font-semibold rounded-[4px] transition-colors cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs font-sans font-semibold rounded-lg transition-all duration-150 active:scale-[0.98] focus-visible:outline-none cursor-pointer ${
                 isDark
                   ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                   : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -195,24 +197,24 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
           </div>
         }
       >
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
             Search individual test runs, sort fire measurements, and check up to 4 runs to compare side by side.
           </p>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by run code (e.g. SAF2-M07), PSI ID, fuel, or notes..."
                 aria-label="Search experiment runs"
-                className={`w-full pl-8 pr-7 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none ${
+                className={`w-full h-9 pl-8 pr-8 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
                   isDark
-                    ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
                 }`}
               />
               {searchQuery && (
@@ -220,46 +222,52 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                   type="button"
                   onClick={() => setSearchQuery('')}
                   aria-label="Clear run search"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <select
-              value={facilityFilter}
-              onChange={(e) => setFacilityFilter(e.target.value)}
-              aria-label="Filter runs by hardware facility"
-              className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
-                isDark
-                  ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
-                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
-              }`}
-            >
-              <option value="ALL">All Facilities</option>
-              <option value="CIR">CIR</option>
-              <option value="MSG">MSG</option>
-              <option value="Cygnus">Cygnus</option>
-              <option value="FSL">FSL</option>
-              <option value="Virtual">Virtual</option>
-            </select>
+            <div className="relative">
+              <select
+                value={facilityFilter}
+                onChange={(e) => setFacilityFilter(e.target.value)}
+                aria-label="Filter runs by hardware facility"
+                className={`h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 focus:outline-none cursor-pointer ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:border-zinc-500 focus:border-zinc-400'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:border-zinc-300 focus:border-zinc-500'
+                }`}
+              >
+                <option value="ALL">All Facilities</option>
+                <option value="CIR">CIR</option>
+                <option value="MSG">MSG</option>
+                <option value="Cygnus">Cygnus</option>
+                <option value="FSL">FSL</option>
+                <option value="Virtual">Virtual</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            </div>
 
-            <select
-              value={outcomeFilter}
-              onChange={(e) => setOutcomeFilter(e.target.value)}
-              aria-label="Filter runs by safety regime outcome"
-              className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border focus:outline-none cursor-pointer ${
-                isDark
-                  ? 'bg-[#09090B] border-[#27272A] text-zinc-200'
-                  : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800'
-              }`}
-            >
-              <option value="ALL">All Safety Regimes</option>
-              <option value="Rapid Flame Spread">Rapid Flame Spread</option>
-              <option value="Cool Flame Caution">Cool Flame Caution</option>
-              <option value="Self-Extinguishing">Self-Extinguishing</option>
-            </select>
+            <div className="relative">
+              <select
+                value={outcomeFilter}
+                onChange={(e) => setOutcomeFilter(e.target.value)}
+                aria-label="Filter runs by safety regime outcome"
+                className={`h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 focus:outline-none cursor-pointer ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:border-zinc-500 focus:border-zinc-400'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:border-zinc-300 focus:border-zinc-500'
+                }`}
+              >
+                <option value="ALL">All Safety Regimes</option>
+                <option value="Rapid Flame Spread">Rapid Flame Spread</option>
+                <option value="Cool Flame Caution">Cool Flame Caution</option>
+                <option value="Self-Extinguishing">Self-Extinguishing</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            </div>
 
             {(searchQuery !== '' ||
               facilityFilter !== 'ALL' ||
@@ -271,9 +279,14 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                   setFacilityFilter('ALL');
                   setOutcomeFilter('ALL');
                 }}
-                className="px-2.5 py-1.5 text-xs font-sans text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 underline cursor-pointer"
+                className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 cursor-pointer ${
+                  isDark
+                    ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-500'
+                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
+                }`}
               >
-                Reset
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
               </button>
             )}
 
@@ -299,7 +312,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
       </CollapsibleCard>
 
       {/* Granular Run-Level Table */}
-      <section className={`border rounded-[6px] overflow-hidden ${cardSurface}`}>
+      <section className={`border rounded-lg overflow-hidden ${cardSurface}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

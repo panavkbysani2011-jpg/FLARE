@@ -62,6 +62,7 @@ import { ExportDropdown } from './ExportDropdown';
 import { VIZ_FAMILIES, VIZ_TECHNIQUE_REGISTRY } from '../utils/vizRegistry';
 import { ApiSettingsModal } from './ApiSettingsModal';
 import { ChatInlineChartCard } from './ChatInlineChartCard';
+import { FlareLogo } from './FlareLogo';
 
 interface SpeechRecognitionAlternativeLike {
   transcript: string;
@@ -1053,7 +1054,8 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#E4E4E7] dark:border-[#27272A]">
                         <div className="flex items-center gap-2 text-xs font-display font-semibold">
-                          <span>Combustion Model</span>
+                          <FlareLogo theme={theme} size="xs" />
+                          <span>FLARE Combustion Model</span>
                           <span className="inline-flex items-center gap-1.5 font-sans text-[11px] font-normal text-zinc-500">
                             <span className="w-1.5 h-1.5 rounded-[2px] bg-[#10B981]" />
                             <span>
@@ -1313,7 +1315,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                             Teach Model Verified Physics Correction ({virtualConfig.material} ·{' '}
                             {virtualConfig.O2_pct.toFixed(1)}% O2 · {virtualConfig.P_psi.toFixed(1)} psi)
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-end">
                             <input
                               type="number"
                               step="0.01"
@@ -1321,29 +1323,32 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                               value={correctionSpreadInput}
                               onChange={(e) => setCorrectionSpreadInput(e.target.value)}
                               placeholder="Verified spread rate mm/s (optional)"
-                              className={`px-2.5 py-1.5 text-xs font-mono rounded-[4px] border outline-none ${surfaceShell}`}
+                              className={`h-9 px-3 text-xs font-mono tabular-nums rounded-lg border transition-colors duration-150 outline-none ${surfaceShell}`}
                             />
-                            <select
-                              value={correctionOutcomeInput}
-                              onChange={(e) =>
-                                setCorrectionOutcomeInput(
-                                  e.target.value as '' | HazardOutcome
-                                )
-                              }
-                              className={`px-2.5 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${surfaceShell}`}
-                            >
-                              <option value="">Keep safety classification</option>
-                              <option value="Self-Extinguishing">Self-Extinguishing</option>
-                              <option value="Cool Flame Caution">Cool Flame Caution</option>
-                              <option value="Rapid Flame Spread">Rapid Flame Spread</option>
-                            </select>
+                            <div className="relative">
+                              <select
+                                value={correctionOutcomeInput}
+                                onChange={(e) =>
+                                  setCorrectionOutcomeInput(
+                                    e.target.value as '' | HazardOutcome
+                                  )
+                                }
+                                className={`w-full h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border transition-colors duration-150 outline-none cursor-pointer ${surfaceShell}`}
+                              >
+                                <option value="">Keep safety classification</option>
+                                <option value="Self-Extinguishing">Self-Extinguishing</option>
+                                <option value="Cool Flame Caution">Cool Flame Caution</option>
+                                <option value="Rapid Flame Spread">Rapid Flame Spread</option>
+                              </select>
+                              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                            </div>
                           </div>
                           <input
                             type="text"
                             value={correctionNoteInput}
                             onChange={(e) => setCorrectionNoteInput(e.target.value)}
                             placeholder="Enter verified value, material behavior, or lab correction note..."
-                            className={`w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${surfaceShell}`}
+                            className={`w-full h-9 px-3 text-xs font-sans rounded-lg border transition-colors duration-150 outline-none ${surfaceShell}`}
                           />
                           <div className="flex items-center justify-end gap-2">
                             <button

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Activity,
   Check,
+  ChevronDown,
   Eye,
   EyeOff,
   Plus,
@@ -362,8 +363,8 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="modal-api-profile-name"
                 className="block text-[11px] font-sans font-medium text-zinc-500"
@@ -376,11 +377,11 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 placeholder="e.g. Lab FastAPI Server"
-                className={`w-full px-3 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${modalSurface}`}
+                className={`w-full h-9 px-3 text-xs font-sans rounded-lg border transition-colors duration-150 outline-none ${modalSurface}`}
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="modal-api-model-id"
                 className="block text-[11px] font-sans font-medium text-zinc-500"
@@ -393,11 +394,11 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                 value={form.modelId}
                 onChange={(e) => setForm((p) => ({ ...p, modelId: e.target.value }))}
                 placeholder="e.g. psi-combustion-v2"
-                className={`w-full px-3 py-1.5 text-xs font-mono rounded-[4px] border outline-none ${modalSurface}`}
+                className={`w-full h-9 px-3 text-xs font-mono rounded-lg border transition-colors duration-150 outline-none ${modalSurface}`}
               />
             </div>
 
-            <div className="sm:col-span-2 space-y-1">
+            <div className="sm:col-span-2 flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="modal-api-base-url"
                 className="block text-[11px] font-sans font-medium text-zinc-500"
@@ -410,34 +411,37 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                 value={form.baseUrl}
                 onChange={(e) => setForm((p) => ({ ...p, baseUrl: e.target.value }))}
                 placeholder="http://127.0.0.1:8000"
-                className={`w-full px-3 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${modalSurface}`}
+                className={`w-full h-9 px-3 text-xs font-sans rounded-lg border transition-colors duration-150 outline-none ${modalSurface}`}
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="modal-api-header"
                 className="block text-[11px] font-sans font-medium text-zinc-500"
               >
                 Auth Header Name
               </label>
-              <select
-                id="modal-api-header"
-                value={form.apiKeyHeader}
-                onChange={(e) =>
-                  setForm((p) => ({
-                    ...p,
-                    apiKeyHeader: e.target.value as 'X-API-Key' | 'Authorization',
-                  }))
-                }
-                className={`w-full px-2.5 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${modalSurface}`}
-              >
-                <option value="X-API-Key">X-API-Key</option>
-                <option value="Authorization">Authorization</option>
-              </select>
+              <div className="relative">
+                <select
+                  id="modal-api-header"
+                  value={form.apiKeyHeader}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      apiKeyHeader: e.target.value as 'X-API-Key' | 'Authorization',
+                    }))
+                  }
+                  className={`w-full h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border transition-colors duration-150 outline-none cursor-pointer ${modalSurface}`}
+                >
+                  <option value="X-API-Key">X-API-Key</option>
+                  <option value="Authorization">Authorization</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="flex flex-col justify-end gap-1.5">
               <label
                 htmlFor="modal-api-key"
                 className="block text-[11px] font-sans font-medium text-zinc-500"
@@ -453,13 +457,13 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                     setForm((p) => ({ ...p, apiKeyValue: e.target.value }))
                   }
                   placeholder="Optional token..."
-                  className={`w-full pl-3 pr-8 py-1.5 text-xs font-sans rounded-[4px] border outline-none ${modalSurface}`}
+                  className={`w-full h-9 pl-3 pr-8 text-xs font-sans rounded-lg border transition-colors duration-150 outline-none ${modalSurface}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey((p) => !p)}
                   aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
                 >
                   {showKey ? (
                     <EyeOff className="w-3.5 h-3.5" />

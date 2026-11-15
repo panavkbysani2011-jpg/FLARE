@@ -141,20 +141,20 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
           <span>Spacecraft Fire Safety Workspace</span>
         </div>
 
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-          Workspace Overview &amp; User Guide
+        <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-[-0.02em] leading-tight">
+          FLARE — Flight &amp; Lunar Atmosphere Risk Engine
         </h1>
         <p className="font-sans text-sm text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
-          Everything inside PSI Data Manager helps you check material fire risk
-          in space conditions, inspect real flight measurements, and compare past
-          missions without needing specialist lab software.
+          Welcome to FLARE — configure virtual cabin fire tests, explore 1,616
+          calibrated spaceflight runs, and query the combustion model with full
+          source citations.
         </p>
       </section>
 
       {/* Section 1 — How to Use This Platform (3 Simple Steps) */}
       <section aria-label="How to Use This Platform" className="space-y-3">
         <div>
-          <h2 className="font-display text-base font-semibold tracking-tight">
+          <h2 className="font-display text-base font-semibold tracking-[-0.015em]">
             How to Use This Platform
           </h2>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -163,7 +163,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`p-4 rounded-lg border ${staticSurface} space-y-2`}>
+          <div className={`p-5 rounded-lg border ${staticSurface} space-y-2`}>
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Step 1
             </div>
@@ -180,7 +180,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </p>
           </div>
 
-          <div className={`p-4 rounded-lg border ${staticSurface} space-y-2`}>
+          <div className={`p-5 rounded-lg border ${staticSurface} space-y-2`}>
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Step 2
             </div>
@@ -197,7 +197,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             </p>
           </div>
 
-          <div className={`p-4 rounded-lg border ${staticSurface} space-y-2`}>
+          <div className={`p-5 rounded-lg border ${staticSurface} space-y-2`}>
             <div className="text-[11px] font-sans font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               Step 3
             </div>
@@ -222,7 +222,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
       {/* Section 2 — What Is Inside Each Section (6 Cards with Open -> Buttons) */}
       <section aria-label="What Is Inside Each Section" className="space-y-3">
         <div>
-          <h2 className="font-display text-base font-semibold tracking-tight">
+          <h2 className="font-display text-base font-semibold tracking-[-0.015em]">
             What Is Inside Each Section
           </h2>
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -237,7 +237,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
             return (
               <div
                 key={item.id}
-                className={`p-4 rounded-lg border flex flex-col justify-between gap-4 ${sectionCardClass}`}
+                className={`p-5 rounded-lg border flex flex-col justify-between gap-4 transition-colors duration-150 ${sectionCardClass}`}
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
@@ -260,7 +260,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   <p className="text-xs font-sans text-zinc-600 dark:text-zinc-400 leading-relaxed">
                     {item.description}
                   </p>
-                  <div className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+                  <div className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 tabular-nums">
                     {item.detailLine}
                   </div>
                 </div>
@@ -269,7 +269,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onNavigate(item.id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans font-semibold transition-all duration-150 active:scale-[0.98] cursor-pointer ${openButtonClass}`}
+                    className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-sans font-semibold transition-all duration-150 active:scale-[0.98] focus-visible:outline-none cursor-pointer ${openButtonClass}`}
                   >
                     <span>Open</span>
                     <ArrowRight className="w-3.5 h-3.5" />

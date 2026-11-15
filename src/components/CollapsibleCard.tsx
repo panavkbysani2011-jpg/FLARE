@@ -49,11 +49,11 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
 
   return (
     <section
-      className={`rounded-[6px] border transition-colors duration-150 ${surfaceClass} ${className}`}
+      className={`rounded-lg border transition-colors duration-150 ${surfaceClass} ${className}`}
     >
       <div
-        className={`flex flex-wrap items-center justify-between gap-2.5 ${
-          compactHeader ? 'px-3.5 py-2' : 'px-4 py-2.5'
+        className={`flex flex-wrap items-center justify-between gap-3 ${
+          compactHeader ? 'px-4 py-2.5' : 'px-5 py-3.5'
         } ${
           isOpen
             ? `border-b ${isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'}`
@@ -61,7 +61,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
         }`}
       >
         <div className="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <h2 className="font-display text-xs sm:text-sm font-semibold tracking-tight truncate">
+          <h2 className="font-display text-sm sm:text-base font-semibold tracking-[-0.015em] truncate">
             {title}
           </h2>
           {isOpen && subtitle && (
@@ -82,7 +82,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             type="button"
             onClick={handleToggle}
             aria-expanded={isOpen}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+            className={`inline-flex items-center gap-1 h-8 px-3 text-[11px] font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 active:scale-[0.98] focus-visible:outline-none cursor-pointer ${
               isDark
                 ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 hover:text-white'
                 : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 hover:text-zinc-950'
@@ -105,7 +105,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
       </div>
 
       {isOpen && (
-        <div className={bodyClassName || 'p-4'}>{children}</div>
+        <div className={bodyClassName || 'p-5'}>{children}</div>
       )}
     </section>
   );

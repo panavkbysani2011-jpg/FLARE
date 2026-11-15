@@ -11,7 +11,6 @@ import {
   FlaskConical,
   GitCompare,
   Home,
-  Layers,
   LogIn,
   PanelLeftClose,
   RefreshCw,
@@ -31,6 +30,7 @@ import {
   WorkspaceView,
 } from '../types/psi';
 import { performGlobalSearch } from '../utils/globalSearch';
+import { FlareLogo } from './FlareLogo';
 
 interface LeftSidebarProps {
   theme: ThemeMode;
@@ -331,20 +331,12 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             type="button"
             onClick={onReturnToLanding}
-            className="flex items-center gap-2 min-w-0 text-left cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer hover:opacity-80 transition-opacity"
             title="Back to Landing Page"
           >
-            <div
-              className={`w-6 h-6 rounded-md flex items-center justify-center border shrink-0 shadow-xs ${
-                isDark
-                  ? 'bg-[#FAFAFA] text-[#09090B] border-white/20'
-                  : 'bg-[#18181B] text-[#FFFFFF] border-zinc-900'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-            </div>
+            <FlareLogo theme={theme} size="sm" />
             <span className="font-display text-sm font-semibold tracking-tight truncate">
-              PSI Data Manager
+              FLARE
             </span>
           </button>
 

@@ -182,7 +182,7 @@ export function generateClientPdfBytes(doc: ExportDocumentSpec): Uint8Array {
     size: 8.5,
     x: MARGIN_X,
     y: cursorY,
-    text: `Generated: ${doc.generatedAtIso}  |  PSI Data Manager`,
+    text: `Generated: ${doc.generatedAtIso}  |  FLARE — Flight & Lunar Atmosphere Risk Engine`,
     gray: 0.42,
     ruleBelowY: cursorY - 6,
   });
@@ -342,7 +342,7 @@ export function generateClientPdfBytes(doc: ExportDocumentSpec): Uint8Array {
       `0.85 G 0.5 w ${MARGIN_X} 36 m ${PAGE_WIDTH - MARGIN_X} 36 l S`
     );
     streamParts.push(
-      `BT /F1 8.0 Tf 0.45 g 1 0 0 1 ${MARGIN_X} 24 Tm (${escapePdfLiteral(`PSI Data Manager  |  Page ${pIdx + 1} of ${totalPages}`)}) Tj ET`
+      `BT /F1 8.0 Tf 0.45 g 1 0 0 1 ${MARGIN_X} 24 Tm (${escapePdfLiteral(`FLARE — Flight & Lunar Atmosphere Risk Engine  |  Page ${pIdx + 1} of ${totalPages}`)}) Tj ET`
     );
 
     const streamBody = `${streamParts.join('\n')}\n`;
@@ -487,7 +487,7 @@ export function generateWordDocHtml(doc: ExportDocumentSpec): string {
 </head>
 <body>
   <div style="border-bottom:2px solid #09090b;padding-bottom:10px;margin-bottom:14px;">
-    <div style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#52525b;">PSI Data Manager Export Report</div>
+    <div style="font-size:9pt;text-transform:uppercase;letter-spacing:1px;color:#52525b;">FLARE — Flight &amp; Lunar Atmosphere Risk Engine</div>
     <h1 style="font-size:18pt;margin:4px 0 4px 0;color:#09090b;">${escapeHtml(doc.title)}</h1>
     ${
       doc.subtitle
@@ -528,7 +528,7 @@ export function buildVirtualTestExportDoc(
 ): ExportDocumentSpec {
   const conf = simulation.modelConfidence;
   return {
-    title: 'Virtual Test Lab Report',
+    title: 'FLARE — Flight & Lunar Atmosphere Risk Engine · Virtual Test Lab Report',
     subtitle: `${config.material} · ${config.O2_pct.toFixed(1)}% O2 · ${formatPressure(config.P_psi, units)} · ${config.g_eff.toFixed(3)}g`,
     generatedAtIso: new Date().toISOString(),
     sections: [
@@ -604,7 +604,7 @@ export function exportVirtualTestFormatted(params: {
   format: 'doc' | 'pdf' | 'json';
 }): void {
   const { config, simulation, units, format } = params;
-  const baseName = `psi-virtual-test-${Date.now()}`;
+  const baseName = `FLARE-Safety-Report-${Date.now()}`;
 
   if (format === 'json') {
     triggerFileDownload(
@@ -635,7 +635,7 @@ export function exportComparisonFormatted(params: {
 }): void {
   const { selectedRuns, units, format } = params;
   if (selectedRuns.length === 0) return;
-  const baseName = `psi-run-comparison-${Date.now()}`;
+  const baseName = `FLARE-Comparison-${Date.now()}`;
 
   if (format === 'csv') {
     triggerFileDownload(
@@ -664,7 +664,7 @@ export function exportComparisonFormatted(params: {
   }
 
   const doc: ExportDocumentSpec = {
-    title: 'PSI Run Comparison Matrix',
+    title: 'FLARE — Flight & Lunar Atmosphere Risk Engine · Run Comparison Matrix',
     subtitle: `${selectedRuns.length} flight & virtual runs compared side-by-side`,
     generatedAtIso: new Date().toISOString(),
     sections: [
@@ -716,7 +716,7 @@ export function exportStudioChartFormatted(params: {
     return;
   }
 
-  const baseName = `psi-chart-${snapshot.vizMode}-${Date.now()}`;
+  const baseName = `FLARE-Chart-${snapshot.vizMode}-${Date.now()}`;
   const doc: ExportDocumentSpec = {
     title: `Visual Analytics — ${snapshot.techniqueName}`,
     subtitle: `${snapshot.datasetLabel} (${snapshot.plottedRuns.length.toLocaleString()} plotted runs)`,
@@ -780,7 +780,7 @@ export function exportRunsDataFormatted(params: {
 }): void {
   const { runs, selectedRunIds, title, units, format } = params;
   if (runs.length === 0) return;
-  const baseName = `psi-runs-export-${Date.now()}`;
+  const baseName = `FLARE-Runs-Export-${Date.now()}`;
 
   if (format === 'csv') {
     triggerFileDownload(
@@ -847,7 +847,7 @@ export function exportChatThreadFormatted(params: {
   const { thread, virtualConfig, simulation, units, format } = params;
   const messages = thread?.messages ?? [];
   const threadTitle = thread?.title || 'Model Console Session';
-  const baseName = `psi-console-chat-${Date.now()}`;
+  const baseName = `FLARE-Chat-Export-${Date.now()}`;
 
   if (format === 'json') {
     triggerFileDownload(
@@ -870,7 +870,7 @@ export function exportChatThreadFormatted(params: {
 
   if (format === 'md') {
     const mdLines = [
-      `# PSI Model Console — ${threadTitle}`,
+      `# FLARE — Flight & Lunar Atmosphere Risk Engine · ${threadTitle}`,
       `Generated: ${new Date().toISOString()}`,
       `Active Chamber: ${virtualConfig.material} · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${formatPressure(virtualConfig.P_psi, units)} · ${formatFlameSpread(simulation.flameSpread_mms, units)}`,
       '',
@@ -902,7 +902,7 @@ export function exportChatThreadFormatted(params: {
   }
 
   const doc: ExportDocumentSpec = {
-    title: `Model Console — ${threadTitle}`,
+    title: `FLARE — Flight & Lunar Atmosphere Risk Engine · ${threadTitle}`,
     subtitle: `${virtualConfig.material} · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${formatPressure(virtualConfig.P_psi, units)} · ${formatFlameSpread(simulation.flameSpread_mms, units)}`,
     generatedAtIso: new Date().toISOString(),
     sections:
@@ -1036,12 +1036,12 @@ export function exportHeaderBundleFormatted(params: {
 
   downloadDocumentSpec(
     {
-      title: 'PSI Data Manager — Custom Export Bundle',
+      title: 'FLARE — Flight & Lunar Atmosphere Risk Engine · Custom Export Bundle',
       subtitle: `${sections.length} selected workspace section(s)`,
       generatedAtIso: new Date().toISOString(),
       sections: docSections,
     },
-    `psi-custom-bundle-${Date.now()}`,
+    `FLARE-Custom-Bundle-${Date.now()}`,
     format
   );
 }

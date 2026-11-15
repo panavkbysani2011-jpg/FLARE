@@ -122,7 +122,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="font-display text-lg font-bold tracking-tight">
+        <h1 className="font-display text-lg sm:text-xl font-semibold tracking-[-0.02em]">
           Data Import &amp; Archive Sync
         </h1>
         <span className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
@@ -200,7 +200,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   'sofie_lunar_sweep_mixed_units.csv'
                 )
               }
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                 isDark
                   ? 'border-[#27272A] bg-transparent text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
                   : 'border-[#E4E4E7] bg-white text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
@@ -218,7 +218,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
                   'enterprise_quarterly_sales.csv'
                 )
               }
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
                 isDark
                   ? 'border-[#27272A] bg-transparent text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
                   : 'border-[#E4E4E7] bg-white text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'

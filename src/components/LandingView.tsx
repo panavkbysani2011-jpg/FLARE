@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   ChevronDown,
-  Flame,
   FlaskConical,
   LogIn,
   TerminalSquare,
@@ -15,6 +14,7 @@ import {
   ThemeMode,
   WorkspaceView,
 } from '../types/psi';
+import { FlareLogo } from './FlareLogo';
 import { HeroFlameCanvas } from './HeroFlameCanvas';
 
 interface LandingViewProps {
@@ -101,11 +101,9 @@ export const LandingView: React.FC<LandingViewProps> = ({
         {/* Minimal Top Header Strip inside Hero */}
         <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-10 pt-6 pb-2 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-              <Flame className="w-3.5 h-3.5 text-[#FAFAFA]" />
-            </div>
+            <FlareLogo variant="dark" size="sm" />
             <span className="font-display text-sm font-semibold tracking-tight text-white">
-              PSI Data Manager
+              FLARE
             </span>
           </div>
 
@@ -157,13 +155,13 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </p>
 
               <h1 className="font-display text-3xl sm:text-4xl lg:text-[44px] font-bold tracking-tight text-white leading-[1.12]">
-                PSI Data Manager — Test &amp; Analyze Fire Behavior in Space
+                FLARE — Flight &amp; Lunar Atmosphere Risk Engine
               </h1>
 
               <p className="text-sm sm:text-base font-sans text-zinc-300 leading-relaxed max-w-xl">
-                See how materials ignite, spread flames, or self-extinguish inside
-                lunar habitats, spacecraft cabins, and low-airflow ducts before
-                running physical ground tests.
+                Test spacecraft cabin materials across oxygen, pressure, airflow, and
+                lunar or orbital gravity — calibrated directly against 1,616 NASA PSI
+                microgravity flight runs.
               </p>
 
               <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -172,7 +170,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
                   onClick={onEnterWorkspace}
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-[#FAFAFA] text-[#09090B] font-sans text-sm font-semibold shadow-md hover:bg-zinc-200 hover:-translate-y-0.5 transition-all duration-150 active:scale-[0.98] cursor-pointer"
                 >
-                  <span>Open PSI Data Manager</span>
+                  <span>Open FLARE</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
