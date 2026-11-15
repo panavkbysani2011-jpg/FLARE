@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
+  Copy,
   Lock,
   UserCheck,
   UserPlus,
@@ -31,6 +33,13 @@ export const SignInModal: React.FC<SignInModalProps> = ({
 }) => {
   const [fullNameInput, setFullNameInput] = useState('');
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,7 +86,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-xl border border-[#27272A] bg-[#09090B] text-[#FAFAFA] shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md rounded-xl border border-[#27272A] bg-[#09090B] text-[#FAFAFA] shadow-2xl overflow-hidden psi-animate-modal">
         {/* Top Modal Header */}
         <div className="px-5 py-4 border-b border-[#27272A] flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -87,12 +96,12 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 id="signin-modal-title"
                 className="font-display text-sm font-semibold tracking-tight text-white"
               >
-                FLARE — Flight &amp; Lunar Atmosphere Risk Engine
+                FLARE - Flight &amp; Lunar Atmosphere Risk Engine
               </h2>
               <p className="text-[11px] font-sans text-zinc-400">
                 {contextLabel
                   ? `Researcher Sign In to continue to ${contextLabel}`
-                  : 'Researcher Sign In — save chats, preferences, and model corrections locally'}
+                  : 'Researcher Sign In - save chats, preferences, and model corrections locally'}
               </p>
             </div>
           </div>
@@ -101,7 +110,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close sign in dialog"
-            className="w-7 h-7 rounded-lg border border-[#27272A] bg-[#121215] text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer"
+            className="w-8 h-8 rounded-lg border border-[#27272A] bg-[#121215] text-zinc-400 hover:text-white flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -126,7 +135,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 if (errorText) setErrorText(null);
               }}
               placeholder="Enter your full name"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#27272A] bg-[#121215] text-sm font-sans text-white placeholder:text-zinc-500 focus:outline-none focus:border-zinc-400"
+              className="w-full h-10 px-3 rounded-lg border border-[#27272A] bg-[#121215] text-sm font-sans text-white placeholder:text-zinc-500 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             />
             {errorText && (
               <p className="text-[11px] font-sans text-[#EF4444]">
@@ -157,6 +166,23 @@ export const SignInModal: React.FC<SignInModalProps> = ({
                 }
                 className="w-[102px] bg-transparent font-mono text-xs font-semibold text-zinc-100 focus:outline-none tabular-nums"
               />
+              <button
+                type="button"
+                onClick={() =>
+                  handleCopyId(
+                    returningWorkspace?.researcherId ?? previewResearcherId
+                  )
+                }
+                className="w-5 h-5 inline-flex items-center justify-center rounded-[3px] text-zinc-400 hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
+                title="Copy Researcher ID"
+                aria-label="Copy Researcher ID"
+              >
+                {copied ? (
+                  <Check className="w-3 h-3 text-[#10B981]" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -193,7 +219,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
           <div className="space-y-2.5 pt-1">
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#FAFAFA] text-[#09090B] font-sans text-sm font-semibold hover:bg-zinc-200 transition-colors active:scale-[0.99] cursor-pointer"
+              className="w-full h-10 inline-flex items-center justify-center gap-2 px-4 rounded-lg bg-[#FAFAFA] text-[#09090B] font-sans text-sm font-semibold hover:bg-zinc-200 transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             >
               <UserCheck className="w-4 h-4" />
               <span>
@@ -215,7 +241,7 @@ export const SignInModal: React.FC<SignInModalProps> = ({
             <button
               type="button"
               onClick={onContinueAsGuest}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#27272A] bg-[#121215] text-zinc-200 font-sans text-xs font-medium hover:bg-[#18181B] hover:border-zinc-500 transition-colors cursor-pointer"
+              className="w-full h-10 inline-flex items-center justify-center gap-2 px-4 rounded-lg border border-[#27272A] bg-[#121215] text-zinc-200 font-sans text-xs font-medium hover:bg-[#18181B] hover:border-zinc-500 transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             >
               <UserPlus className="w-3.5 h-3.5 text-zinc-400" />
               <span>Continue as Guest</span>

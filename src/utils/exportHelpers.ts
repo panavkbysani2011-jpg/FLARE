@@ -236,7 +236,7 @@ export function exportHeaderBundle(params: {
 
   // Markdown bundle
   const lines: string[] = [
-    '# FLARE — Flight & Lunar Atmosphere Risk Engine — Custom Export Report',
+    '# FLARE - Flight & Lunar Atmosphere Risk Engine - Custom Export Report',
     `Generated: ${timestampIso}`,
     `Included Sections: ${sections.length}`,
     '',
@@ -312,10 +312,10 @@ export function exportHeaderBundle(params: {
     } else {
       consoleMessages.forEach((msg, idx) => {
         if (msg.role === 'user') {
-          lines.push(`### Entry ${idx + 1} — Question (${msg.mode ?? 'general'})`, `${msg.text ?? ''}`, '');
+          lines.push(`### Entry ${idx + 1} - Question (${msg.mode ?? 'general'})`, `${msg.text ?? ''}`, '');
         } else {
           lines.push(
-            `### Entry ${idx + 1} — Model Response (${msg.mode ?? 'general'})`,
+            `### Entry ${idx + 1} - Model Response (${msg.mode ?? 'general'})`,
             ...(msg.steps ?? []).map((s) => `- ${s}`),
             msg.citations && msg.citations.length > 0
               ? `- Cited Experiments: ${msg.citations.join(', ')}`
@@ -343,7 +343,7 @@ export function exportVirtualTestReport(
 ): void {
   const conf = simulation.modelConfidence;
   const lines = [
-    '# FLARE — Flight & Lunar Atmosphere Risk Engine · Virtual Test Report',
+    '# FLARE - Flight & Lunar Atmosphere Risk Engine · Virtual Test Report',
     `Generated: ${new Date().toISOString()}`,
     '',
     '## Chamber Test Settings',
@@ -369,7 +369,7 @@ export function exportVirtualTestReport(
     '## Nearest Reference Flight Runs',
     ...simulation.nearestRuns.map(
       ({ run, similarityPct }) =>
-        `- ${run.psiId} (${run.runCode}, ${run.material}, ${run.facility}) — ${similarityPct}% match: ${run.O2_pct.toFixed(1)}% O2, ${run.P_psi.toFixed(1)} psi, ${run.Flow_ms.toFixed(2)} m/s -> ${run.flameSpread_mms.toFixed(2)} mm/s [${run.outcome}]`
+        `- ${run.psiId} (${run.runCode}, ${run.material}, ${run.facility}) - ${similarityPct}% match: ${run.O2_pct.toFixed(1)}% O2, ${run.P_psi.toFixed(1)} psi, ${run.Flow_ms.toFixed(2)} m/s -> ${run.flameSpread_mms.toFixed(2)} mm/s [${run.outcome}]`
     ),
   ].filter(Boolean);
 

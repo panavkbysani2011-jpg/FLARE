@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   Check,
-  ChevronDown,
+  Copy,
   Database,
   Download,
   Keyboard,
@@ -41,6 +41,7 @@ import {
   getVerifiedCorrections,
 } from '../services/userAdaptation';
 import { triggerFileDownload } from '../utils/exportHelpers';
+import { StudioSelect } from './StudioSelect';
 
 export type SettingsTabId =
   | 'general'
@@ -114,6 +115,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Account & Memory Tab Feedback / Confirmations
   const [accountNotice, setAccountNotice] = useState<string | null>(null);
+  const [copiedResearcherId, setCopiedResearcherId] = useState(false);
+
+  const handleCopyResearcherId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedResearcherId(true);
+    setTimeout(() => setCopiedResearcherId(false), 1800);
+  };
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
@@ -236,7 +244,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }}
     >
       <div
-        className={`w-full max-w-4xl h-[86vh] max-h-[680px] border rounded-xl shadow-2xl flex flex-col overflow-hidden ${modalSurface}`}
+        className={`w-full max-w-4xl h-[86vh] max-h-[680px] border rounded-xl shadow-2xl flex flex-col overflow-hidden psi-animate-modal ${modalSurface}`}
       >
         {/* Modal Header */}
         <div
@@ -263,7 +271,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close settings"
-            className={`w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer ${inactiveOptionBtn}`}
+            className={`w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
           >
             <X className="w-4 h-4" />
           </button>
@@ -484,7 +492,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           setProfileNotice(null);
                         }}
                         placeholder="Enter your full name"
-                        className={`w-full px-3 py-2 rounded-lg border text-xs font-sans focus:outline-none ${inputSurface}`}
+                        className={`w-full h-9 px-3 rounded-lg border text-xs font-sans transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
                       />
                     </div>
 
@@ -503,8 +511,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           readOnly
                           tabIndex={-1}
                           value={liveComputedId}
-                          className={`w-full pl-8 pr-3 py-2 rounded-lg border text-xs font-mono font-semibold opacity-90 cursor-not-allowed focus:outline-none ${inputSurface}`}
+                          className={`w-full pl-8 pr-10 h-9 rounded-lg border text-xs font-mono font-semibold opacity-90 cursor-not-allowed focus-visible:outline-none ${inputSurface}`}
                         />
+                        <button
+                          type="button"
+                          onClick={() => handleCopyResearcherId(liveComputedId)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+                          title="Copy Researcher ID"
+                          aria-label="Copy Researcher ID"
+                        >
+                          {copiedResearcherId ? (
+                            <Check className="w-3.5 h-3.5 text-[#10B981]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -525,7 +546,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         setProfileNotice(null);
                       }}
                       placeholder="researcher@institution.org"
-                      className={`w-full px-3 py-2 rounded-lg border text-xs font-sans focus:outline-none ${inputSurface}`}
+                      className={`w-full h-9 px-3 rounded-lg border text-xs font-sans transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
                     />
                   </div>
 
@@ -545,7 +566,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         setProfileNotice(null);
                       }}
                       placeholder="Focus areas, cabin safety instrumentation, or material programs..."
-                      className={`w-full px-3 py-2 rounded-lg border text-xs font-sans focus:outline-none resize-none ${inputSurface}`}
+                      className={`w-full px-3 py-2 rounded-lg border text-xs font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 resize-none ${inputSurface}`}
                     />
                   </div>
 
@@ -561,7 +582,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                     <button
                       type="submit"
-                      className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border text-xs font-sans cursor-pointer ${activeOptionBtn}`}
+                      className={`inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${activeOptionBtn}`}
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Save Profile</span>
@@ -653,25 +674,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       >
                         Font Family
                       </label>
-                      <div className="relative">
-                        <select
-                          id="settings-font-family"
-                          value={settings.fontFamily}
-                          onChange={(e) =>
-                            onUpdateSettings({
-                              fontFamily: e.target.value as FontFamilyId,
-                            })
-                          }
-                          className={`w-full h-10 appearance-none pl-3 pr-9 rounded-lg border text-xs font-sans font-medium transition-all duration-150 focus:outline-none cursor-pointer ${inputSurface}`}
-                        >
-                          {FONT_FAMILY_OPTIONS.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.label} — {f.subtitle}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                      </div>
+                      <StudioSelect<FontFamilyId>
+                        id="settings-font-family"
+                        ariaLabel="Font Family"
+                        height="h-10"
+                        placement="auto-flip"
+                        value={settings.fontFamily}
+                        onChange={(val) => onUpdateSettings({ fontFamily: val })}
+                        options={FONT_FAMILY_OPTIONS.map((f) => ({
+                          value: f.id,
+                          label: f.label,
+                          subtitle: f.subtitle,
+                        }))}
+                        className="w-full"
+                      />
                     </div>
 
                     <div className="md:col-span-4 flex flex-col justify-end gap-1.5">
@@ -801,21 +817,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <input
-                              type="color"
-                              aria-label={`${row.label} color picker`}
-                              value={row.value}
-                              onChange={(e) => {
-                                row.setDraft(e.target.value.toUpperCase());
-                                onUpdateSettings({
-                                  customColors: {
-                                    ...settings.customColors,
-                                    [row.key]: e.target.value.toUpperCase(),
-                                  },
-                                });
-                              }}
-                              className="w-7 h-7 rounded-[4px] border border-zinc-400/40 bg-transparent cursor-pointer shrink-0 p-0"
-                            />
+                            <div className="w-7 h-7 rounded-md border border-zinc-400/40 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 active:scale-95">
+                              <input
+                                type="color"
+                                aria-label={`${row.label} color picker`}
+                                value={row.value}
+                                onChange={(e) => {
+                                  row.setDraft(e.target.value.toUpperCase());
+                                  onUpdateSettings({
+                                    customColors: {
+                                      ...settings.customColors,
+                                      [row.key]: e.target.value.toUpperCase(),
+                                    },
+                                  });
+                                }}
+                                className="w-10 h-10 -m-1.5 border-0 bg-transparent cursor-pointer p-0"
+                              />
+                            </div>
                             <span className="text-xs font-sans font-medium truncate">
                               {row.label}
                             </span>
@@ -831,7 +849,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 handleHexCommit(row.key, row.draft);
                               }
                             }}
-                            className={`w-[82px] px-2 py-1 rounded-[4px] border font-mono text-[11px] uppercase focus:outline-none ${inputSurface}`}
+                            className={`h-9 w-[88px] px-2.5 rounded-lg border font-mono text-xs uppercase transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
                           />
                         </div>
                       ))}
@@ -961,7 +979,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={handleExportLearnedBundle}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer ${inactiveOptionBtn}`}
+                      className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>Export Profile &amp; Corrections (.json)</span>
@@ -987,7 +1005,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onClearChatHistory();
                         setAccountNotice('Cleared Model Console chat history.');
                       }}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer ${inactiveOptionBtn}`}
+                      className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Clear Chat History Only</span>
@@ -1015,7 +1033,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onSignOut();
                         onClose();
                       }}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer ${inactiveOptionBtn}`}
+                      className={`h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>
@@ -1041,7 +1059,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteOpen(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#EF4444]/40 text-[#EF4444] text-xs font-sans font-medium hover:bg-[#EF4444]/10 cursor-pointer"
+                            className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg border border-[#EF4444]/40 text-[#EF4444] text-xs font-sans font-medium hover:bg-[#EF4444]/10 cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
                           >
                             <AlertTriangle className="w-3.5 h-3.5" />
                             <span>Delete Account</span>
@@ -1051,7 +1069,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             <button
                               type="button"
                               onClick={() => setConfirmDeleteOpen(false)}
-                              className={`px-2.5 py-1.5 rounded-lg border text-xs font-sans cursor-pointer ${inactiveOptionBtn}`}
+                              className={`h-9 px-3 rounded-lg border text-xs font-sans cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
                             >
                               Cancel
                             </button>
@@ -1061,7 +1079,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 onDeleteAccount();
                                 onClose();
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-[#EF4444] text-white text-xs font-sans font-semibold hover:opacity-90 cursor-pointer"
+                              className="h-9 px-3.5 rounded-lg bg-[#EF4444] text-white text-xs font-sans font-semibold hover:opacity-90 cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
                             >
                               Confirm Delete
                             </button>

@@ -80,7 +80,7 @@ export function ExportDropdown<F extends ExportFileFormat>({
         <div
           role="menu"
           aria-label={`${label} formats`}
-          className={`absolute right-0 mt-1.5 w-[212px] rounded-lg border shadow-lg p-1.5 z-50 space-y-0.5 ${
+          className={`absolute right-0 mt-1.5 w-[212px] rounded-lg border shadow-lg p-1.5 z-50 space-y-0.5 psi-animate-popover ${
             isDark
               ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
               : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'

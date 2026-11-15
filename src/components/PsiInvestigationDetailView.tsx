@@ -3,9 +3,10 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BookOpen,
-  CheckSquare,
+  Check,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Cpu,
   Download,
   ExternalLink,
@@ -16,7 +17,6 @@ import {
   Search,
   ShieldCheck,
   Sliders,
-  Square,
 } from 'lucide-react';
 import {
   DefaultExportFormat,
@@ -83,6 +83,19 @@ export const PsiInvestigationDetailView: React.FC<
   const [activeArtifactId, setActiveArtifactId] = useState<string>('');
   const [runTableSearch, setRunTableSearch] = useState('');
   const [runPage, setRunPage] = useState(1);
+  const [copiedRunCode, setCopiedRunCode] = useState(false);
+  const [copiedDoi, setCopiedDoi] = useState(false);
+
+  const handleCopyText = (text: string, type: 'run' | 'doi') => {
+    navigator.clipboard.writeText(text);
+    if (type === 'run') {
+      setCopiedRunCode(true);
+      setTimeout(() => setCopiedRunCode(false), 1800);
+    } else {
+      setCopiedDoi(true);
+      setTimeout(() => setCopiedDoi(false), 1800);
+    }
+  };
 
   useEffect(() => {
     if (artifacts.length > 0) {
@@ -301,7 +314,7 @@ export const PsiInvestigationDetailView: React.FC<
           <button
             type="button"
             onClick={() => onToggleComparison(run.id)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
               isSelectedForComparison
                 ? isDark
                   ? 'border-zinc-500 bg-zinc-800 text-zinc-100'
@@ -311,11 +324,19 @@ export const PsiInvestigationDetailView: React.FC<
                 : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
             }`}
           >
-            {isSelectedForComparison ? (
-              <CheckSquare className="w-3.5 h-3.5" />
-            ) : (
-              <Square className="w-3.5 h-3.5" />
-            )}
+            <span
+              className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-colors ${
+                isSelectedForComparison
+                  ? isDark
+                    ? 'bg-[#FAFAFA] border-[#FAFAFA] text-[#09090B]'
+                    : 'bg-[#18181B] border-[#18181B] text-[#FFFFFF]'
+                  : isDark
+                  ? 'border-zinc-600 bg-transparent'
+                  : 'border-zinc-300 bg-white'
+              }`}
+            >
+              {isSelectedForComparison && <Check className="w-2.5 h-2.5 stroke-[2.5]" />}
+            </span>
             <span>
               {isSelectedForComparison
                 ? `In Comparator (${selectedRunsCount}/4)`
@@ -360,8 +381,21 @@ export const PsiInvestigationDetailView: React.FC<
                 )}
               </span>
               <span className="text-zinc-400">·</span>
-              <span className="font-sans text-zinc-500 dark:text-zinc-400">
+              <span className="font-sans text-zinc-500 dark:text-zinc-400 inline-flex items-center gap-1">
                 Active Run: <span className="font-mono">{run.runCode}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(run.runCode, 'run')}
+                  className="w-4 h-4 inline-flex items-center justify-center rounded-[3px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
+                  title="Copy Run Code"
+                  aria-label="Copy Run Code"
+                >
+                  {copiedRunCode ? (
+                    <Check className="w-3 h-3 text-[#10B981]" />
+                  ) : (
+                    <Copy className="w-3 h-3" />
+                  )}
+                </button>
               </span>
               <span className="text-zinc-400">·</span>
               <span className="font-sans text-zinc-500 dark:text-zinc-400">
@@ -370,29 +404,45 @@ export const PsiInvestigationDetailView: React.FC<
               {investigationRecord?.doi && (
                 <>
                   <span className="text-zinc-400">·</span>
-                  {investigationRecord.doiUrl ? (
-                    <a
-                      href={investigationRecord.doiUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-sans text-zinc-600 dark:text-zinc-300 hover:underline"
-                    >
+                  <span className="inline-flex items-center gap-1 font-sans text-zinc-600 dark:text-zinc-300">
+                    {investigationRecord.doiUrl ? (
+                      <a
+                        href={investigationRecord.doiUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        DOI: <span className="font-mono">{investigationRecord.doi}</span>
+                      </a>
+                    ) : (
                       <span>
-                        DOI:{' '}
-                        <span className="font-mono">
-                          {investigationRecord.doi}
-                        </span>
+                        DOI: <span className="font-mono">{investigationRecord.doi}</span>
                       </span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ) : (
-                    <span className="font-sans text-zinc-500 dark:text-zinc-400">
-                      DOI:{' '}
-                      <span className="font-mono">
-                        {investigationRecord.doi}
-                      </span>
-                    </span>
-                  )}
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(investigationRecord.doi!, 'doi')}
+                      className="w-4 h-4 inline-flex items-center justify-center rounded-[3px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
+                      title="Copy DOI"
+                      aria-label="Copy DOI"
+                    >
+                      {copiedDoi ? (
+                        <Check className="w-3 h-3 text-[#10B981]" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                    {investigationRecord.doiUrl && (
+                      <a
+                        href={investigationRecord.doiUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Open DOI link"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </span>
                 </>
               )}
             </div>
@@ -459,7 +509,7 @@ export const PsiInvestigationDetailView: React.FC<
             <div className="flex items-center gap-1.5 text-xs font-sans font-semibold">
               <Cpu className="w-3.5 h-3.5 text-zinc-400" />
               <span>
-                Hardware Facility —{' '}
+                Hardware Facility -{' '}
                 {investigationRecord?.hardwareRaw || run.facility}
               </span>
             </div>

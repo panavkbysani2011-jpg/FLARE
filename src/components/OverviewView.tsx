@@ -142,16 +142,16 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
 
         <h1 className="font-display text-2xl sm:text-3xl font-semibold tracking-[-0.02em] leading-tight">
-          FLARE — Flight &amp; Lunar Atmosphere Risk Engine
+          FLARE - Flight &amp; Lunar Atmosphere Risk Engine
         </h1>
         <p className="font-sans text-sm text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
-          Welcome to FLARE — configure virtual cabin fire tests, explore 1,616
+          Welcome to FLARE - configure virtual cabin fire tests, explore 1,616
           calibrated spaceflight runs, and query the combustion model with full
           source citations.
         </p>
       </section>
 
-      {/* Section 1 — How to Use This Platform (3 Simple Steps) */}
+      {/* Section 1 - How to Use This Platform (3 Simple Steps) */}
       <section aria-label="How to Use This Platform" className="space-y-3">
         <div>
           <h2 className="font-display text-base font-semibold tracking-[-0.015em]">
@@ -219,7 +219,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
       </section>
 
-      {/* Section 2 — What Is Inside Each Section (6 Cards with Open -> Buttons) */}
+      {/* Section 2 - What Is Inside Each Section (6 Cards with Open -> Buttons) */}
       <section aria-label="What Is Inside Each Section" className="space-y-3">
         <div>
           <h2 className="font-display text-base font-semibold tracking-[-0.015em]">
@@ -281,7 +281,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
         </div>
       </section>
 
-      {/* Section 3 — Quick-Start Examples */}
+      {/* Section 3 - Quick-Start Examples */}
       <section aria-label="Quick-Start Examples" className="space-y-3">
         <div>
           <h2 className="font-display text-base font-semibold tracking-tight">

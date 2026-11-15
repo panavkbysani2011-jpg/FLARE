@@ -24,7 +24,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-20', 'PSI-25', 'PSI-69', 'PSI-159'],
     sourceTitle: 'Glenn Combustion Science Program Overview',
-    sourceDisplayUrl: 'Physical Sciences Program — Combustion Science Brief',
+    sourceDisplayUrl: 'Physical Sciences Program - Combustion Science Brief',
     sourceUrl:
       'https://www.nasa.gov/glenn/glenn-expertise-space-exploration/physical-sciences-program/combustion-science/',
     simulatableEnvironment: {
@@ -59,7 +59,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-98', 'PSI-99', 'PSI-25'],
     sourceTitle: 'Apollo 1 Lessons Learned (SMA ACCLLP)',
-    sourceDisplayUrl: 'SMA ACCLLP Incident Brief — Apollo 1',
+    sourceDisplayUrl: 'SMA ACCLLP Incident Brief - Apollo 1',
     sourceUrl: 'https://sma.nasa.gov/sma-disciplines/accllp/apollo-1',
     simulatableEnvironment: {
       label: 'Apollo 1 Pad Test (100% O₂, 16.7 psi, 1.0g)',
@@ -93,7 +93,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     ],
     relatedPsiIds: ['PSI-101', 'PSI-102', 'PSI-20'],
     sourceTitle: 'Apollo 13 Lessons Learned (SMA ACCLLP)',
-    sourceDisplayUrl: 'SMA ACCLLP Incident Brief — Apollo 13',
+    sourceDisplayUrl: 'SMA ACCLLP Incident Brief - Apollo 13',
     sourceUrl: 'https://sma.nasa.gov/sma-disciplines/accllp/apollo-13',
     simulatableEnvironment: {
       label: 'High-O₂ PTFE Ignition Threshold (100% O₂, 18.0 psi, 0g)',
@@ -174,7 +174,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     missionOrDomain: 'Early-Warning Ionization & Optical Smoke Sensing',
     atmosphereLabel: '0.05 – 0.8 µm Aerosol Discrimination',
     summary:
-      'Programmable, false-alarm-resistant smoke and fire detection architecture adapted from Skylab and Space Shuttle avionics bay monitors—designed to catch low-temperature pyrolizing wire insulation before open flaming occurs.',
+      'Programmable, false-alarm-resistant smoke and fire detection architecture adapted from Skylab and Space Shuttle avionics bay monitors - designed to catch low-temperature pyrolizing wire insulation before open flaming occurs.',
     engineeringParameters: [
       { label: 'Sensitivity Range', value: 'Sub-Micron Wire Pyrolysis (<0.5 µm)' },
       { label: 'Response Target', value: 'Pre-Flaming / Smoldering Transition' },
@@ -200,7 +200,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     missionOrDomain: 'PBI & Nomex Turnout Gear / Thermal Liners',
     atmosphereLabel: 'LOI > 29.8% O₂ · Non-Melting to 973 K',
     summary:
-      'High-temperature synthetic polymer textiles—including Polybenzimidazole (PBI) and meta-aramid blends (Nomex)—adopted into firefighter turnout coats, racecar suits, and industrial arc-flash garments directly following Apollo 1 cabin material re-engineering.',
+      'High-temperature synthetic polymer textiles - including Polybenzimidazole (PBI) and meta-aramid blends (Nomex) - adopted into firefighter turnout coats, racecar suits, and industrial arc-flash garments directly following Apollo 1 cabin material re-engineering.',
     engineeringParameters: [
       { label: 'Thermal Decomposition', value: '>700°C (973 K) Without Melting' },
       { label: 'Limiting O₂ Index', value: 'LOI 30% – 41% O₂ (Self-Quenching)' },
@@ -226,7 +226,7 @@ export const MISSION_AND_SPINOFF_CASES: MissionSpinoffCase[] = [
     missionOrDomain: 'Spherical Microgravity Droplets & Cool Flames',
     atmosphereLabel: '21% O₂ · 14.7 psi · 550K–800K Cool Flame',
     summary:
-      'Orbital demonstration of how 0g spherical symmetry removes tear-drop buoyancy plumes and uncovered two-stage cool-flame alkane droplet burning—continuing invisible oxidation at 550K–800K long after hot radiative flame extinction.',
+      'Orbital demonstration of how 0g spherical symmetry removes tear-drop buoyancy plumes and uncovered two-stage cool-flame alkane droplet burning - continuing invisible oxidation at 550K–800K long after hot radiative flame extinction.',
     engineeringParameters: [
       { label: 'Discovery Mechanism', value: 'FLEX n-Heptane / n-Octane Droplets' },
       { label: 'Cool-Flame Temp', value: '550 K – 800 K (NTC Kinetics)' },

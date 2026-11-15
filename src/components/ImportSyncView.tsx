@@ -286,7 +286,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
               <div className="p-3.5 rounded-[4px] border border-[#EF4444]/40 bg-[#EF4444]/10 text-xs space-y-1.5">
                 <div className="flex items-center gap-2 font-sans font-semibold text-[#EF4444]">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>File Not Accepted — Not Combustion Data</span>
+                  <span>File Not Accepted - Not Combustion Data</span>
                 </div>
                 <p className="font-sans text-zinc-700 dark:text-zinc-200 leading-relaxed">
                   {validationResult.reason}

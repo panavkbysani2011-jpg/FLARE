@@ -166,7 +166,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           onClick={onHeaderToggleSidebar}
           title={sidebarBtnTitle}
           aria-label={sidebarBtnTitle}
-          className={`w-7 h-7 rounded-lg border shadow-xs flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer ${
+          className={`w-8 h-8 rounded-lg border shadow-xs flex items-center justify-center shrink-0 transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
             isDark
               ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:text-white hover:border-zinc-500 hover:bg-zinc-800'
               : 'bg-white border-[#E4E4E7] text-zinc-700 hover:text-zinc-950 hover:bg-zinc-100 hover:border-zinc-300'
@@ -226,7 +226,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             onClick={() => setExportMenuOpen((prev) => !prev)}
             aria-expanded={exportMenuOpen}
             aria-haspopup="dialog"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
+            className={`h-8 inline-flex items-center gap-1.5 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
               exportMenuOpen
                 ? isDark
                   ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'
@@ -250,7 +250,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <div
               role="dialog"
               aria-label="Custom Multi-Section Export"
-              className={`absolute right-0 mt-2 w-[320px] sm:w-[356px] rounded-lg border shadow-lg p-3.5 z-50 space-y-3 ${
+              className={`absolute right-0 mt-2 w-[320px] sm:w-[356px] rounded-lg border shadow-lg p-3.5 z-50 space-y-3 psi-animate-popover ${
                 isDark
                   ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
                   : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
@@ -389,7 +389,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                 key={mode}
                 type="button"
                 onClick={() => onThemeChange(mode)}
-                className={`px-2.5 py-0.5 text-xs font-sans rounded-md transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer ${
+                className={`h-7 px-2.5 inline-flex items-center justify-center text-xs font-sans rounded-md transition-all duration-150 active:scale-[0.98] whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                   active ? activeMonochrome + ' shadow-xs' : inactiveMonochrome
                 }`}
               >

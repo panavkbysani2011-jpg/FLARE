@@ -585,7 +585,7 @@ function buildGuideTopics(guideChunks: LiteratureChunk[]): ResearchersGuideTopic
         'Highlights the landmark discovery of steady low-temperature cool flames (550K–800K NTC kinetics) in n-heptane and binary alkane droplets during the FLEX investigation aboard the ISS.',
       keyTakeaways: [
         'Droplets undergo a dual-mode burn: hot luminous flame → radiative extinction → sustained non-luminous cool flame.',
-        'Cool flames emit nearly zero visible light while generating formaldehyde, CO, and heat — challenging optical fire detectors.',
+        'Cool flames emit nearly zero visible light while generating formaldehyde, CO, and heat - challenging optical fire detectors.',
       ],
     },
     {

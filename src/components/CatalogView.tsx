@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Search,
   Filter,
-  CheckSquare,
-  Square,
+  Check,
   Sliders,
   ArrowUpRight,
   ExternalLink,
@@ -449,7 +448,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={fac.id}
                       type="button"
                       onClick={() => setSelectedFacility(fac.id)}
-                      className={`w-full text-left px-2.5 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+                      className={`w-full text-left h-8 px-2.5 text-xs font-sans rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                         active ? activeMonochrome : inactiveMonochrome
                       }`}
                     >
@@ -479,7 +478,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={fuel.id}
                       type="button"
                       onClick={() => setSelectedFuelGroup(fuel.id)}
-                      className={`w-full text-left px-2.5 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+                      className={`w-full text-left h-8 px-2.5 text-xs font-sans rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                         active ? activeMonochrome : inactiveMonochrome
                       }`}
                     >
@@ -508,7 +507,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       key={out.id}
                       type="button"
                       onClick={() => setSelectedOutcome(out.id)}
-                      className={`w-full text-left px-2.5 py-1.5 text-xs font-sans rounded-[4px] transition-colors cursor-pointer ${
+                      className={`w-full text-left h-8 px-2.5 text-xs font-sans rounded-lg transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                         active ? activeMonochrome : inactiveMonochrome
                       }`}
                     >
@@ -627,7 +626,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             type="button"
                             onClick={() => onToggleRun(repRun.id)}
                             aria-label={`Compare ${inv.psiId}`}
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all shrink-0 cursor-pointer ${
+                            className={`inline-flex items-center gap-1.5 h-8 px-2.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                               isChecked
                                 ? activeMonochrome +
                                   (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
@@ -636,11 +635,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                                 : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                             }`}
                           >
-                            {isChecked ? (
-                              <CheckSquare className="w-3.5 h-3.5" />
-                            ) : (
-                              <Square className="w-3.5 h-3.5" />
-                            )}
+                            <span
+                              className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-colors ${
+                                isChecked
+                                  ? isDark
+                                    ? 'bg-[#FAFAFA] border-[#FAFAFA] text-[#09090B]'
+                                    : 'bg-[#18181B] border-[#18181B] text-[#FFFFFF]'
+                                  : isDark
+                                  ? 'border-zinc-600 bg-transparent'
+                                  : 'border-zinc-300 bg-white'
+                              }`}
+                            >
+                              {isChecked && <Check className="w-2.5 h-2.5 stroke-[2.5]" />}
+                            </span>
                             <span>{isChecked ? 'Selected' : 'Compare'}</span>
                           </button>
                         </div>
@@ -736,7 +743,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onInspectRun(inv.psiId)}
-                              className={`px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                              className={`h-8 px-2.5 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                                 isDark
                                   ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
                                   : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
@@ -747,7 +754,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                             <button
                               type="button"
                               onClick={() => onApplyRunToSliders(repRun)}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                              className={`inline-flex items-center gap-1 h-8 px-2.5 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                                 isDark
                                   ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:text-white hover:border-zinc-600'
                                   : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 hover:border-zinc-300'
@@ -836,7 +843,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={RESEARCHERS_GUIDE_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all ${
+                    className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       isDark
                         ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                         : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -850,7 +857,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={SAME_EIRD_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all ${
+                    className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       isDark
                         ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
                         : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
@@ -1022,7 +1029,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                         href={topic.pdfUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-[4px] border shrink-0 transition-colors ${
+                        className={`inline-flex items-center gap-1 h-7 px-2.5 text-[11px] font-sans font-medium rounded-lg border shrink-0 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                           isDark
                             ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800'
                             : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100'
@@ -1043,7 +1050,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                       {topic.keyTakeaways.map((bullet, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <span className="font-sans text-zinc-400 mt-0.5">
-                            —
+                            •
                           </span>
                           <span>{bullet}</span>
                         </li>
@@ -1209,7 +1216,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                           onClick={() =>
                             onSimulateEnvironment(item.simulatableEnvironment!)
                           }
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-[4px] transition-colors shrink-0 cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg transition-all duration-150 active:scale-[0.98] shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                             isDark
                               ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                               : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'

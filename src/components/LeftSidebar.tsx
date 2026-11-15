@@ -3,8 +3,10 @@ import {
   ArrowUpRight,
   BarChart3,
   BookOpen,
+  Check,
   ChevronDown,
   ChevronRight,
+  Copy,
   Database,
   FileText,
   Flame,
@@ -94,6 +96,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const [quickFind, setQuickFind] = useState('');
   const [virtualLabExpanded, setVirtualLabExpanded] = useState(true);
   const [archiveExpanded, setArchiveExpanded] = useState(true);
+  const [copiedResearcherId, setCopiedResearcherId] = useState(false);
+
+  const handleCopyResearcherId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedResearcherId(true);
+    setTimeout(() => setCopiedResearcherId(false), 1800);
+  };
 
   if (sidebarState === 'hidden') {
     return null;
@@ -247,16 +256,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             {compactItems.map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.id} className="relative group flex justify-center">
+                <div key={item.id} className="relative group flex justify-center shrink-0">
                   <button
                     type="button"
                     onClick={() => onSelectView(item.id)}
                     aria-label={item.label}
-                    className={`w-10 h-9 rounded-lg flex items-center justify-center transition-all duration-150 active:scale-[0.98] cursor-pointer relative ${
+                    title={item.label}
+                    className={`px-2.5 lg:px-0 lg:w-10 h-9 rounded-lg flex items-center justify-center gap-1.5 transition-all duration-150 active:scale-[0.98] cursor-pointer relative ${
                       item.isActive ? activeItemClass + ' shadow-xs' : inactiveItemClass
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
+                    <span className="lg:hidden text-[11px] font-sans font-medium whitespace-nowrap">
+                      {item.label}
+                    </span>
                     {item.id === 'import-sync' && customUploadsCount > 0 && (
                       <span
                         className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-[2px] bg-[#10B981]"
@@ -322,11 +335,11 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   return (
     <aside
-      className={`w-full lg:w-[240px] shrink-0 lg:sticky lg:top-0 lg:h-screen border-b lg:border-b-0 lg:border-r flex flex-col justify-between select-none transition-colors duration-150 ${railSurface}`}
+      className={`w-full lg:w-[240px] shrink-0 lg:sticky lg:top-0 lg:h-screen border-b lg:border-b-0 lg:border-r flex flex-col justify-between select-none transition-colors duration-150 z-30 ${railSurface}`}
       aria-label="Primary Workspace Navigation"
     >
-      {/* Top: Brand Header + Collapse Toggle + Quick Find + Hierarchical Tree */}
-      <div className="p-3.5 space-y-3 overflow-y-auto">
+      {/* Top: Brand Header + Collapse Toggle + Quick Find (unclipped for dropdown) */}
+      <div className="p-3.5 pb-2 space-y-3 shrink-0">
         <div className="flex items-center justify-between gap-2 px-0.5">
           <button
             type="button"
@@ -370,7 +383,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             }}
             placeholder="Find PSI ID, run, fuel..."
             aria-label="Global search across PSI investigations, runs, and researcher guide"
-            className={`w-full pl-8 pr-11 py-1.5 text-xs font-sans rounded-[4px] border transition-colors focus:outline-none ${
+            className={`w-full h-9 pl-8 pr-11 text-xs font-sans rounded-lg border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
               isDark
                 ? 'bg-[#18181B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-500'
                 : 'bg-white border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500'
@@ -390,7 +403,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {hasSearchQuery && (
             <div
-              className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-1.5 max-h-[340px] overflow-y-auto space-y-2 ${
+              className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-1.5 max-h-[340px] overflow-y-auto space-y-2 psi-animate-popover ${
                 isDark
                   ? 'bg-[#18181B] border-[#27272A] text-zinc-100'
                   : 'bg-white border-[#E4E4E7] text-zinc-900'
@@ -506,7 +519,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           )}
         </div>
+      </div>
 
+      {/* Scrollable Navigation Tree */}
+      <div className="flex-1 px-3.5 pb-3.5 overflow-y-auto">
         {/* Hierarchical Expandable Navigation Tree */}
         <nav className="space-y-1 pt-1" aria-label="Workspace Navigation Tree">
           {/* 0. Workspace Overview Page */}
@@ -810,6 +826,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       ? 'Sandbox'
                       : session.researcherId}
                   </span>
+                  {session.mode !== 'guest' && session.researcherId && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyResearcherId(session.researcherId)}
+                      className="w-4 h-4 inline-flex items-center justify-center rounded-[3px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400"
+                      title="Copy Researcher ID"
+                      aria-label="Copy Researcher ID"
+                    >
+                      {copiedResearcherId ? (
+                        <Check className="w-2.5 h-2.5 text-[#10B981]" />
+                      ) : (
+                        <Copy className="w-2.5 h-2.5" />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -817,7 +848,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               type="button"
               onClick={onOpenSettings}
-              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-[11px] font-sans font-medium shrink-0 transition-colors cursor-pointer ${
+              className={`h-8 inline-flex items-center gap-1 px-2.5 rounded-lg border text-[11px] font-sans font-medium shrink-0 transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                 isDark
                   ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-500'
                   : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
@@ -836,7 +867,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <button
               type="button"
               onClick={onOpenSignIn}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-semibold cursor-pointer ${activeItemClass}`}
+              className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-lg border text-xs font-sans font-semibold cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${activeItemClass}`}
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In</span>

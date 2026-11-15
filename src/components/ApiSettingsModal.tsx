@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Activity,
   Check,
-  ChevronDown,
   Eye,
   EyeOff,
   Plus,
@@ -26,6 +25,7 @@ import {
   upsertApiEndpointProfile,
 } from '../services/psiApi';
 import { getVerifiedCorrections } from '../services/userAdaptation';
+import { StudioSelect } from './StudioSelect';
 
 interface ApiSettingsModalProps {
   theme: ThemeMode;
@@ -216,7 +216,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
       aria-label="API Settings and Remote Model Endpoints"
     >
       <div
-        className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border shadow-2xl p-5 space-y-5 ${modalSurface}`}
+        className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border shadow-2xl p-5 space-y-5 psi-animate-modal ${modalSurface}`}
       >
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-[#E4E4E7] dark:border-[#27272A]">
           <div>
@@ -231,7 +231,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close API Settings"
-            className={`w-7 h-7 rounded-md border flex items-center justify-center cursor-pointer ${secondaryBtn}`}
+            className={`w-8 h-8 rounded-lg border flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -269,7 +269,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectProfile(LOCAL_MODEL_ID)}
-                className={`px-3 py-1.5 text-xs font-sans font-medium rounded-md border shrink-0 cursor-pointer ${
+                className={`h-8 px-3 text-xs font-sans font-medium rounded-lg border shrink-0 cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                   activeProfileId === LOCAL_MODEL_ID ? primaryBtn : secondaryBtn
                 }`}
               >
@@ -315,7 +315,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleSelectProfile(profile.id)}
-                      className={`px-2.5 py-1 text-xs font-sans font-medium rounded-md border cursor-pointer ${
+                      className={`h-8 px-2.5 text-xs font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                         isActive ? primaryBtn : secondaryBtn
                       }`}
                     >
@@ -324,7 +324,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleEditProfile(profile)}
-                      className={`px-2.5 py-1 text-xs font-sans rounded-md border cursor-pointer ${secondaryBtn}`}
+                      className={`h-8 px-2.5 text-xs font-sans rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
                     >
                       Edit
                     </button>
@@ -332,7 +332,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                       type="button"
                       onClick={() => handleDeleteProfile(profile.id)}
                       aria-label={`Delete ${profile.name}`}
-                      className={`p-1.5 rounded-md border text-zinc-500 hover:text-[#EF4444] cursor-pointer ${secondaryBtn}`}
+                      className={`h-8 w-8 rounded-lg border flex items-center justify-center text-zinc-500 hover:text-[#EF4444] cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -422,23 +422,19 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
               >
                 Auth Header Name
               </label>
-              <div className="relative">
-                <select
-                  id="modal-api-header"
-                  value={form.apiKeyHeader}
-                  onChange={(e) =>
-                    setForm((p) => ({
-                      ...p,
-                      apiKeyHeader: e.target.value as 'X-API-Key' | 'Authorization',
-                    }))
-                  }
-                  className={`w-full h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border transition-colors duration-150 outline-none cursor-pointer ${modalSurface}`}
-                >
-                  <option value="X-API-Key">X-API-Key</option>
-                  <option value="Authorization">Authorization</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-              </div>
+              <StudioSelect<'X-API-Key' | 'Authorization'>
+                id="modal-api-header"
+                ariaLabel="Auth Header Name"
+                height="h-9"
+                placement="auto-flip"
+                value={form.apiKeyHeader}
+                onChange={(val) => setForm((p) => ({ ...p, apiKeyHeader: val }))}
+                options={[
+                  { value: 'X-API-Key', label: 'X-API-Key' },
+                  { value: 'Authorization', label: 'Authorization' },
+                ]}
+                className="w-full"
+              />
             </div>
 
             <div className="flex flex-col justify-end gap-1.5">
@@ -491,7 +487,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
               type="button"
               disabled={isTesting}
               onClick={handleTestFormEndpoint}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-md border cursor-pointer disabled:opacity-55 ${secondaryBtn}`}
+              className={`h-9 px-3.5 inline-flex items-center gap-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer disabled:opacity-55 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
             >
               <Activity className="w-3.5 h-3.5" />
               <span>{isTesting ? 'Testing...' : 'Test Connection'}</span>
@@ -500,7 +496,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
             <button
               type="submit"
               disabled={isSyncing}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer disabled:opacity-55 ${primaryBtn}`}
+              className={`h-9 px-3.5 inline-flex items-center gap-1.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer disabled:opacity-55 transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${primaryBtn}`}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>

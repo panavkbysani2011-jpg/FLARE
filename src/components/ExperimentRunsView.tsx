@@ -2,18 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowUpDown,
   ArrowUpRight,
-  CheckSquare,
-  ChevronDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
   Search,
   Sliders,
-  Square,
   X,
 } from 'lucide-react';
 import { exportRunsDataFormatted } from '../utils/exportGenerators';
 import { ExportDropdown } from './ExportDropdown';
+import { StudioSelect } from './StudioSelect';
 import {
   DefaultExportFormat,
   HazardOutcome,
@@ -229,45 +228,37 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
               )}
             </div>
 
-            <div className="relative">
-              <select
-                value={facilityFilter}
-                onChange={(e) => setFacilityFilter(e.target.value)}
-                aria-label="Filter runs by hardware facility"
-                className={`h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 focus:outline-none cursor-pointer ${
-                  isDark
-                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:border-zinc-500 focus:border-zinc-400'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:border-zinc-300 focus:border-zinc-500'
-                }`}
-              >
-                <option value="ALL">All Facilities</option>
-                <option value="CIR">CIR</option>
-                <option value="MSG">MSG</option>
-                <option value="Cygnus">Cygnus</option>
-                <option value="FSL">FSL</option>
-                <option value="Virtual">Virtual</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-            </div>
+            <StudioSelect
+              ariaLabel="Filter runs by hardware facility"
+              height="h-9"
+              placement="auto-flip"
+              value={facilityFilter}
+              onChange={setFacilityFilter}
+              options={[
+                { value: 'ALL', label: 'All Facilities' },
+                { value: 'CIR', label: 'CIR' },
+                { value: 'MSG', label: 'MSG' },
+                { value: 'Cygnus', label: 'Cygnus' },
+                { value: 'FSL', label: 'FSL' },
+                { value: 'Virtual', label: 'Virtual' },
+              ]}
+              className="w-full sm:w-40"
+            />
 
-            <div className="relative">
-              <select
-                value={outcomeFilter}
-                onChange={(e) => setOutcomeFilter(e.target.value)}
-                aria-label="Filter runs by safety regime outcome"
-                className={`h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 focus:outline-none cursor-pointer ${
-                  isDark
-                    ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:border-zinc-500 focus:border-zinc-400'
-                    : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:border-zinc-300 focus:border-zinc-500'
-                }`}
-              >
-                <option value="ALL">All Safety Regimes</option>
-                <option value="Rapid Flame Spread">Rapid Flame Spread</option>
-                <option value="Cool Flame Caution">Cool Flame Caution</option>
-                <option value="Self-Extinguishing">Self-Extinguishing</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-            </div>
+            <StudioSelect
+              ariaLabel="Filter runs by safety regime outcome"
+              height="h-9"
+              placement="auto-flip"
+              value={outcomeFilter}
+              onChange={setOutcomeFilter}
+              options={[
+                { value: 'ALL', label: 'All Safety Regimes' },
+                { value: 'Rapid Flame Spread', label: 'Rapid Flame Spread' },
+                { value: 'Cool Flame Caution', label: 'Cool Flame Caution' },
+                { value: 'Self-Extinguishing', label: 'Self-Extinguishing' },
+              ]}
+              className="w-full sm:w-48"
+            />
 
             {(searchQuery !== '' ||
               facilityFilter !== 'ALL' ||
@@ -373,13 +364,21 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
                           type="button"
                           onClick={() => onToggleRun(run.id)}
                           aria-label={`Select ${run.runCode} for comparison`}
-                          className="inline-flex items-center justify-center p-1 rounded-[3px] cursor-pointer text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white"
+                          className="inline-flex items-center justify-center p-1 rounded-[3px] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
                         >
-                          {isChecked ? (
-                            <CheckSquare className="w-4 h-4 text-[#10B981]" />
-                          ) : (
-                            <Square className="w-4 h-4" />
-                          )}
+                          <span
+                            className={`w-4 h-4 rounded-[3px] border flex items-center justify-center shrink-0 transition-colors ${
+                              isChecked
+                                ? isDark
+                                  ? 'bg-[#FAFAFA] border-[#FAFAFA] text-[#09090B]'
+                                  : 'bg-[#18181B] border-[#18181B] text-[#FFFFFF]'
+                                : isDark
+                                ? 'border-zinc-600 bg-transparent hover:border-zinc-400'
+                                : 'border-zinc-300 bg-white hover:border-zinc-400'
+                            }`}
+                          >
+                            {isChecked && <Check className="w-3 h-3 stroke-[2.5]" />}
+                          </span>
                         </button>
                       </td>
 

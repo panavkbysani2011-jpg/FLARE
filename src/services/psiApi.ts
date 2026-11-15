@@ -789,7 +789,7 @@ function sanitizeRemoteSimulationPatch(
 }
 
 /**
- * Centralized API adapter for FLARE — Flight & Lunar Atmosphere Risk Engine.
+ * Centralized API adapter for FLARE - Flight & Lunar Atmosphere Risk Engine.
  * Attaches Researcher Profile & verified corrections automatically and routes predictions
  * to the active remote endpoint (or seamless Local Combustion Model fallback offline).
  */
@@ -1151,7 +1151,7 @@ export async function generateComparatorInsights(
     highlights.push(
       `Fastest spread is ${fastest.psiId} (${fastest.material}) at ${fastest.flameSpread_mms.toFixed(
         2
-      )} mm/s — ${spreadRatio.toFixed(1)}× faster than ${slowest.psiId} (${slowest.flameSpread_mms.toFixed(
+      )} mm/s - ${spreadRatio.toFixed(1)}× faster than ${slowest.psiId} (${slowest.flameSpread_mms.toFixed(
         2
       )} mm/s).`
     );

@@ -740,10 +740,10 @@ export function buildAssistantReply(
     const conf = sim.modelConfidence;
     const mitigatedThickness = Number(Math.min(10.0, Math.max(req.Thickness_mm, sim.safeMaterialCheck.minSafeThickness_mm + 0.5)).toFixed(1));
     const steps = [
-      `Step 1 — Flame Spread Limit: ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s vs. 0.48 mm/s self-extinguishing limit -> ${sim.flameSpread_mms < 0.48 ? 'PASS' : sim.flameSpread_mms < 1.3 ? 'CAUTION' : 'FAIL'} (${sim.hazardStatus}).`,
-      `Step 2 — Safe Thickness Check: Configured ${matCode} thickness ${req.Thickness_mm.toFixed(1)} mm vs. ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm minimum -> ${sim.safeMaterialCheck.passed ? 'PASS' : 'FAIL'} (${sim.safeMaterialCheck.margin_mm >= 0 ? '+' : ''}${sim.safeMaterialCheck.margin_mm.toFixed(1)} mm margin; verified via PSI-159).`,
-      `Step 3 — Sensor & Cool-Flame Exposure: ${coolWindowActive ? 'WARNING — Low airflow (<=0.09 m/s) in low gravity allows 550K–800K cool flames invisible to standard smoke cameras (PSI-69 FLEX / PSI-102 SAME).' : 'CLEAR — Forced airflow is fast enough to prevent trapped low-flow cool flames.'}`,
-      `Step 4 — Physical Testing Need: Model Confidence is ${conf?.confidencePct.toFixed(1) ?? '90.0'}% (${conf?.validatedRunCount ?? sim.nearestRuns.length} nearby flight runs) -> Physical Testing ${conf?.physicalTestingRecommendation ?? 'Recommended'}. Suggested safer setup uses >= ${mitigatedThickness.toFixed(1)} mm Nomex or Cotton-Fiberglass.`,
+      `Step 1 - Flame Spread Limit: ${sim.flameSpread_mms.toFixed(2)} ± ${sim.confidenceInterval_mms.toFixed(2)} mm/s vs. 0.48 mm/s self-extinguishing limit -> ${sim.flameSpread_mms < 0.48 ? 'PASS' : sim.flameSpread_mms < 1.3 ? 'CAUTION' : 'FAIL'} (${sim.hazardStatus}).`,
+      `Step 2 - Safe Thickness Check: Configured ${matCode} thickness ${req.Thickness_mm.toFixed(1)} mm vs. ${sim.safeMaterialCheck.minSafeThickness_mm.toFixed(1)} mm minimum -> ${sim.safeMaterialCheck.passed ? 'PASS' : 'FAIL'} (${sim.safeMaterialCheck.margin_mm >= 0 ? '+' : ''}${sim.safeMaterialCheck.margin_mm.toFixed(1)} mm margin; verified via PSI-159).`,
+      `Step 3 - Sensor & Cool-Flame Exposure: ${coolWindowActive ? 'WARNING - Low airflow (<=0.09 m/s) in low gravity allows 550K–800K cool flames invisible to standard smoke cameras (PSI-69 FLEX / PSI-102 SAME).' : 'CLEAR - Forced airflow is fast enough to prevent trapped low-flow cool flames.'}`,
+      `Step 4 - Physical Testing Need: Model Confidence is ${conf?.confidencePct.toFixed(1) ?? '90.0'}% (${conf?.validatedRunCount ?? sim.nearestRuns.length} nearby flight runs) -> Physical Testing ${conf?.physicalTestingRecommendation ?? 'Recommended'}. Suggested safer setup uses >= ${mitigatedThickness.toFixed(1)} mm Nomex or Cotton-Fiberglass.`,
     ];
     if (chunkSnippetStep) steps.push(chunkSnippetStep);
     return {
@@ -789,7 +789,7 @@ export function buildAssistantReply(
   if (matchedPsiFromQuery) {
     const rep = matchedPsiFromQuery.representativeRun;
     const steps = [
-      `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) — ${matchedPsiFromQuery.title}: Run in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} flight test rows in CSV.`,
+      `${matchedPsiFromQuery.psiId} (${matchedPsiFromQuery.acronym}) - ${matchedPsiFromQuery.title}: Run in ${matchedPsiFromQuery.hardwareRaw} with ${matchedPsiFromQuery.runCount} flight test rows in CSV.`,
       `Main Research Goal: ${matchedPsiFromQuery.objective.slice(0, 210)}${matchedPsiFromQuery.objective.length > 210 ? '...' : ''}`,
       `Tested Range: ${matchedPsiFromQuery.o2Range[0].toFixed(1)}–${matchedPsiFromQuery.o2Range[1].toFixed(1)}% O2, ${matchedPsiFromQuery.pressureRange[0].toFixed(1)}–${matchedPsiFromQuery.pressureRange[1].toFixed(1)} psi, ${matchedPsiFromQuery.flowRange[0].toFixed(2)}–${matchedPsiFromQuery.flowRange[1].toFixed(2)} m/s airflow.`,
     ];

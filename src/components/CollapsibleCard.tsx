@@ -105,7 +105,7 @@ export const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
       </div>
 
       {isOpen && (
-        <div className={bodyClassName || 'p-5'}>{children}</div>
+        <div className={`psi-animate-popover ${bodyClassName || 'p-5'}`}>{children}</div>
       )}
     </section>
   );

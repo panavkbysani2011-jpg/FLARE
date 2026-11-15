@@ -67,7 +67,7 @@ export const LandingView: React.FC<LandingViewProps> = ({
 
   return (
     <div className={`min-h-screen flex flex-col ${bodySurface}`}>
-      {/* Full-Viewport Dark Hero Canvas (#09090B) — Uninterrupted First Screen */}
+      {/* Full-Viewport Dark Hero Canvas (#09090B) - Uninterrupted First Screen */}
       <section
         ref={heroSectionRef}
         className="relative min-h-screen flex flex-col justify-between bg-[#09090B] text-[#FAFAFA] border-b border-[#27272A] overflow-hidden"
@@ -155,12 +155,12 @@ export const LandingView: React.FC<LandingViewProps> = ({
               </p>
 
               <h1 className="font-display text-3xl sm:text-4xl lg:text-[44px] font-bold tracking-tight text-white leading-[1.12]">
-                FLARE — Flight &amp; Lunar Atmosphere Risk Engine
+                FLARE - Flight &amp; Lunar Atmosphere Risk Engine
               </h1>
 
               <p className="text-sm sm:text-base font-sans text-zinc-300 leading-relaxed max-w-xl">
                 Test spacecraft cabin materials across oxygen, pressure, airflow, and
-                lunar or orbital gravity — calibrated directly against 1,616 NASA PSI
+                lunar or orbital gravity - calibrated directly against 1,616 NASA PSI
                 microgravity flight runs.
               </p>
 

@@ -6,6 +6,7 @@ import {
   BarChart3,
   Check,
   ChevronDown,
+  Copy,
   Database,
   GitBranch,
   MessageSquarePlus,
@@ -59,6 +60,7 @@ import {
 } from '../services/userAdaptation';
 import { exportChatThreadFormatted } from '../utils/exportGenerators';
 import { ExportDropdown } from './ExportDropdown';
+import { StudioSelect } from './StudioSelect';
 import { VIZ_FAMILIES, VIZ_TECHNIQUE_REGISTRY } from '../utils/vizRegistry';
 import { ApiSettingsModal } from './ApiSettingsModal';
 import { ChatInlineChartCard } from './ChatInlineChartCard';
@@ -229,6 +231,16 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [endpointSyncNotice, setEndpointSyncNotice] =
     useState<EndpointSyncState | null>(null);
+  const [confirmDeleteThreadId, setConfirmDeleteThreadId] = useState<string | null>(null);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
+  const handleCopyAssistantResponse = (msgId: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMsgId(msgId);
+    setTimeout(() => {
+      setCopiedMsgId((curr) => (curr === msgId ? null : curr));
+    }, 1800);
+  };
 
   // Per-user profile & closed-loop inline correction state
   const [userProfile, setUserProfile] = useState(() => getOrCreateUserProfile());
@@ -486,7 +498,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
 
     if (!SpeechCtor) {
       setVoiceNotice(
-        'Voice dictation is not supported in this browser — type or paste your question directly.'
+        'Voice dictation is not supported in this browser - type or paste your question directly.'
       );
       return;
     }
@@ -544,7 +556,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
     } catch {
       setIsDictating(false);
       setVoiceNotice(
-        'Could not start voice dictation in this browser — type or paste your question instead.'
+        'Could not start voice dictation in this browser - type or paste your question instead.'
       );
     }
   };
@@ -735,7 +747,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
 
   return (
     <div
-      className={`flex rounded-[8px] border overflow-hidden h-[calc(100vh-88px)] min-h-[600px] ${surfaceShell}`}
+      className={`flex rounded-[8px] border overflow-hidden h-[calc(100vh-92px)] min-h-[600px] ${surfaceShell}`}
     >
       {/* Left Collapsible Chat History Drawer (240px inside Model Console) */}
       {isHistoryOpen && (
@@ -750,7 +762,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                 setOpenMenu(null);
                 onCreateNewThread();
               }}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-sans font-semibold rounded-lg border shadow-xs transition-all cursor-pointer ${primaryBtn}`}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 h-9 px-3.5 text-xs font-sans font-semibold rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${primaryBtn}`}
             >
               <MessageSquarePlus className="w-3.5 h-3.5" />
               <span>+ New Chat</span>
@@ -761,7 +773,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               onClick={() => setIsHistoryOpen(false)}
               title="Collapse Chat History"
               aria-label="Collapse Chat History"
-              className={`p-2 rounded-lg border cursor-pointer ${secondaryBtn}`}
+              className={`w-9 h-9 p-2 rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
             >
               <PanelLeftClose className="w-3.5 h-3.5" />
             </button>
@@ -818,9 +830,10 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         <button
                           type="button"
                           onClick={() => onSelectThread(thread.id)}
+                          title={thread.title}
                           className="flex-1 min-w-0 text-left cursor-pointer"
                         >
-                          <div className="text-xs font-sans font-medium truncate">
+                          <div className="text-xs font-sans font-medium truncate" title={thread.title}>
                             {thread.title}
                           </div>
                           <div className="text-[10px] font-mono tabular-nums text-zinc-500 mt-0.5">
@@ -828,33 +841,69 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                           </div>
                         </button>
 
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingThreadId(thread.id);
-                              setEditingTitleValue(thread.title);
-                            }}
-                            title="Rename conversation"
-                            aria-label="Rename conversation"
-                            className="p-1 rounded-[4px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
+                        {confirmDeleteThreadId === thread.id ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteThread(thread.id);
+                                setConfirmDeleteThreadId(null);
+                              }}
+                              title="Confirm delete"
+                              aria-label="Confirm delete"
+                              className="px-1.5 py-0.5 rounded-[3px] text-[10px] font-sans font-medium bg-[#EF4444] text-white hover:bg-[#EF4444]/90 cursor-pointer transition-all duration-150 active:scale-[0.95]"
+                            >
+                              Delete?
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteThreadId(null);
+                              }}
+                              title="Cancel delete"
+                              aria-label="Cancel delete"
+                              className="p-1 rounded-[3px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className={`flex items-center gap-0.5 transition-opacity shrink-0 ${
+                              isActive
+                                ? 'opacity-100'
+                                : 'opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100'
+                            }`}
                           >
-                            <Pencil className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteThread(thread.id);
-                            }}
-                            title="Delete conversation"
-                            aria-label="Delete conversation"
-                            className="p-1 rounded-[4px] text-zinc-500 hover:text-[#EF4444] cursor-pointer"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingThreadId(thread.id);
+                                setEditingTitleValue(thread.title);
+                              }}
+                              title="Rename conversation"
+                              aria-label="Rename conversation"
+                              className="p-1 rounded-[3px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteThreadId(thread.id);
+                              }}
+                              title="Delete conversation"
+                              aria-label="Delete conversation"
+                              className="p-1 rounded-[3px] text-zinc-500 hover:text-[#EF4444] cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -966,7 +1015,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
             <div className="h-full max-w-3xl mx-auto flex flex-col items-center justify-center text-center py-6 space-y-6">
               <div className="space-y-2 max-w-xl">
                 <h2 className="font-display text-xl sm:text-2xl font-semibold tracking-tight">
-                  Model Console — Ask about flight runs, fire behavior, or safety limits
+                  Model Console - Ask about flight runs, fire behavior, or safety limits
                 </h2>
                 <p className="text-xs sm:text-sm font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
                   Attach Virtual Test Lab telemetry or PSI flight experiments below, pick any chart type or leave on Auto, and explore interactive results in plain English.
@@ -989,7 +1038,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         chartContextOverride: activeChartContext,
                       });
                     }}
-                    className={`p-3.5 rounded-lg border flex flex-col justify-between gap-2 transition-all hover:-translate-y-0.5 cursor-pointer ${secondaryBtn}`}
+                    className={`p-3.5 rounded-lg border flex flex-col justify-between gap-2 transition-all duration-150 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
                   >
                     <div className="space-y-1">
                       <div className="text-xs font-display font-semibold">
@@ -1220,7 +1269,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                               key={citeId}
                               type="button"
                               onClick={() => onOpenInvestigation(citeId)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono font-medium rounded-md border cursor-pointer ${secondaryBtn}`}
+                              className={`h-7 inline-flex items-center gap-1 px-2 text-[11px] font-mono font-medium rounded-md border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
                               title={`Open ${citeId} Investigation Details`}
                             >
                               <span>{citeId}</span>
@@ -1232,8 +1281,28 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
+                            onClick={() => handleCopyAssistantResponse(msg.id, msg.text ?? '')}
+                            className={`h-8 inline-flex items-center gap-1 px-2.5 text-[11px] font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
+                            title="Copy response to clipboard"
+                            aria-label="Copy response to clipboard"
+                          >
+                            {copiedMsgId === msg.id ? (
+                              <>
+                                <Check className="w-3 h-3 text-[#10B981]" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => void handleMarkHelpful(msg)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border cursor-pointer ${
+                            className={`h-8 inline-flex items-center gap-1 px-2.5 text-[11px] font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                               msg.feedbackStatus === 'helpful'
                                 ? 'border-[#10B981] text-[#10B981]'
                                 : secondaryBtn
@@ -1257,7 +1326,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                               setCorrectionSpreadInput('');
                               setCorrectionOutcomeInput('');
                             }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-sans font-medium rounded-lg border cursor-pointer ${
+                            className={`h-8 inline-flex items-center gap-1 px-2.5 text-[11px] font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                               msg.feedbackStatus === 'corrected'
                                 ? 'border-[#F59E0B] text-[#F59E0B]'
                                 : secondaryBtn
@@ -1277,7 +1346,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                               onClick={() =>
                                 handleApplyParams(msg.recommendedParams!, msg.id)
                               }
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-semibold rounded-lg border cursor-pointer ${primaryBtn}`}
+                              className={`h-8 inline-flex items-center gap-1.5 px-3 text-xs font-sans font-semibold rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${primaryBtn}`}
                             >
                               {appliedMsgId === msg.id ? (
                                 <>
@@ -1325,23 +1394,20 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                               placeholder="Verified spread rate mm/s (optional)"
                               className={`h-9 px-3 text-xs font-mono tabular-nums rounded-lg border transition-colors duration-150 outline-none ${surfaceShell}`}
                             />
-                            <div className="relative">
-                              <select
-                                value={correctionOutcomeInput}
-                                onChange={(e) =>
-                                  setCorrectionOutcomeInput(
-                                    e.target.value as '' | HazardOutcome
-                                  )
-                                }
-                                className={`w-full h-9 appearance-none pl-3 pr-8 text-xs font-sans font-medium rounded-lg border transition-colors duration-150 outline-none cursor-pointer ${surfaceShell}`}
-                              >
-                                <option value="">Keep safety classification</option>
-                                <option value="Self-Extinguishing">Self-Extinguishing</option>
-                                <option value="Cool Flame Caution">Cool Flame Caution</option>
-                                <option value="Rapid Flame Spread">Rapid Flame Spread</option>
-                              </select>
-                              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                            </div>
+                            <StudioSelect<'' | HazardOutcome>
+                              ariaLabel="Keep safety classification"
+                              height="h-9"
+                              placement="auto-flip"
+                              value={correctionOutcomeInput}
+                              onChange={(val) => setCorrectionOutcomeInput(val)}
+                              options={[
+                                { value: '', label: 'Keep safety classification' },
+                                { value: 'Self-Extinguishing', label: 'Self-Extinguishing' },
+                                { value: 'Cool Flame Caution', label: 'Cool Flame Caution' },
+                                { value: 'Rapid Flame Spread', label: 'Rapid Flame Spread' },
+                              ]}
+                              className="w-full"
+                            />
                           </div>
                           <input
                             type="text"
@@ -1414,7 +1480,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <div
                 role="dialog"
                 aria-label="Attach Workspace Data or PSI Investigation"
-                className={`absolute left-0 bottom-full mb-2 w-[330px] sm:w-[390px] rounded-xl border shadow-xl p-3.5 z-40 space-y-3 ${surfaceShell}`}
+                className={`absolute left-0 bottom-full mb-2 w-[330px] sm:w-[390px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-3.5 z-40 space-y-3 psi-animate-popover ${surfaceShell}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="font-display text-xs font-semibold">
@@ -1559,7 +1625,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <div
                 role="dialog"
                 aria-label="Visualization Output Mode"
-                className={`absolute left-12 bottom-full mb-2 w-[310px] sm:w-[360px] rounded-xl border shadow-xl p-3 z-40 space-y-2.5 ${surfaceShell}`}
+                className={`absolute left-0 sm:left-12 bottom-full mb-2 w-[310px] sm:w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-3 z-40 space-y-2.5 psi-animate-popover ${surfaceShell}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="font-display text-xs font-semibold">
@@ -1655,7 +1721,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <div
                 role="dialog"
                 aria-label="Model and API Endpoint Selector"
-                className={`absolute right-0 bottom-full mb-2 w-[290px] sm:w-[320px] rounded-xl border shadow-xl p-2.5 z-40 space-y-1.5 ${surfaceShell}`}
+                className={`absolute right-0 bottom-full mb-2 w-[290px] sm:w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-2.5 z-40 space-y-1.5 psi-animate-popover ${surfaceShell}`}
               >
                 <div className="px-1.5 py-1 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
                   Select Inference Model / Endpoint
@@ -1840,7 +1906,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     }
                     aria-expanded={openMenu === 'attach'}
                     title="Attach Virtual Lab, Comparator, Studio view, or PSI Investigation"
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${
+                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       openMenu === 'attach' ? primaryBtn : secondaryBtn
                     }`}
                   >
@@ -1855,7 +1921,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     }
                     aria-expanded={openMenu === 'viz'}
                     title="Choose chart generation mode for replies"
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${
+                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       openMenu === 'viz' ? primaryBtn : secondaryBtn
                     }`}
                   >
@@ -1876,7 +1942,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     }
                     aria-expanded={openMenu === 'model'}
                     title="Switch inference model or configure API Settings"
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${
+                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       openMenu === 'model' ? primaryBtn : secondaryBtn
                     }`}
                   >
@@ -1901,7 +1967,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     aria-label={
                       isDictating ? 'Stop voice dictation' : 'Voice dictate'
                     }
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-sans font-medium rounded-lg border cursor-pointer ${
+                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 text-xs font-sans font-medium rounded-lg border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       isDictating
                         ? 'border-[#EF4444] bg-[#EF4444]/10 text-[#EF4444]'
                         : secondaryBtn
@@ -1923,7 +1989,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     disabled={!inputValue.trim() || isRunningInference}
                     aria-label="Send message"
                     title="Send message"
-                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border cursor-pointer disabled:opacity-40 transition-all ${primaryBtn}`}
+                    className={`w-8 h-8 inline-flex items-center justify-center rounded-lg border cursor-pointer disabled:opacity-40 transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${primaryBtn}`}
                   >
                     <ArrowUp className="w-4 h-4" />
                   </button>

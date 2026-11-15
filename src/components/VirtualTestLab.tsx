@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Flame,
   ExternalLink,
-  ChevronDown,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { StudioSelect } from './StudioSelect';
 import { exportVirtualTestFormatted } from '../utils/exportGenerators';
 import { ExportDropdown } from './ExportDropdown';
 import {
@@ -41,6 +43,7 @@ import {
 } from '../types/psi';
 import { ENVIRONMENT_PRESETS } from '../data/environmentPresets';
 import { CollapsibleCard } from './CollapsibleCard';
+import { InteractiveChartViewport } from './InteractiveChartViewport';
 
 interface VirtualTestLabProps {
   theme: ThemeMode;
@@ -137,6 +140,21 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
   const [sortField, setSortField] = useState<MatrixSortField>('flameSpread_mms');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
   const [addedToComparatorNotice, setAddedToComparatorNotice] = useState<string | null>(null);
+  const [copiedEquation, setCopiedEquation] = useState<'spread' | 'safe' | null>(null);
+
+  const handleCopyEquation = (key: 'spread' | 'safe', text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedEquation(key);
+    setTimeout(() => {
+      setCopiedEquation((curr) => (curr === key ? null : curr));
+    }, 1800);
+  };
+
+  const o2Progress = Math.min(100, Math.max(0, ((config.O2_pct - 14.0) / (50.0 - 14.0)) * 100));
+  const pressureProgress = Math.min(100, Math.max(0, ((config.P_psi - 4.3) / (16.5 - 4.3)) * 100));
+  const flowProgress = Math.min(100, Math.max(0, (config.Flow_ms / 0.45) * 100));
+  const thicknessProgress = Math.min(100, Math.max(0, ((config.Thickness_mm - 0.2) / (8.0 - 0.2)) * 100));
+  const fluxProgress = Math.min(100, Math.max(0, ((config.ignitionFlux_Wm2 - 10000) / (55000 - 10000)) * 100));
 
   const isDark = theme === 'dark';
 
@@ -337,7 +355,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.5}
                 value={config.O2_pct}
                 onChange={(e) => onChangeConfig('O2_pct', Number(e.target.value))}
-                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                style={{ '--slider-progress': `${o2Progress}%` } as React.CSSProperties}
+                className="psi-range-slider cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -373,7 +392,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.1}
                 value={config.P_psi}
                 onChange={(e) => onChangeConfig('P_psi', Number(e.target.value))}
-                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                style={{ '--slider-progress': `${pressureProgress}%` } as React.CSSProperties}
+                className="psi-range-slider cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -409,7 +429,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 step={0.01}
                 value={config.Flow_ms}
                 onChange={(e) => onChangeConfig('Flow_ms', Number(e.target.value))}
-                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                style={{ '--slider-progress': `${flowProgress}%` } as React.CSSProperties}
+                className="psi-range-slider cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -438,31 +459,24 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                   </span>
                 </span>
               </div>
-              <div className="relative">
-                <select
-                  id="vtl-material"
-                  value={config.material}
-                  onChange={(e) =>
-                    onChangeConfig(
-                      'material',
-                      e.target.value as CandidateMaterialCode
-                    )
-                  }
-                  className={`w-full h-9 appearance-none pl-3 pr-9 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 outline-none cursor-pointer ${
-                    isDark
-                      ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-500/30'
-                      : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B] hover:border-zinc-300 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400/30'
-                  }`}
-                >
-                  {MATERIAL_OPTIONS.map((opt) => (
-                    <option key={opt.code} value={opt.code}>
-                      {opt.label} ({opt.code})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              </div>
-              <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate">
+              <StudioSelect<CandidateMaterialCode>
+                id="vtl-material"
+                ariaLabel="Candidate Material"
+                height="h-9"
+                placement="auto-flip"
+                value={config.material}
+                onChange={(val) => onChangeConfig('material', val)}
+                options={MATERIAL_OPTIONS.map((opt) => ({
+                  value: opt.code,
+                  label: `${opt.label} (${opt.code})`,
+                  subtitle: opt.note,
+                }))}
+                className="w-full"
+              />
+              <p
+                className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate"
+                title={activeMaterialMeta.note}
+              >
                 {activeMaterialMeta.note}
               </p>
             </div>
@@ -490,7 +504,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 onChange={(e) =>
                   onChangeConfig('Thickness_mm', Number(e.target.value))
                 }
-                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                style={{ '--slider-progress': `${thicknessProgress}%` } as React.CSSProperties}
+                className="psi-range-slider cursor-pointer"
               />
               <div className="flex justify-between font-sans text-[10px] text-zinc-500">
                 <span>
@@ -528,7 +543,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                 onChange={(e) =>
                   onChangeConfig('ignitionFlux_Wm2', Number(e.target.value))
                 }
-                className="w-full h-9 accent-[#18181B] dark:accent-[#FAFAFA] cursor-pointer"
+                style={{ '--slider-progress': `${fluxProgress}%` } as React.CSSProperties}
+                className="psi-range-slider cursor-pointer"
               />
               <div className="flex items-center justify-between text-[10px] font-sans text-zinc-500">
                 <span>
@@ -716,7 +732,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                   <AlertTriangle className="w-4 h-4 text-[#F59E0B]" />
                 )}
                 <span className="font-display text-sm font-semibold">
-                  {confidence.confidencePct.toFixed(1)}% Model Confidence — validated against{' '}
+                  {confidence.confidencePct.toFixed(1)}% Model Confidence - validated against{' '}
                   <span className="font-mono tabular-nums">
                     {confidence.validatedRunCount}
                   </span>{' '}
@@ -834,8 +850,37 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           {/* Governing Physics Equations Block */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className={`p-4 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="text-xs font-display font-semibold">
-                Opposed / Forced-Flow Spread Correlation
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-display font-semibold">
+                  Opposed / Forced-Flow Spread Correlation
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyEquation(
+                      'spread',
+                      'V_f = 1.18 · ((O2 - 13.5)/12.5)^1.48 · (P/14.7)^0.42 · F_vent(Flow, g) · (2.0/δ)^0.58 · k_mat · (q_ign/25000)^0.18'
+                    )
+                  }
+                  className={`inline-flex items-center gap-1 h-6 px-2 text-[10px] font-sans font-medium rounded-md border cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                    isDark
+                      ? 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:text-white'
+                      : 'border-zinc-200 bg-zinc-100 text-zinc-700 hover:text-zinc-900'
+                  }`}
+                  aria-label="Copy Flame Spread Rate Equation"
+                >
+                  {copiedEquation === 'spread' ? (
+                    <>
+                      <Check className="w-3 h-3 text-[#10B981]" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
               </div>
               <div className="font-mono text-xs leading-relaxed text-zinc-700 dark:text-zinc-200 tabular-nums overflow-x-auto">
                 V_f = 1.18 · ((O2 - 13.5)/12.5)^1.48 · (P/14.7)^0.42 · F_vent(Flow, g) · (2.0/δ)^0.58 · k_mat · (q_ign/25000)^0.18
@@ -855,8 +900,37 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
             </div>
 
             <div className={`p-4 rounded-[5px] border ${subSurface} space-y-2`}>
-              <div className="text-xs font-display font-semibold">
-                Quenching Thickness &amp; Non-Luminous Cool-Flame Window
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-display font-semibold">
+                  Quenching Thickness &amp; Non-Luminous Cool-Flame Window
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyEquation(
+                      'safe',
+                      'δ_safe = 2.0 · (V_chamber / 0.45)^(1/0.58) · · · T_cool ∈ [550 K, 800 K] when Flow ≤ 0.09 m/s & g ≤ 0.25g'
+                    )
+                  }
+                  className={`inline-flex items-center gap-1 h-6 px-2 text-[10px] font-sans font-medium rounded-md border cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                    isDark
+                      ? 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:text-white'
+                      : 'border-zinc-200 bg-zinc-100 text-zinc-700 hover:text-zinc-900'
+                  }`}
+                  aria-label="Copy Quenching Thickness Equation"
+                >
+                  {copiedEquation === 'safe' ? (
+                    <>
+                      <Check className="w-3 h-3 text-[#10B981]" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
               </div>
               <div className="font-mono text-xs leading-relaxed text-zinc-700 dark:text-zinc-200 tabular-nums">
                 δ_safe = 2.0 · (V_chamber / 0.45)^(1/0.58) · · · T_cool ∈ [550 K, 800 K] when Flow ≤ 0.09 m/s &amp; g ≤ 0.25g
@@ -893,88 +967,195 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               </div>
             </div>
 
-            <div className={`p-4 rounded-[5px] border ${subSurface} space-y-3.5`}>
-              {simulation.materialRankings.map((mat) => {
-                const maxScale = Math.max(
-                  3.0,
-                  ...simulation.materialRankings.map((m) => m.flameSpread_mms * 1.15)
-                );
-                const widthPct = Math.min(100, (mat.flameSpread_mms / maxScale) * 100);
-                const safeMarkerPct = Math.min(100, (0.48 / maxScale) * 100);
-                const cautionMarkerPct = Math.min(100, (1.25 / maxScale) * 100);
-                const barColor = getMaterialRegimeColor(mat);
-                const isSelected = mat.code.toLowerCase().includes(config.material.toLowerCase().slice(0, 4)) ||
-                  mat.name.toLowerCase().includes(config.material.toLowerCase());
-                const isDimmed =
-                  hoveredMaterialId !== null && hoveredMaterialId !== mat.code;
+            {(() => {
+              const maxScale = Math.max(
+                3.0,
+                ...simulation.materialRankings.map((m) => m.flameSpread_mms * 1.15)
+              );
+              const bulletResetKey = `vtl-bullet|${config.material}|${config.O2_pct.toFixed(1)}|${config.P_psi.toFixed(1)}|${simulation.materialRankings.length}`;
 
-                return (
-                  <div
-                    key={mat.code}
-                    onMouseEnter={() => onHoverMaterial(mat.code)}
-                    onMouseLeave={() => onHoverMaterial(null)}
-                    className={`grid grid-cols-12 items-center gap-4 transition-opacity ${
-                      isDimmed ? 'opacity-35' : 'opacity-100'
-                    }`}
-                  >
-                    <div className="col-span-12 sm:col-span-3 flex items-center justify-between gap-2">
-                      <span className="font-sans text-xs font-medium truncate">
-                        {mat.name}
-                        {isSelected ? ' *' : ''}
-                      </span>
-                      <span className="font-sans text-[10px] text-zinc-500 shrink-0">
-                        LOI <span className="font-mono tabular-nums">{mat.limitingO2_pct}%</span>
-                      </span>
-                    </div>
+              return (
+                <InteractiveChartViewport
+                  theme={theme}
+                  baseXDomain={{ min: 0, max: Number(maxScale.toFixed(2)) }}
+                  baseYDomain={{
+                    min: 0,
+                    max: Math.max(1, simulation.materialRankings.length - 1),
+                  }}
+                  resetKey={bulletResetKey}
+                  defaultLockMode="x"
+                  xTickCount={6}
+                  integerY={true}
+                  xUnit="mm/s"
+                  plotInsets={{ left: 0.25, right: 0.16, top: 0.08, bottom: 0.08 }}
+                >
+                  {(ctx) => {
+                    const xMin = ctx.xDomain.min;
+                    const xMax = ctx.xDomain.max;
+                    const xSpan = Math.max(1e-6, xMax - xMin);
+                    const toPct = (v: number) => ((v - xMin) / xSpan) * 100;
+                    const safePos = toPct(0.48);
 
-                    <div className="col-span-9 sm:col-span-7 relative h-6 flex items-center">
-                      {/* Qualitative bullet background bands */}
-                      <div
-                        className="w-full h-4 rounded-[3px] relative overflow-hidden flex"
-                        style={{
-                          backgroundColor: isDark ? '#18181B' : '#E4E4E7',
-                        }}
-                      >
-                        <div
-                          className="h-full opacity-20"
-                          style={{
-                            width: `${safeMarkerPct}%`,
-                            backgroundColor: '#10B981',
-                          }}
-                        />
-                        <div
-                          className="h-full opacity-15"
-                          style={{
-                            width: `${Math.max(0, cautionMarkerPct - safeMarkerPct)}%`,
-                            backgroundColor: '#F59E0B',
-                          }}
-                        />
+                    const safeLeft = Math.max(0, Math.min(100, toPct(0)));
+                    const safeRight = Math.max(0, Math.min(100, toPct(0.48)));
+                    const cautionLeft = Math.max(0, Math.min(100, toPct(0.48)));
+                    const cautionRight = Math.max(0, Math.min(100, toPct(1.25)));
+
+                    const rStart = Math.max(0, Math.floor(ctx.yDomain.min));
+                    const rEnd = Math.min(
+                      simulation.materialRankings.length - 1,
+                      Math.ceil(ctx.yDomain.max)
+                    );
+                    const visibleMats =
+                      ctx.yZoomRatio > 1.03 ||
+                      rStart > 0 ||
+                      rEnd < simulation.materialRankings.length - 1
+                        ? simulation.materialRankings.slice(
+                            Math.min(
+                              rStart,
+                              Math.max(0, simulation.materialRankings.length - 2)
+                            ),
+                            Math.max(
+                              Math.min(
+                                simulation.materialRankings.length,
+                                rStart + 2
+                              ),
+                              rEnd + 1
+                            )
+                          )
+                        : simulation.materialRankings;
+
+                    return (
+                      <div className={`p-4 rounded-[5px] border ${subSurface} space-y-3`}>
+                        {/* Live Desmos Scale Ruler */}
+                        <div className="grid grid-cols-12 items-center gap-4 pb-1 border-b border-[#E4E4E7] dark:border-[#27272A]">
+                          <div className="col-span-12 sm:col-span-3 font-sans text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                            Material / LOI
+                          </div>
+                          <div className="col-span-9 sm:col-span-7 relative h-4 font-mono text-[10px] tabular-nums text-zinc-400">
+                            {ctx.xTicks.ticks.map((tk, idx) => {
+                              const pos = toPct(tk);
+                              if (pos < -2 || pos > 102) return null;
+                              return (
+                                <span
+                                  key={`vtl-tk-${tk}-${idx}`}
+                                  className="absolute top-0 -translate-x-1/2 whitespace-nowrap"
+                                  style={{ left: `${Math.max(2, Math.min(98, pos))}%` }}
+                                >
+                                  {ctx.xTicks.labels[idx] ?? tk.toFixed(1)}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <div className="col-span-3 sm:col-span-2 text-right font-sans text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                            Spread Rate
+                          </div>
+                        </div>
+
+                        {visibleMats.map((mat) => {
+                          const barLeft = Math.max(0, Math.min(100, toPct(0)));
+                          const barRight = Math.max(
+                            0,
+                            Math.min(100, toPct(mat.flameSpread_mms))
+                          );
+                          const barWidth = Math.max(0, barRight - barLeft);
+                          const barColor = getMaterialRegimeColor(mat);
+                          const isSelected =
+                            mat.code
+                              .toLowerCase()
+                              .includes(config.material.toLowerCase().slice(0, 4)) ||
+                            mat.name
+                              .toLowerCase()
+                              .includes(config.material.toLowerCase());
+                          const isDimmed =
+                            hoveredMaterialId !== null && hoveredMaterialId !== mat.code;
+
+                          return (
+                            <div
+                              key={mat.code}
+                              onMouseEnter={() => onHoverMaterial(mat.code)}
+                              onMouseLeave={() => onHoverMaterial(null)}
+                              className={`grid grid-cols-12 items-center gap-4 transition-opacity ${
+                                isDimmed ? 'opacity-35' : 'opacity-100'
+                              }`}
+                            >
+                              <div className="col-span-12 sm:col-span-3 flex items-center justify-between gap-2">
+                                <span
+                                  className="font-sans text-xs font-medium truncate"
+                                  title={`${mat.name}${isSelected ? ' (Active)' : ''} · LOI ${mat.limitingO2_pct}%`}
+                                >
+                                  {mat.name}
+                                  {isSelected ? ' *' : ''}
+                                </span>
+                                <span className="font-sans text-[10px] text-zinc-500 shrink-0">
+                                  LOI <span className="font-mono tabular-nums">{mat.limitingO2_pct}%</span>
+                                </span>
+                              </div>
+
+                              <div className="col-span-9 sm:col-span-7 relative h-6 flex items-center overflow-hidden">
+                                {/* Qualitative bullet background bands clipped to active domain */}
+                                <div
+                                  className="w-full h-4 rounded-[3px] relative overflow-hidden"
+                                  style={{
+                                    backgroundColor: isDark ? '#18181B' : '#E4E4E7',
+                                  }}
+                                >
+                                  {safeRight > safeLeft && (
+                                    <div
+                                      className="absolute top-0 bottom-0 opacity-20"
+                                      style={{
+                                        left: `${safeLeft}%`,
+                                        width: `${safeRight - safeLeft}%`,
+                                        backgroundColor: '#10B981',
+                                      }}
+                                    />
+                                  )}
+                                  {cautionRight > cautionLeft && (
+                                    <div
+                                      className="absolute top-0 bottom-0 opacity-15"
+                                      style={{
+                                        left: `${cautionLeft}%`,
+                                        width: `${cautionRight - cautionLeft}%`,
+                                        backgroundColor: '#F59E0B',
+                                      }}
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Actual Spread Bar */}
+                                {barWidth > 0 && (
+                                  <div
+                                    className="absolute h-2 rounded-[2px]"
+                                    style={{
+                                      left: `${barLeft}%`,
+                                      width: `${barWidth}%`,
+                                      backgroundColor: barColor,
+                                    }}
+                                  />
+                                )}
+
+                                {/* Target Threshold Marker */}
+                                {safePos >= 0 && safePos <= 100 && (
+                                  <div
+                                    className="absolute top-0.5 bottom-0.5 w-[2px] bg-[#18181B] dark:bg-[#FAFAFA]"
+                                    style={{ left: `${safePos}%` }}
+                                    title="0.48 mm/s Self-Extinguishing Threshold"
+                                  />
+                                )}
+                              </div>
+
+                              <div className="col-span-3 sm:col-span-2 text-right font-mono text-xs font-semibold tabular-nums">
+                                {mat.flameSpread_mms.toFixed(2)} mm/s
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      {/* Actual Spread Bar */}
-                      <div
-                        className="absolute left-0 h-2 rounded-[2px] transition-all duration-200"
-                        style={{
-                          width: `${widthPct}%`,
-                          backgroundColor: barColor,
-                        }}
-                      />
-
-                      {/* Target Threshold Marker */}
-                      <div
-                        className="absolute top-0.5 bottom-0.5 w-[2px] bg-[#18181B] dark:bg-[#FAFAFA]"
-                        style={{ left: `${safeMarkerPct}%` }}
-                        title="0.48 mm/s Self-Extinguishing Threshold"
-                      />
-                    </div>
-
-                    <div className="col-span-3 sm:col-span-2 text-right font-mono text-xs font-semibold tabular-nums">
-                      {mat.flameSpread_mms.toFixed(2)} mm/s
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  }}
+                </InteractiveChartViewport>
+              );
+            })()}
           </div>
 
           {/* Sortable Material Qualification Table */}

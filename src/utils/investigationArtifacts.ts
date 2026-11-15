@@ -1,13 +1,13 @@
 import { PsiRun } from '../types/psi';
 
 export const FACILITY_DESCRIPTIONS: Record<PsiRun['facility'], string> = {
-  CIR: 'Combustion Integrated Rack (CIR) — Fluids and Combustion Facility, Multi-User Droplet & Solid Chamber',
-  MSG: 'Microgravity Science Glovebox (MSG) — Sealed Forced-Flow Benchtop Wind Tunnel Work Volume',
+  CIR: 'Combustion Integrated Rack (CIR) - Fluids and Combustion Facility, Multi-User Droplet & Solid Chamber',
+  MSG: 'Microgravity Science Glovebox (MSG) - Sealed Forced-Flow Benchtop Wind Tunnel Work Volume',
   Cygnus:
-    'Autonomous Pressurized Spacecraft Module — Large-Scale Post-Undocking Cabin Fire Testbed',
-  FSL: 'Fluid Science Laboratory (FSL) — Optical Diagnostics & Interferometry Combustion Cell',
+    'Autonomous Pressurized Spacecraft Module - Large-Scale Post-Undocking Cabin Fire Testbed',
+  FSL: 'Fluid Science Laboratory (FSL) - Optical Diagnostics & Interferometry Combustion Cell',
   Virtual:
-    'Pre-Physical Virtual Test Chamber — Validated Microgravity Combustion Model Sandbox',
+    'Pre-Physical Virtual Test Chamber - Validated Microgravity Combustion Model Sandbox',
 };
 
 export interface InvestigationArtifact {
@@ -70,7 +70,7 @@ export function buildInvestigationArtifacts(
   const lo2Est = Math.max(15.5, run.O2_pct - (run.flameSpread_mms > 1.2 ? 4.5 : -1.2)).toFixed(1);
 
   const protocolContent = [
-    `# ${canonicalId} — Experiment Protocol Summary`,
+    `# ${canonicalId} - Experiment Protocol Summary`,
     `Investigation Title: ${run.investigationTitle}`,
     `Hardware Facility: ${run.facility} (${FACILITY_DESCRIPTIONS[run.facility]})`,
     `Reference Run Code: ${run.runCode}`,
@@ -89,7 +89,7 @@ export function buildInvestigationArtifacts(
   ].join('\n');
 
   const calibrationContent = [
-    `# ${canonicalId} — Sensor Calibration & Drift Notes`,
+    `# ${canonicalId} - Sensor Calibration & Drift Notes`,
     `Run Code: ${run.runCode} · Facility: ${run.facility}`,
     ``,
     `## 1. Thermocouple Array (Type-R / Type-K)`,
@@ -111,7 +111,7 @@ export function buildInvestigationArtifacts(
   ].join('\n');
 
   const postFlightContent = [
-    `# ${canonicalId} — Post-Flight Summary Report`,
+    `# ${canonicalId} - Post-Flight Summary Report`,
     `Title: ${run.investigationTitle}`,
     `Classification: ${run.outcome} (${run.flameSpread_mms.toFixed(2)} mm/s)`,
     ``,

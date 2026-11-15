@@ -41,6 +41,9 @@ import {
 } from '../types/psi';
 import { generateTimelineSeries } from '../utils/physicsEngine';
 import { CollapsibleCard } from './CollapsibleCard';
+import { InteractiveChartViewport } from './InteractiveChartViewport';
+import { ParallelCoordinatesPlot } from './ParallelCoordinatesPlot';
+import { formatUniqueRunLegendMap } from '../utils/chartViewportMath';
 
 interface RunComparatorProps {
   theme: ThemeMode;
@@ -122,6 +125,16 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
       return row;
     });
   }, [selectedRuns]);
+
+  const uniqueLegendMap = useMemo(
+    () => formatUniqueRunLegendMap(selectedRuns),
+    [selectedRuns]
+  );
+
+  const comparatorResetKey = useMemo(
+    () => `${chartMode}|${selectedRuns.map((r) => r.id).join(',')}`,
+    [chartMode, selectedRuns]
+  );
 
   const formatDeltaPct = (val: number, baseVal: number, idx: number) => {
     if (idx === 0 || baseVal === 0) return null;
@@ -499,7 +512,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                           <button
                             type="button"
                             onClick={() => onApplyRunToSliders(run)}
-                            className={`inline-flex items-center gap-1 px-1.5 py-1 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                            className={`h-8 px-2.5 inline-flex items-center gap-1 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                               isDark
                                 ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
                                 : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
@@ -512,7 +525,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                             type="button"
                             onClick={() => onRemoveRun(run.id)}
                             aria-label={`Remove ${run.psiId} from comparison`}
-                            className="p-1 rounded-lg text-zinc-400 hover:text-[#EF4444] hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+                            className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-[#EF4444] hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-all duration-150 active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -561,7 +574,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                       : 'heatmap-matrix'
                   )
                 }
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                className={`h-8 px-3 inline-flex items-center gap-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                   isDark
                     ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
                     : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
@@ -620,444 +633,533 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 font-sans text-xs pb-1">
-              {selectedRuns.map((run, idx) => {
-                const isDimmed =
-                  hoveredRunId !== null && hoveredRunId !== run.id;
-                return (
-                  <button
-                    key={run.id}
-                    type="button"
-                    onMouseEnter={() => onHoverRun(run.id)}
-                    onMouseLeave={() => onHoverRun(null)}
-                    onClick={() => onInspectRun(run.id)}
-                    className={`inline-flex items-center gap-1.5 transition-opacity duration-200 cursor-pointer hover:underline ${
-                      isDimmed ? 'opacity-30' : 'opacity-100'
-                    }`}
-                  >
-                    <span
-                      className="w-3 h-1 rounded-[1px]"
-                      style={{
-                        backgroundColor: RUN_COLORS[idx % RUN_COLORS.length],
-                      }}
-                    />
-                    <span>{run.psiId}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {chartMode === 'trajectory' && (
-              <div className="h-[290px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={trajectoryRows}
-                    margin={{ top: 12, right: 20, left: 4, bottom: 8 }}
-                  >
-                    <CartesianGrid
-                      stroke={gridStroke}
-                      strokeDasharray="3 3"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="time_s"
-                      stroke={axisTextFill}
-                      tickFormatter={(v) => `${v}s`}
-                      tick={{
-                        fontSize: 11,
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fill: axisTextFill,
-                      }}
-                    />
-                    <YAxis
-                      stroke={axisTextFill}
-                      unit=" K"
-                      tick={{
-                        fontSize: 11,
-                        fontFamily: 'JetBrains Mono, monospace',
-                        fill: axisTextFill,
-                      }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: isDark ? 'rgba(24,24,27,0.9)' : 'rgba(255,255,255,0.92)',
-                        backdropFilter: 'blur(8px)',
-                        borderColor: isDark ? '#27272A' : '#E4E4E7',
-                        borderRadius: '5px',
-                        fontSize: '11px',
-                        fontFamily: 'Inter, sans-serif',
-                      }}
-                    />
-                    {selectedRuns.map((run, idx) => (
-                      <Line
-                        key={run.id}
-                        type="monotone"
-                        dataKey={run.id}
-                        name={`${run.psiId} (K)`}
-                        stroke={RUN_COLORS[idx % RUN_COLORS.length]}
-                        strokeWidth={hoveredRunId === run.id ? 3 : 2}
-                        strokeOpacity={
-                          hoveredRunId !== null && hoveredRunId !== run.id
-                            ? 0.25
-                            : 1
-                        }
-                        dot={false}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-          {chartMode === 'parallel' && (
-            <svg
-              viewBox="0 0 920 280"
-              className="w-full h-auto"
-              role="img"
-              aria-label="Selected Runs Overlaid Parallel Axes Chart"
-            >
-            {(() => {
-              const axes = [
-                { label: 'O₂ %', min: 14, max: 85, unit: '%' },
-                { label: 'Pressure psi', min: 4.3, max: 14.7, unit: 'psi' },
-                { label: 'Airflow m/s', min: 0.0, max: 0.5, unit: 'm/s' },
-                { label: 'Peak Temp K', min: 500, max: 1850, unit: 'K' },
-                {
-                  label: 'Flame Spread mm/s',
-                  min: 0.0,
-                  max: 4.0,
-                  unit: 'mm/s',
-                },
-              ];
-              const xPositions = [100, 290, 480, 670, 840];
-              const yTop = 36;
-              const yBot = 244;
-
-              const normalize = (val: number, min: number, max: number) =>
-                yBot -
-                Math.max(0, Math.min(1, (val - min) / (max - min))) *
-                  (yBot - yTop);
-
-              const buildPoints = (vals: number[]) =>
-                vals
-                  .map(
-                    (v, i) =>
-                      `${xPositions[i]},${normalize(
-                        v,
-                        axes[i].min,
-                        axes[i].max
-                      )}`
-                  )
-                  .join(' ');
-
-              return (
-                <>
-                  {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
-                    const y = yBot - pct * (yBot - yTop);
-                    return (
-                      <line
-                        key={pct}
-                        x1={xPositions[0]}
-                        y1={y}
-                        x2={xPositions[4]}
-                        y2={y}
-                        stroke={gridStroke}
-                        strokeDasharray="3 3"
-                      />
-                    );
-                  })}
-
-                  {axes.map((ax, i) => {
-                    const x = xPositions[i];
-                    return (
-                      <g key={ax.label}>
-                        <line
-                          x1={x}
-                          y1={yTop}
-                          x2={x}
-                          y2={yBot}
-                          stroke={axisTextFill}
-                          strokeWidth={1.25}
-                        />
-                        <text
-                          x={x}
-                          y={16}
-                          textAnchor="middle"
-                          fill={isDark ? '#FAFAFA' : '#18181B'}
-                          fontSize="11"
-                          fontFamily="Inter, sans-serif"
-                          fontWeight="600"
-                        >
-                          {ax.label}
-                        </text>
-                        <text
-                          x={x}
-                          y={yTop - 5}
-                          textAnchor="middle"
-                          fill={axisTextFill}
-                          fontSize="9.5"
-                          fontFamily="JetBrains Mono, monospace"
-                        >
-                          {ax.max} {ax.unit}
-                        </text>
-                        <text
-                          x={x}
-                          y={yBot + 16}
-                          textAnchor="middle"
-                          fill={axisTextFill}
-                          fontSize="9.5"
-                          fontFamily="JetBrains Mono, monospace"
-                        >
-                          {ax.min} {ax.unit}
-                        </text>
-                      </g>
-                    );
-                  })}
-
-                  {selectedRuns.map((run, idx) => {
-                    const vals = [
-                      run.O2_pct,
-                      run.P_psi,
-                      run.Flow_ms,
-                      run.peakTemp_K,
-                      run.flameSpread_mms,
-                    ];
-                    const color = RUN_COLORS[idx % RUN_COLORS.length];
-                    const isDimmed =
-                      hoveredRunId !== null && hoveredRunId !== run.id;
-
-                    return (
-                      <g
-                        key={run.id}
-                        onMouseEnter={() => onHoverRun(run.id)}
-                        onMouseLeave={() => onHoverRun(null)}
-                        onClick={() => onInspectRun(run.id)}
-                        className={`cursor-pointer transition-opacity duration-200 ${
-                          isDimmed ? 'opacity-30' : 'opacity-100'
-                        }`}
-                      >
-                        <polyline
-                          fill="none"
-                          stroke={color}
-                          strokeWidth={hoveredRunId === run.id ? 3.25 : 2.25}
-                          points={buildPoints(vals)}
-                        />
-                        {vals.map((v, i) => (
-                          <circle
-                            key={i}
-                            cx={xPositions[i]}
-                            cy={normalize(v, axes[i].min, axes[i].max)}
-                            r={4.5}
-                            fill={color}
-                          />
-                        ))}
-                      </g>
-                    );
-                  })}
-                </>
-              );
-            })()}
-          </svg>
-          )}
-
-          {chartMode === 'grouped-bar' && (
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={selectedRuns.map((r) => ({
-                    name: r.psiId,
-                    O2_pct: r.O2_pct,
-                    P_psi: r.P_psi,
-                    Spread_x10: Number((r.flameSpread_mms * 10).toFixed(1)),
-                  }))}
-                  margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
-                >
-                  <CartesianGrid
-                    stroke={gridStroke}
-                    strokeDasharray="3 3"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke={axisTextFill}
-                    tick={{
-                      fontSize: 11,
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fill: axisTextFill,
-                    }}
-                  />
-                  <YAxis
-                    stroke={axisTextFill}
-                    tick={{
-                      fontSize: 11,
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fill: axisTextFill,
-                    }}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                      borderColor: isDark ? '#27272A' : '#E4E4E7',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontFamily: 'Inter, sans-serif',
-                    }}
-                  />
-                  <Bar
-                    dataKey="O2_pct"
-                    name="O₂ (%)"
-                    fill="#10B981"
-                    radius={[3, 3, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="P_psi"
-                    name="Pressure (psi)"
-                    fill="#F59E0B"
-                    radius={[3, 3, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="Spread_x10"
-                    name="Flame Spread (×10 mm/s)"
-                    fill="#EF4444"
-                    radius={[3, 3, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {chartMode === 'lollipop' && (
-            <div
-              className={`border rounded-[5px] p-4 space-y-3 ${
-                isDark
-                  ? 'bg-[#09090B]/60 border-[#27272A]'
-                  : 'bg-zinc-50/70 border-[#E4E4E7]'
-              }`}
-            >
-              {(() => {
-                const maxSpread = Math.max(
-                  3.5,
-                  ...selectedRuns.map((r) => r.flameSpread_mms * 1.1)
-                );
-                return selectedRuns.map((run, idx) => {
-                  const pct = Math.min(
-                    98,
-                    (run.flameSpread_mms / maxSpread) * 100
-                  );
+            {chartMode !== 'parallel' && (
+              <div className="flex flex-wrap items-center gap-4 font-sans text-xs pb-1">
+                {selectedRuns.map((run, idx) => {
                   const isDimmed =
                     hoveredRunId !== null && hoveredRunId !== run.id;
-                  const color = RUN_COLORS[idx % RUN_COLORS.length];
+                  const label = uniqueLegendMap.get(run.id) ?? run.psiId;
                   return (
-                    <div
+                    <button
                       key={run.id}
+                      type="button"
                       onMouseEnter={() => onHoverRun(run.id)}
                       onMouseLeave={() => onHoverRun(null)}
                       onClick={() => onInspectRun(run.id)}
-                      className={`grid grid-cols-12 items-center gap-3 cursor-pointer transition-opacity ${
+                      className={`inline-flex items-center gap-1.5 transition-opacity duration-200 cursor-pointer hover:underline ${
                         isDimmed ? 'opacity-30' : 'opacity-100'
                       }`}
                     >
-                      <div className="col-span-3 font-mono text-xs font-semibold truncate">
-                        {run.psiId}
-                      </div>
-                      <div className="col-span-7 relative h-5 flex items-center">
-                        <div
-                          className="w-full h-[1px]"
-                          style={{ backgroundColor: gridStroke }}
-                        />
-                        <div
-                          className="absolute left-0 h-[2.5px]"
-                          style={{ width: `${pct}%`, backgroundColor: color }}
-                        />
-                        <div
-                          className="absolute w-3 h-3 rounded-[2px] -translate-x-1/2"
-                          style={{ left: `${pct}%`, backgroundColor: color }}
-                        />
-                      </div>
-                      <div className="col-span-2 text-right font-mono text-xs font-bold tabular-nums">
-                        {run.flameSpread_mms.toFixed(2)} mm/s
-                      </div>
-                    </div>
+                      <span
+                        className="w-3 h-1 rounded-[1px]"
+                        style={{
+                          backgroundColor: RUN_COLORS[idx % RUN_COLORS.length],
+                        }}
+                      />
+                      <span>{label}</span>
+                    </button>
                   );
-                });
-              })()}
-            </div>
-          )}
+                })}
+              </div>
+            )}
 
-          {chartMode === 'heatmap' && (
-            <div
-              className={`border rounded-[5px] overflow-x-auto ${
-                isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
-              }`}
-            >
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr
-                    className={`border-b font-sans text-[11px] font-semibold text-zinc-500 ${
-                      isDark
-                        ? 'bg-[#09090B] border-[#27272A]'
-                        : 'bg-zinc-50 border-[#E4E4E7]'
-                    }`}
-                  >
-                    <th className="py-2 px-3 text-left">Run</th>
-                    <th className="py-2 px-3 text-right">O₂ %</th>
-                    <th className="py-2 px-3 text-right">Pressure</th>
-                    <th className="py-2 px-3 text-right">Airflow</th>
-                    <th className="py-2 px-3 text-right">Peak Temp</th>
-                    <th className="py-2 px-3 text-right">Spread</th>
-                  </tr>
-                </thead>
-                <tbody
-                  className={`divide-y ${
-                    isDark ? 'divide-[#27272A]' : 'divide-[#E4E4E7]'
-                  }`}
+            {chartMode === 'trajectory' && (() => {
+              const minT = trajectoryRows[0]?.time_s ?? 0;
+              const maxT = trajectoryRows[trajectoryRows.length - 1]?.time_s ?? 120;
+              const allTemps = trajectoryRows.flatMap((row) =>
+                selectedRuns.map((r) => Number(row[r.id] ?? 298))
+              );
+              const minTemp = Math.max(
+                200,
+                Math.floor((allTemps.length > 0 ? Math.min(...allTemps) : 250) * 0.9)
+              );
+              const maxTemp = Math.ceil(
+                Math.max(1200, ...(allTemps.length > 0 ? allTemps : [1850])) * 1.08
+              );
+
+              return (
+                <InteractiveChartViewport
+                  theme={theme}
+                  baseXDomain={{ min: minT, max: Math.max(minT + 1, maxT) }}
+                  baseYDomain={{ min: minTemp, max: maxTemp }}
+                  resetKey={comparatorResetKey}
+                  xTickCount={7}
+                  yTickCount={6}
+                  xUnit="s"
+                  yUnit="K"
+                  plotInsets={{ left: 0.08, right: 0.03, top: 0.06, bottom: 0.12 }}
                 >
-                  {selectedRuns.map((run) => {
+                  {(ctx) => (
+                    <div className="h-[290px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={trajectoryRows}
+                          margin={{ top: 12, right: 20, left: 4, bottom: 8 }}
+                        >
+                          <CartesianGrid
+                            stroke={gridStroke}
+                            strokeDasharray="3 3"
+                            vertical={false}
+                          />
+                          <XAxis
+                            type="number"
+                            dataKey="time_s"
+                            domain={[ctx.xDomain.min, ctx.xDomain.max]}
+                            ticks={ctx.xTicks.ticks}
+                            allowDataOverflow={true}
+                            stroke={axisTextFill}
+                            tickFormatter={(v) => `${v}s`}
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fill: axisTextFill,
+                            }}
+                          />
+                          <YAxis
+                            domain={[ctx.yDomain.min, ctx.yDomain.max]}
+                            ticks={ctx.yTicks.ticks}
+                            allowDataOverflow={true}
+                            stroke={axisTextFill}
+                            unit=" K"
+                            tick={{
+                              fontSize: 11,
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fill: axisTextFill,
+                            }}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: isDark
+                                ? 'rgba(24,24,27,0.9)'
+                                : 'rgba(255,255,255,0.92)',
+                              backdropFilter: 'blur(8px)',
+                              borderColor: isDark ? '#27272A' : '#E4E4E7',
+                              borderRadius: '5px',
+                              fontSize: '11px',
+                              fontFamily: 'Inter, sans-serif',
+                            }}
+                          />
+                          {selectedRuns.map((run, idx) => (
+                            <Line
+                              key={run.id}
+                              type="monotone"
+                              dataKey={run.id}
+                              name={`${uniqueLegendMap.get(run.id) ?? run.psiId} (K)`}
+                              stroke={RUN_COLORS[idx % RUN_COLORS.length]}
+                              strokeWidth={hoveredRunId === run.id ? 3 : 2}
+                              strokeOpacity={
+                                hoveredRunId !== null && hoveredRunId !== run.id
+                                  ? 0.25
+                                  : 1
+                              }
+                              dot={false}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </InteractiveChartViewport>
+              );
+            })()}
+
+            {chartMode === 'parallel' && (
+              <ParallelCoordinatesPlot
+                theme={theme}
+                runs={selectedRuns}
+                showActiveVirtual={false}
+                hoveredRunId={hoveredRunId}
+                onHoverRun={onHoverRun}
+                onInspectRun={onInspectRun}
+                resetKey={comparatorResetKey}
+              />
+            )}
+
+            {chartMode === 'grouped-bar' && (() => {
+              const barData = selectedRuns.map((r) => ({
+                id: r.id,
+                name: uniqueLegendMap.get(r.id) ?? r.psiId,
+                O2_pct: r.O2_pct,
+                P_psi: r.P_psi,
+                Spread_x10: Number((r.flameSpread_mms * 10).toFixed(1)),
+              }));
+              const maxBarVal = Math.ceil(
+                Math.max(
+                  25,
+                  ...barData.flatMap((d) => [d.O2_pct, d.P_psi, d.Spread_x10])
+                ) * 1.12
+              );
+
+              return (
+                <InteractiveChartViewport
+                  theme={theme}
+                  baseXDomain={{ min: 0, max: Math.max(1, barData.length - 1) }}
+                  baseYDomain={{ min: 0, max: maxBarVal }}
+                  resetKey={comparatorResetKey}
+                  xTickCount={barData.length}
+                  yTickCount={6}
+                  integerX={true}
+                  plotInsets={{ left: 0.06, right: 0.03, top: 0.06, bottom: 0.12 }}
+                >
+                  {(ctx) => {
+                    const sIdx = Math.max(0, Math.floor(ctx.xDomain.min));
+                    const eIdx = Math.min(barData.length - 1, Math.ceil(ctx.xDomain.max));
+                    const visibleBars =
+                      ctx.xZoomRatio > 1.03 || sIdx > 0 || eIdx < barData.length - 1
+                        ? barData.slice(
+                            Math.min(sIdx, Math.max(0, barData.length - 2)),
+                            Math.max(Math.min(barData.length, sIdx + 2), eIdx + 1)
+                          )
+                        : barData;
+
+                    return (
+                      <div className="h-[280px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={visibleBars}
+                            margin={{ top: 12, right: 16, left: 0, bottom: 8 }}
+                          >
+                            <CartesianGrid
+                              stroke={gridStroke}
+                              strokeDasharray="3 3"
+                              vertical={false}
+                            />
+                            <XAxis
+                              dataKey="name"
+                              stroke={axisTextFill}
+                              tick={{
+                                fontSize: 10.5,
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fill: axisTextFill,
+                              }}
+                            />
+                            <YAxis
+                              domain={[ctx.yDomain.min, ctx.yDomain.max]}
+                              ticks={ctx.yTicks.ticks}
+                              allowDataOverflow={true}
+                              stroke={axisTextFill}
+                              tick={{
+                                fontSize: 11,
+                                fontFamily: 'JetBrains Mono, monospace',
+                                fill: axisTextFill,
+                              }}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: isDark ? '#18181B' : '#FFFFFF',
+                                borderColor: isDark ? '#27272A' : '#E4E4E7',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontFamily: 'Inter, sans-serif',
+                              }}
+                            />
+                            <Bar
+                              dataKey="O2_pct"
+                              name="O₂ (%)"
+                              fill="#10B981"
+                              radius={[3, 3, 0, 0]}
+                              isAnimationActive={false}
+                            />
+                            <Bar
+                              dataKey="P_psi"
+                              name="Pressure (psi)"
+                              fill="#F59E0B"
+                              radius={[3, 3, 0, 0]}
+                              isAnimationActive={false}
+                            />
+                            <Bar
+                              dataKey="Spread_x10"
+                              name="Flame Spread (×10 mm/s)"
+                              fill="#EF4444"
+                              radius={[3, 3, 0, 0]}
+                              isAnimationActive={false}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    );
+                  }}
+                </InteractiveChartViewport>
+              );
+            })()}
+
+            {chartMode === 'lollipop' && (() => {
+              const maxSpread = Math.max(
+                3.5,
+                ...selectedRuns.map((r) => r.flameSpread_mms * 1.1)
+              );
+              return (
+                <InteractiveChartViewport
+                  theme={theme}
+                  baseXDomain={{ min: 0, max: Number(maxSpread.toFixed(2)) }}
+                  baseYDomain={{ min: 0, max: Math.max(1, selectedRuns.length - 1) }}
+                  resetKey={comparatorResetKey}
+                  defaultLockMode="x"
+                  xTickCount={6}
+                  integerY={true}
+                  xUnit="mm/s"
+                  plotInsets={{ left: 0.25, right: 0.16, top: 0.08, bottom: 0.08 }}
+                >
+                  {(ctx) => {
+                    const xMin = ctx.xDomain.min;
+                    const xMax = ctx.xDomain.max;
+                    const xSpan = Math.max(1e-6, xMax - xMin);
+                    const toPct = (v: number) => ((v - xMin) / xSpan) * 100;
+                    const zeroPct = toPct(0);
+                    const rStart = Math.max(0, Math.floor(ctx.yDomain.min));
+                    const rEnd = Math.min(selectedRuns.length - 1, Math.ceil(ctx.yDomain.max));
+                    const visibleRuns =
+                      ctx.yZoomRatio > 1.03 || rStart > 0 || rEnd < selectedRuns.length - 1
+                        ? selectedRuns.slice(
+                            Math.min(rStart, Math.max(0, selectedRuns.length - 2)),
+                            Math.max(Math.min(selectedRuns.length, rStart + 2), rEnd + 1)
+                          )
+                        : selectedRuns;
+
+                    return (
+                      <div
+                        className={`border rounded-[5px] p-4 space-y-3 ${
+                          isDark
+                            ? 'bg-[#09090B]/60 border-[#27272A]'
+                            : 'bg-zinc-50/70 border-[#E4E4E7]'
+                        }`}
+                      >
+                        <div className="grid grid-cols-12 items-center gap-3 pb-1 border-b border-[#E4E4E7] dark:border-[#27272A]">
+                          <div className="col-span-3 font-sans text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                            Selected Run
+                          </div>
+                          <div className="col-span-7 relative h-4 font-mono text-[10px] tabular-nums text-zinc-400">
+                            {ctx.xTicks.ticks.map((tk, idx) => {
+                              const pos = toPct(tk);
+                              if (pos < -2 || pos > 102) return null;
+                              return (
+                                <span
+                                  key={`cmp-lol-${tk}-${idx}`}
+                                  className="absolute top-0 -translate-x-1/2 whitespace-nowrap"
+                                  style={{ left: `${Math.max(2, Math.min(98, pos))}%` }}
+                                >
+                                  {ctx.xTicks.labels[idx] ?? tk.toFixed(1)}
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <div className="col-span-2 text-right font-sans text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                            Spread
+                          </div>
+                        </div>
+
+                        {visibleRuns.map((run) => {
+                          const globalIdx = selectedRuns.findIndex((r) => r.id === run.id);
+                          const color = RUN_COLORS[(globalIdx >= 0 ? globalIdx : 0) % RUN_COLORS.length];
+                          const dotRaw = toPct(run.flameSpread_mms);
+                          const segL = Math.max(0, Math.min(100, Math.min(zeroPct, dotRaw)));
+                          const segR = Math.max(0, Math.min(100, Math.max(zeroPct, dotRaw)));
+                          const isDimmed =
+                            hoveredRunId !== null && hoveredRunId !== run.id;
+
+                          return (
+                            <div
+                              key={run.id}
+                              onMouseEnter={() => onHoverRun(run.id)}
+                              onMouseLeave={() => onHoverRun(null)}
+                              onClick={() => {
+                                if (!ctx.wasRecentlyDragged()) onInspectRun(run.id);
+                              }}
+                              className={`grid grid-cols-12 items-center gap-3 cursor-pointer transition-opacity ${
+                                isDimmed ? 'opacity-30' : 'opacity-100'
+                              }`}
+                            >
+                              <div
+                                className="col-span-3 font-mono text-xs font-semibold truncate"
+                                title={uniqueLegendMap.get(run.id) ?? run.psiId}
+                              >
+                                {uniqueLegendMap.get(run.id) ?? run.psiId}
+                              </div>
+                              <div className="col-span-7 relative h-5 flex items-center overflow-hidden">
+                                <div
+                                  className="w-full h-[1px]"
+                                  style={{ backgroundColor: gridStroke }}
+                                />
+                                {segR > segL && (
+                                  <div
+                                    className="absolute h-[2.5px]"
+                                    style={{
+                                      left: `${segL}%`,
+                                      width: `${segR - segL}%`,
+                                      backgroundColor: color,
+                                    }}
+                                  />
+                                )}
+                                {dotRaw >= 0 && dotRaw <= 100 && (
+                                  <div
+                                    className="absolute w-3 h-3 rounded-[2px] -translate-x-1/2"
+                                    style={{ left: `${dotRaw}%`, backgroundColor: color }}
+                                  />
+                                )}
+                              </div>
+                              <div className="col-span-2 text-right font-mono text-xs font-bold tabular-nums">
+                                {run.flameSpread_mms.toFixed(2)} mm/s
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }}
+                </InteractiveChartViewport>
+              );
+            })()}
+
+            {chartMode === 'heatmap' && (() => {
+              const metricCols = [
+                {
+                  id: 'o2',
+                  label: 'O₂ %',
+                  render: (run: PsiRun) => {
                     const normO2 = Math.min(1, Math.max(0, (run.O2_pct - 14) / 30));
+                    return (
+                      <td
+                        key="o2"
+                        className="py-2 px-3 text-right font-mono tabular-nums"
+                        style={{
+                          backgroundColor: `rgba(245, 158, 11, ${(0.06 + normO2 * 0.34).toFixed(2)})`,
+                        }}
+                      >
+                        {run.O2_pct.toFixed(1)}%
+                      </td>
+                    );
+                  },
+                },
+                {
+                  id: 'pressure',
+                  label: 'Pressure',
+                  render: (run: PsiRun) => (
+                    <td key="pressure" className="py-2 px-3 text-right font-mono tabular-nums">
+                      {run.P_psi.toFixed(1)} psi
+                    </td>
+                  ),
+                },
+                {
+                  id: 'flow',
+                  label: 'Airflow',
+                  render: (run: PsiRun) => (
+                    <td key="flow" className="py-2 px-3 text-right font-mono tabular-nums">
+                      {run.Flow_ms.toFixed(2)} m/s
+                    </td>
+                  ),
+                },
+                {
+                  id: 'temp',
+                  label: 'Peak Temp',
+                  render: (run: PsiRun) => (
+                    <td key="temp" className="py-2 px-3 text-right font-mono tabular-nums">
+                      {run.peakTemp_K} K
+                    </td>
+                  ),
+                },
+                {
+                  id: 'spread',
+                  label: 'Spread',
+                  render: (run: PsiRun) => {
                     const normSpread = Math.min(1, run.flameSpread_mms / 3.0);
                     return (
-                      <tr
-                        key={run.id}
-                        onMouseEnter={() => onHoverRun(run.id)}
-                        onMouseLeave={() => onHoverRun(null)}
-                        onClick={() => onInspectRun(run.id)}
-                        className="cursor-pointer"
+                      <td
+                        key="spread"
+                        className="py-2 px-3 text-right font-mono font-bold tabular-nums"
+                        style={{
+                          backgroundColor: `rgba(239, 68, 68, ${(0.06 + normSpread * 0.38).toFixed(2)})`,
+                        }}
                       >
-                        <td className="py-2 px-3 font-mono font-semibold">
-                          {run.psiId}
-                        </td>
-                        <td
-                          className="py-2 px-3 text-right font-mono tabular-nums"
-                          style={{
-                            backgroundColor: `rgba(245, 158, 11, ${(0.06 + normO2 * 0.34).toFixed(2)})`,
-                          }}
-                        >
-                          {run.O2_pct.toFixed(1)}%
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">
-                          {run.P_psi.toFixed(1)} psi
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">
-                          {run.Flow_ms.toFixed(2)} m/s
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono tabular-nums">
-                          {run.peakTemp_K} K
-                        </td>
-                        <td
-                          className="py-2 px-3 text-right font-mono font-bold tabular-nums"
-                          style={{
-                            backgroundColor: `rgba(239, 68, 68, ${(0.06 + normSpread * 0.38).toFixed(2)})`,
-                          }}
-                        >
-                          {run.flameSpread_mms.toFixed(2)} mm/s
-                        </td>
-                      </tr>
+                        {run.flameSpread_mms.toFixed(2)} mm/s
+                      </td>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  },
+                },
+              ];
+
+              return (
+                <InteractiveChartViewport
+                  theme={theme}
+                  baseXDomain={{ min: 0, max: metricCols.length - 1 }}
+                  baseYDomain={{ min: 0, max: Math.max(1, selectedRuns.length - 1) }}
+                  resetKey={comparatorResetKey}
+                  integerX={true}
+                  integerY={true}
+                  plotInsets={{ left: 0.16, right: 0.02, top: 0.12, bottom: 0.02 }}
+                >
+                  {(ctx) => {
+                    const c0 = Math.max(0, Math.floor(ctx.xDomain.min));
+                    const c1 = Math.min(metricCols.length - 1, Math.ceil(ctx.xDomain.max));
+                    const r0 = Math.max(0, Math.floor(ctx.yDomain.min));
+                    const r1 = Math.min(selectedRuns.length - 1, Math.ceil(ctx.yDomain.max));
+                    const visibleCols =
+                      ctx.xZoomRatio > 1.04 || c0 > 0 || c1 < metricCols.length - 1
+                        ? metricCols.slice(
+                            Math.min(c0, Math.max(0, metricCols.length - 2)),
+                            Math.max(Math.min(metricCols.length, c0 + 2), c1 + 1)
+                          )
+                        : metricCols;
+                    const visibleRuns =
+                      ctx.yZoomRatio > 1.04 || r0 > 0 || r1 < selectedRuns.length - 1
+                        ? selectedRuns.slice(
+                            Math.min(r0, Math.max(0, selectedRuns.length - 2)),
+                            Math.max(Math.min(selectedRuns.length, r0 + 2), r1 + 1)
+                          )
+                        : selectedRuns;
+
+                    return (
+                      <div
+                        className={`border rounded-[5px] overflow-x-auto ${
+                          isDark ? 'border-[#27272A]' : 'border-[#E4E4E7]'
+                        }`}
+                      >
+                        <table className="w-full border-collapse text-xs">
+                          <thead>
+                            <tr
+                              className={`border-b font-sans text-[11px] font-semibold text-zinc-500 ${
+                                isDark
+                                  ? 'bg-[#09090B] border-[#27272A]'
+                                  : 'bg-zinc-50 border-[#E4E4E7]'
+                              }`}
+                            >
+                              <th className="py-2 px-3 text-left">Run</th>
+                              {visibleCols.map((c) => (
+                                <th key={c.id} className="py-2 px-3 text-right">
+                                  {c.label}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody
+                            className={`divide-y ${
+                              isDark ? 'divide-[#27272A]' : 'divide-[#E4E4E7]'
+                            }`}
+                          >
+                            {visibleRuns.map((run) => (
+                              <tr
+                                key={run.id}
+                                onMouseEnter={() => onHoverRun(run.id)}
+                                onMouseLeave={() => onHoverRun(null)}
+                                onClick={() => {
+                                  if (!ctx.wasRecentlyDragged()) onInspectRun(run.id);
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <td className="py-2 px-3 font-mono font-semibold">
+                                  {uniqueLegendMap.get(run.id) ?? run.psiId}
+                                </td>
+                                {visibleCols.map((c) => c.render(run))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }}
+                </InteractiveChartViewport>
+              );
+            })()}
           </div>
         </CollapsibleCard>
       )}

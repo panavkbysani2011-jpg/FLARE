@@ -92,6 +92,15 @@ import {
   filterTechniques,
   getDefaultAxesForTechnique,
 } from './vizRegistry';
+import {
+  computeAdaptiveMarkerStyle,
+  computeDesmosTicks,
+  computeZoomReadout,
+  findNearestScreenPoint,
+  formatUniqueRunLegendMap,
+  panDomainByPixels,
+  zoomDomainAroundValue,
+} from './chartViewportMath';
 
 function loadRealTestRuns(limit = 25): PsiRun[] {
   const csvPath = path.resolve(
@@ -1493,4 +1502,100 @@ test('sign-in gate, deterministic IDs, guest isolation, account lifecycle, unifi
       (globalThis as { window?: unknown }).window = origWindow;
     }
   }
+});
+
+test('Desmos domain zoom, pan, dynamic nice ticks, adaptive markers, 16px magnetic snapping, and unique legend formatting', () => {
+  // 1. computeDesmosTicks: [18, 24] with 1.2 step support -> 18.0, 19.2, 20.4, 21.6, 22.8, 24.0
+  const o2Ticks = computeDesmosTicks(18, 24, 6);
+  assert.deepEqual(o2Ticks.ticks, [18, 19.2, 20.4, 21.6, 22.8, 24]);
+  assert.deepEqual(o2Ticks.labels, ['18.0', '19.2', '20.4', '21.6', '22.8', '24.0']);
+
+  // Integer ticks remain integers
+  const intTicks = computeDesmosTicks(0, 14, 6, true);
+  assert.ok(intTicks.ticks.every((tk) => Number.isInteger(tk)));
+
+  // 2. Anchor-preserving mathematical zoom
+  const base = { min: 14, max: 50 };
+  const anchor = 23;
+  const uBefore = (anchor - base.min) / (base.max - base.min);
+  const zoomed = zoomDomainAroundValue(base, anchor, 0.5, base);
+  const uAfter = (anchor - zoomed.min) / (zoomed.max - zoomed.min);
+  assert.ok(Math.abs(uBefore - uAfter) < 1e-6);
+  assert.ok(Math.abs(zoomed.max - zoomed.min - 18) < 1e-6);
+
+  // Zooming out across 1.0x snaps cleanly back to baseline
+  const resetSnap = zoomDomainAroundValue(zoomed, anchor, 2.2, base);
+  assert.deepEqual(resetSnap, base);
+
+  // 3. Domain pan preserves span cleanly
+  const panned = panDomainByPixels(zoomed, -100, 500, base);
+  assert.ok(Math.abs(panned.max - panned.min - (zoomed.max - zoomed.min)) < 1e-6);
+  assert.ok(panned.min > zoomed.min);
+
+  // 4. Zoom readout status strings
+  assert.equal(computeZoomReadout(base, base, base, base, 'xy').label, '100%');
+  const readoutZoom = computeZoomReadout(base, zoomed, base, base, 'x');
+  assert.equal(readoutZoom.isZoomed, true);
+  assert.ok(readoutZoom.label.includes('2.0x'));
+  const shiftedAt1x = { min: 18, max: 54 };
+  const readoutPan = computeZoomReadout(base, shiftedAt1x, base, base, 'x');
+  assert.equal(readoutPan.isZoomed, false);
+  assert.equal(readoutPan.isModified, true);
+  assert.equal(readoutPan.label, '100% · Panned');
+
+  // 5. Adaptive marker styling & progressive Run ID labels
+  const denseDefault = computeAdaptiveMarkerStyle(160, 1.0);
+  const sparseZoomed = computeAdaptiveMarkerStyle(18, 2.2);
+  assert.ok(denseDefault.radius < sparseZoomed.radius);
+  assert.ok(denseDefault.fillOpacity < sparseZoomed.fillOpacity);
+  assert.equal(denseDefault.showLabels, false);
+  assert.equal(sparseZoomed.showLabels, true);
+
+  // 6. 16px magnetic nearest-neighbor snapping
+  const candidates = [
+    { item: 'run-a', sx: 100, sy: 100 },
+    { item: 'run-b', sx: 120, sy: 100 },
+  ];
+  const hit = findNearestScreenPoint(candidates, 108, 106, 16); // distance = 10px <= 16
+  assert.ok(hit !== null);
+  assert.equal(hit.item, 'run-a');
+  const miss = findNearestScreenPoint(candidates, 150, 150, 16);
+  assert.equal(miss, null);
+
+  // 7. Guaranteed unique legend labels when runs share the same psiId
+  const dupRuns: PsiRun[] = [
+    { ...REAL_SAMPLE_RUNS[0], id: 'dup-1', psiId: 'PSI-20 ACME BRE', runCode: '', O2_pct: 21, material: 'PMMA' },
+    { ...REAL_SAMPLE_RUNS[0], id: 'dup-2', psiId: 'PSI-20 ACME BRE', runCode: '', O2_pct: 21, material: 'PMMA' },
+    { ...REAL_SAMPLE_RUNS[0], id: 'dup-3', psiId: 'PSI-20 ACME BRE', runCode: 'ACME-03', O2_pct: 24, material: 'Nomex' },
+    { ...REAL_SAMPLE_RUNS[0], id: 'dup-4', psiId: 'PSI-20 ACME BRE', runCode: 'ACME-03', O2_pct: 24, material: 'Nomex' },
+  ];
+  const legendMap = formatUniqueRunLegendMap(dupRuns);
+  assert.equal(legendMap.size, 4);
+  assert.equal(new Set(legendMap.values()).size, 4);
+
+  // 8. Component integration source checks
+  const viewportSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/InteractiveChartViewport.tsx'),
+    'utf8'
+  );
+  assert.ok(viewportSrc.includes('passive: false'));
+  assert.ok(viewportSrc.includes('Double-click') || viewportSrc.includes('Reset'));
+
+  for (const relPath of [
+    'src/components/VizTechniqueRenderer.tsx',
+    'src/components/RunComparator.tsx',
+    'src/components/VirtualTestLab.tsx',
+  ]) {
+    const src = fs.readFileSync(path.resolve(process.cwd(), relPath), 'utf8');
+    assert.ok(
+      src.includes('InteractiveChartViewport'),
+      `${relPath} must use InteractiveChartViewport`
+    );
+  }
+
+  const chatCardSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/ChatInlineChartCard.tsx'),
+    'utf8'
+  );
+  assert.ok(chatCardSrc.includes('overflow-visible'));
 });

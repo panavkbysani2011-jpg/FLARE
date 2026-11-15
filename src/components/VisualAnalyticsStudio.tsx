@@ -12,6 +12,7 @@ import {
 import { ActiveChartExportSnapshot } from '../utils/exportHelpers';
 import { exportStudioChartFormatted } from '../utils/exportGenerators';
 import { ExportDropdown } from './ExportDropdown';
+import { StudioSelect } from './StudioSelect';
 import {
   DecodedChartContext,
   DefaultExportFormat,
@@ -244,11 +245,6 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
     onDecodeInModelConsole(context);
   };
 
-  const selectClass = `w-full h-10 appearance-none pl-3 pr-9 text-xs font-sans font-medium rounded-lg border shadow-2xs focus:outline-none transition-all duration-150 cursor-pointer ${
-    isDark
-      ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-500/30'
-      : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:border-zinc-300 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-400/30'
-  }`;
 
   const activeMonoBtn = isDark
     ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] font-semibold shadow-xs hover:bg-zinc-200 hover:shadow-sm active:scale-[0.98] transition-all duration-150'
@@ -307,31 +303,37 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
             >
               <span className="truncate">1. Active Dataset Source</span>
             </label>
-            <div className="relative">
-              <select
-                id="studio-dataset-source"
-                value={datasetSource}
-                onChange={(e) => setDatasetSource(e.target.value as StudioDatasetSource)}
-                className={selectClass}
-              >
-                <option value="full-archive">
-                  Full PSI Archive ({catalogRuns.length.toLocaleString()} runs)
-                </option>
-                <option value="selected-comparison">
-                  Selected Comparison Runs ({selectedRuns.length})
-                </option>
-                <option value="virtual-lab-output">
-                  Virtual Test Lab Output ({simulation.nearestRuns.length} validated neighbors)
-                </option>
-                <option value="material-qualification">
-                  Material Safety Comparison ({simulation.materialRankings.length} materials)
-                </option>
-                <option value="imported-custom">
-                  Imported Custom CSV/JSON ({customRunsCount} runs)
-                </option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-            </div>
+            <StudioSelect<StudioDatasetSource>
+              id="studio-dataset-source"
+              ariaLabel="Active Dataset Source"
+              height="h-10"
+              placement="auto-flip"
+              value={datasetSource}
+              onChange={setDatasetSource}
+              options={[
+                {
+                  value: 'full-archive',
+                  label: `Full PSI Archive (${catalogRuns.length.toLocaleString()} runs)`,
+                },
+                {
+                  value: 'selected-comparison',
+                  label: `Selected Comparison Runs (${selectedRuns.length})`,
+                },
+                {
+                  value: 'virtual-lab-output',
+                  label: `Virtual Test Lab Output (${simulation.nearestRuns.length} validated neighbors)`,
+                },
+                {
+                  value: 'material-qualification',
+                  label: `Material Safety Comparison (${simulation.materialRankings.length} materials)`,
+                },
+                {
+                  value: 'imported-custom',
+                  label: `Imported Custom CSV/JSON (${customRunsCount} runs)`,
+                },
+              ]}
+              className="w-full"
+            />
           </div>
 
           {/* Control 2: Generic Visualization Technique Searchable Popover Dropdown */}
@@ -389,7 +391,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               <div
                 role="listbox"
                 aria-label="Select analytical visualization method"
-                className={`absolute left-0 top-full mt-1.5 w-[min(92vw,680px)] max-h-[430px] overflow-y-auto z-50 rounded-lg border backdrop-blur-md shadow-2xl ${
+                className={`absolute left-0 sm:left-auto sm:right-0 xl:left-0 top-full mt-1.5 w-[min(92vw,680px)] max-w-[calc(100vw-2rem)] max-h-[430px] overflow-y-auto z-50 rounded-lg border backdrop-blur-md shadow-2xl psi-animate-popover ${
                   isDark
                     ? 'bg-[#18181B]/95 border-[#27272A] text-[#FAFAFA]'
                     : 'bg-white/98 border-[#E4E4E7] text-[#18181B]'
@@ -595,26 +597,20 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               >
                 <span className="truncate">3a. X-Axis</span>
               </label>
-              <div className="relative">
-                <select
-                  id="studio-x-axis"
-                  value={axisMap.xAxis}
-                  onChange={(e) =>
-                    setAxisMap((prev) => ({
-                      ...prev,
-                      xAxis: e.target.value as AxisVariableKey,
-                    }))
-                  }
-                  className={selectClass}
-                >
-                  {ALL_STUDIO_AXIS_COLUMNS.map((col) => (
-                    <option key={col.key} value={col.key}>
-                      {col.shortLabel}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              </div>
+              <StudioSelect<AxisVariableKey>
+                id="studio-x-axis"
+                ariaLabel="Select X-Axis Variable"
+                height="h-10"
+                placement="auto-flip"
+                value={axisMap.xAxis}
+                onChange={(val) => setAxisMap((prev) => ({ ...prev, xAxis: val }))}
+                options={ALL_STUDIO_AXIS_COLUMNS.map((col) => ({
+                  value: col.key,
+                  label: col.shortLabel,
+                  subtitle: col.unit ? `Unit: ${col.unit}` : undefined,
+                }))}
+                className="w-full"
+              />
             </div>
 
             <div className="flex flex-col justify-end gap-1.5">
@@ -624,26 +620,20 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               >
                 <span className="truncate">3b. Y-Axis</span>
               </label>
-              <div className="relative">
-                <select
-                  id="studio-y-axis"
-                  value={axisMap.yAxis}
-                  onChange={(e) =>
-                    setAxisMap((prev) => ({
-                      ...prev,
-                      yAxis: e.target.value as NumericAxisKey,
-                    }))
-                  }
-                  className={selectClass}
-                >
-                  {STUDIO_NUMERIC_COLUMNS.map((col) => (
-                    <option key={col.key} value={col.key}>
-                      {col.shortLabel}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              </div>
+              <StudioSelect<NumericAxisKey>
+                id="studio-y-axis"
+                ariaLabel="Select Y-Axis Variable"
+                height="h-10"
+                placement="auto-flip"
+                value={axisMap.yAxis}
+                onChange={(val) => setAxisMap((prev) => ({ ...prev, yAxis: val }))}
+                options={STUDIO_NUMERIC_COLUMNS.map((col) => ({
+                  value: col.key,
+                  label: col.shortLabel,
+                  subtitle: col.unit ? `Unit: ${col.unit}` : undefined,
+                }))}
+                className="w-full"
+              />
             </div>
 
             <div className="flex flex-col justify-end gap-1.5">
@@ -664,26 +654,19 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                   <span>Default</span>
                 </button>
               </div>
-              <div className="relative">
-                <select
-                  id="studio-color-by"
-                  value={axisMap.colorBy}
-                  onChange={(e) =>
-                    setAxisMap((prev) => ({
-                      ...prev,
-                      colorBy: e.target.value as CategoricalGroupKey,
-                    }))
-                  }
-                  className={selectClass}
-                >
-                  {STUDIO_CATEGORICAL_COLUMNS.map((col) => (
-                    <option key={col.key} value={col.key}>
-                      {col.shortLabel}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              </div>
+              <StudioSelect<CategoricalGroupKey>
+                id="studio-color-by"
+                ariaLabel="Select Color / Group Variable"
+                height="h-10"
+                placement="auto-flip"
+                value={axisMap.colorBy}
+                onChange={(val) => setAxisMap((prev) => ({ ...prev, colorBy: val }))}
+                options={STUDIO_CATEGORICAL_COLUMNS.map((col) => ({
+                  value: col.key,
+                  label: col.shortLabel,
+                }))}
+                className="w-full"
+              />
             </div>
           </div>
         </div>

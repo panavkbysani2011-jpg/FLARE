@@ -139,7 +139,7 @@ export const ChatInlineChartCard: React.FC<ChatInlineChartCardProps> = ({
         </button>
       </div>
 
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-visible">
         <VizTechniqueRenderer
           theme={theme}
           vizMode={inlineChart.resolvedVizMode}
