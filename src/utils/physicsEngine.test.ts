@@ -1750,4 +1750,29 @@ test('live /ask normalizer, chat storage crash-proofing, zoom lock, 3-item model
     assert.ok(!content.includes('rounded-full'), `Disallowed rounded-full in ${relPath}`);
     assert.ok(!content.includes('\u2014'), `Disallowed em-dash in ${relPath}`);
   }
+
+  // 7. Full-width Virtual Test Lab + Sticky top headers on Runs / Guide / Mission tabs + PSI sidebar preserved
+  const vtlLayoutSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/VirtualTestLab.tsx'),
+    'utf8'
+  );
+  assert.ok(!vtlLayoutSrc.includes('xl:col-span-5'));
+
+  const runsLayoutSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/ExperimentRunsView.tsx'),
+    'utf8'
+  );
+  assert.ok(!runsLayoutSrc.includes('lg:w-[270px]'));
+  assert.ok(runsLayoutSrc.includes('sticky'));
+  assert.ok(runsLayoutSrc.includes('bg-[#09090B]/95'));
+  assert.ok(runsLayoutSrc.includes('bg-[#F8FAFC]/95'));
+
+  const catalogLayoutSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/CatalogView.tsx'),
+    'utf8'
+  );
+  assert.ok(catalogLayoutSrc.includes('lg:w-[240px] shrink-0 lg:sticky lg:top-[68px]'));
+  assert.ok(!catalogLayoutSrc.includes('lg:w-[270px]'));
+  assert.ok(catalogLayoutSrc.includes('bg-[#09090B]/95'));
+  assert.ok(catalogLayoutSrc.includes('bg-[#F8FAFC]/95'));
 });

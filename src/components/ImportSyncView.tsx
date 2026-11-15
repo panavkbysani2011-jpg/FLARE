@@ -137,7 +137,7 @@ export const ImportSyncView: React.FC<ImportSyncViewProps> = ({
         title="Upload Custom Test Data"
         subtitle="Validates CSV / JSON columns and converts units"
         summaryLine={`Buffer: ${fileName} · ${validationResult ? (validationResult.valid ? `${validationResult.parsedRuns.length} runs verified` : 'Blocked non-combustion upload') : 'Ready for CSV/JSON upload'}`}
-        className="xl:col-span-7 xl:sticky xl:top-[68px] xl:self-start xl:max-h-[calc(100vh-5.5rem)] xl:overflow-y-auto"
+        className="xl:col-span-7"
       >
         <div className="space-y-4">
           <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">

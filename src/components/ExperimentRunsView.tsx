@@ -167,143 +167,150 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
         </span>
       </div>
 
-      {/* Sticky Left Filter Sidebar + Granular Run-Level Table */}
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
-        <aside
-          className="w-full lg:w-[270px] shrink-0 lg:sticky lg:top-[68px] lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto"
-          aria-label="Experiment Run Filters"
+      {/* Sticky Top Horizontal Search, Filter & Comparison Selection Bar */}
+      <div
+        className={`sticky top-[52px] z-20 -mx-1 px-1 py-1.5 backdrop-blur-md transition-colors duration-150 ${
+          isDark ? 'bg-[#09090B]/95' : 'bg-[#F8FAFC]/95'
+        }`}
+      >
+        <CollapsibleCard
+          theme={theme}
+          compactHeader
+          title="Search All Experiment Runs"
+          subtitle={`${filteredAndSortedRuns.length.toLocaleString()} matching runs`}
+          summaryLine={`${filteredAndSortedRuns.length.toLocaleString()} matching runs · Facility: ${facilityFilter} · Regime: ${outcomeFilter} · ${selectedRunIds.length}/4 Selected`}
+          rightActions={
+            <div className="flex items-center gap-2.5">
+              <span className="font-sans text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="font-mono tabular-nums">
+                  {selectedRunIds.length}/4
+                </span>{' '}
+                Selected
+              </span>
+              <button
+                type="button"
+                onClick={onGoToComparator}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 text-xs font-sans font-semibold rounded-lg transition-all duration-150 active:scale-[0.98] focus-visible:outline-none cursor-pointer ${
+                  isDark
+                    ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
+                    : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                }`}
+              >
+                <span>Open Run Comparator ({selectedRunIds.length})</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          }
         >
-          <CollapsibleCard
-            theme={theme}
-            title="Search Runs"
-            subtitle={`${filteredAndSortedRuns.length.toLocaleString()} matching · ${selectedRunIds.length}/4 selected`}
-            summaryLine={`${filteredAndSortedRuns.length.toLocaleString()} matching runs · Facility: ${facilityFilter} · Regime: ${outcomeFilter} · ${selectedRunIds.length}/4 Selected`}
-          >
-            <div className="space-y-3">
-              <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-                Search individual test runs, filter by facility or outcome, and check up to 4 runs to compare side by side.
-              </p>
+          <div className="space-y-3">
+            <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
+              Search individual test runs, sort fire measurements, and check up to 4 runs to compare side by side.
+            </p>
 
-              <div className="flex flex-col gap-2.5">
-                <div className="relative w-full">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Run code (SAF2-M07), PSI ID, fuel..."
-                    aria-label="Search experiment runs"
-                    className={`w-full h-9 pl-8 pr-8 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
-                      isDark
-                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
-                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
-                    }`}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      aria-label="Clear run search"
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <StudioSelect
-                  ariaLabel="Filter runs by hardware facility"
-                  height="h-9"
-                  placement="auto-flip"
-                  value={facilityFilter}
-                  onChange={setFacilityFilter}
-                  options={[
-                    { value: 'ALL', label: 'All Facilities' },
-                    { value: 'CIR', label: 'CIR' },
-                    { value: 'MSG', label: 'MSG' },
-                    { value: 'Cygnus', label: 'Cygnus' },
-                    { value: 'FSL', label: 'FSL' },
-                    { value: 'Virtual', label: 'Virtual' },
-                  ]}
-                  className="w-full"
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by run code (e.g. SAF2-M07), PSI ID, fuel, or notes..."
+                  aria-label="Search experiment runs"
+                  className={`w-full h-9 pl-8 pr-8 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
+                    isDark
+                      ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
+                  }`}
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear run search"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-                <StudioSelect
-                  ariaLabel="Filter runs by safety regime outcome"
-                  height="h-9"
-                  placement="auto-flip"
-                  value={outcomeFilter}
-                  onChange={setOutcomeFilter}
-                  options={[
-                    { value: 'ALL', label: 'All Safety Regimes' },
-                    { value: 'Rapid Flame Spread', label: 'Rapid Flame Spread' },
-                    { value: 'Cool Flame Caution', label: 'Cool Flame Caution' },
-                    { value: 'Self-Extinguishing', label: 'Self-Extinguishing' },
-                  ]}
-                  className="w-full"
-                />
+              <StudioSelect
+                ariaLabel="Filter runs by hardware facility"
+                height="h-9"
+                placement="auto-flip"
+                value={facilityFilter}
+                onChange={setFacilityFilter}
+                options={[
+                  { value: 'ALL', label: 'All Facilities' },
+                  { value: 'CIR', label: 'CIR' },
+                  { value: 'MSG', label: 'MSG' },
+                  { value: 'Cygnus', label: 'Cygnus' },
+                  { value: 'FSL', label: 'FSL' },
+                  { value: 'Virtual', label: 'Virtual' },
+                ]}
+                className="w-full sm:w-40"
+              />
 
-                <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                  <ExportDropdown
-                    theme={theme}
-                    label="Export Data"
-                    formats={['csv', 'json', 'doc', 'pdf']}
-                    defaultFormat={defaultExportFormat}
-                    disabled={filteredAndSortedRuns.length === 0}
-                    title="Download currently filtered test runs as CSV, JSON, Word, or PDF"
-                    onSelectFormat={(fmt) =>
-                      exportRunsDataFormatted({
-                        runs: filteredAndSortedRuns,
-                        selectedRunIds,
-                        title: 'PSI Filtered Experiment Runs',
-                        units: measurementUnits,
-                        format: fmt,
-                      })
-                    }
-                  />
+              <StudioSelect
+                ariaLabel="Filter runs by safety regime outcome"
+                height="h-9"
+                placement="auto-flip"
+                value={outcomeFilter}
+                onChange={setOutcomeFilter}
+                options={[
+                  { value: 'ALL', label: 'All Safety Regimes' },
+                  { value: 'Rapid Flame Spread', label: 'Rapid Flame Spread' },
+                  { value: 'Cool Flame Caution', label: 'Cool Flame Caution' },
+                  { value: 'Self-Extinguishing', label: 'Self-Extinguishing' },
+                ]}
+                className="w-full sm:w-48"
+              />
 
-                  {(searchQuery !== '' ||
-                    facilityFilter !== 'ALL' ||
-                    outcomeFilter !== 'ALL') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setFacilityFilter('ALL');
-                        setOutcomeFilter('ALL');
-                      }}
-                      className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 cursor-pointer ${
-                        isDark
-                          ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-500'
-                          : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
-                      }`}
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Reset</span>
-                    </button>
-                  )}
-                </div>
-
+              {(searchQuery !== '' ||
+                facilityFilter !== 'ALL' ||
+                outcomeFilter !== 'ALL') && (
                 <button
                   type="button"
-                  onClick={onGoToComparator}
-                  className={`w-full inline-flex items-center justify-center gap-1.5 h-9 px-3 text-xs font-sans font-semibold rounded-lg transition-all duration-150 active:scale-[0.98] focus-visible:outline-none cursor-pointer ${
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFacilityFilter('ALL');
+                    setOutcomeFilter('ALL');
+                  }}
+                  className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-2xs transition-all duration-150 cursor-pointer ${
                     isDark
-                      ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
-                      : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
+                      ? 'bg-[#09090B] border-[#27272A] text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-500'
+                      : 'bg-zinc-50 border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                   }`}
                 >
-                  <span>Open Run Comparator ({selectedRunIds.length}/4)</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
                 </button>
-              </div>
-            </div>
-          </CollapsibleCard>
-        </aside>
+              )}
 
-        {/* Granular Run-Level Table */}
-        <div className="flex-1 min-w-0 w-full">
-          <section className={`border rounded-lg overflow-hidden ${cardSurface}`}>
+              <ExportDropdown
+                theme={theme}
+                label="Export Data"
+                formats={['csv', 'json', 'doc', 'pdf']}
+                defaultFormat={defaultExportFormat}
+                disabled={filteredAndSortedRuns.length === 0}
+                title="Download currently filtered test runs as CSV, JSON, Word, or PDF"
+                onSelectFormat={(fmt) =>
+                  exportRunsDataFormatted({
+                    runs: filteredAndSortedRuns,
+                    selectedRunIds,
+                    title: 'PSI Filtered Experiment Runs',
+                    units: measurementUnits,
+                    format: fmt,
+                  })
+                }
+              />
+            </div>
+          </div>
+        </CollapsibleCard>
+      </div>
+
+      {/* Granular Run-Level Table */}
+      <section className={`border rounded-lg overflow-hidden ${cardSurface}`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -551,9 +558,7 @@ export const ExperimentRunsView: React.FC<ExperimentRunsViewProps> = ({
             </div>
           )}
         </div>
-          </section>
-        </div>
-      </div>
+      </section>
     </div>
   );
 };
