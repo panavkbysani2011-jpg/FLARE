@@ -654,6 +654,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* About, Data Attribution & SI Disclosure */}
+                <div className={`p-4 rounded-lg border space-y-1.5 ${panelBox}`}>
+                  <div className="text-xs font-sans font-semibold">
+                    About, Data Attribution &amp; SI Disclosure
+                  </div>
+                  <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Data &amp; Media: Built on open-science datasets from{' '}
+                    <a
+                      href="https://psi.nasa.gov/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-[#18181B] dark:hover:text-[#FAFAFA]"
+                    >
+                      NASA Physical Science Informatics (PSI)
+                    </a>{' '}
+                    (CC0-1.0) and public-domain NASA microgravity imagery. Independent 2026 NASA Space Apps Challenge project - not affiliated with or endorsed by NASA.
+                  </p>
+                  <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Google Gemini was used for code scaffolding; all combustion physics and experimental benchmarks rely on deterministic equations and NASA PSI flight records. MIT License (2026 FLARE Team).
+                  </p>
+                </div>
               </div>
             )}
 

@@ -1775,4 +1775,37 @@ test('live /ask normalizer, chat storage crash-proofing, zoom lock, 3-item model
   assert.ok(!catalogLayoutSrc.includes('lg:w-[270px]'));
   assert.ok(catalogLayoutSrc.includes('bg-[#09090B]/95'));
   assert.ok(catalogLayoutSrc.includes('bg-[#F8FAFC]/95'));
+
+  // 8. LICENSE, README, and Landing/Settings footer attribution & SI disclosure checks
+  const licenseText = fs.readFileSync(path.resolve(process.cwd(), 'LICENSE'), 'utf8');
+  assert.ok(licenseText.includes('MIT License') && licenseText.includes('2026 FLARE Team'));
+
+  const readmeText = fs.readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf8');
+  assert.ok(
+    readmeText.includes('CC0-1.0') &&
+      readmeText.includes('VITE_IGNIS_API_URL') &&
+      readmeText.includes('VITE_GEMINI_API_KEY') &&
+      readmeText.includes('Google Gemini') &&
+      readmeText.includes('MIT License')
+  );
+
+  const landingSrcCheck = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/LandingView.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    landingSrcCheck.includes('<footer') &&
+      landingSrcCheck.includes('CC0-1.0') &&
+      landingSrcCheck.includes('not affiliated with or endorsed by NASA') &&
+      landingSrcCheck.includes('Google Gemini') &&
+      landingSrcCheck.includes('MIT License') &&
+      !landingSrcCheck.includes('\u2014') &&
+      !landingSrcCheck.includes('rounded-full')
+  );
+
+  assert.ok(
+    settingsSrc.includes('About, Data Attribution &amp; SI Disclosure') &&
+      settingsSrc.includes('not affiliated with or endorsed by NASA') &&
+      settingsSrc.includes('Google Gemini')
+  );
 });

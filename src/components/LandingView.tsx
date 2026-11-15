@@ -375,6 +375,33 @@ export const LandingView: React.FC<LandingViewProps> = ({
           </div>
         </section>
       </main>
+
+      {/* Subtle Open-Science Attribution & SI Disclosure Footer */}
+      <footer
+        className={`border-t text-xs font-sans ${
+          isDark
+            ? 'border-[#27272A] bg-[#09090B] text-zinc-400'
+            : 'border-[#E4E4E7] bg-[#FAFAFA] text-zinc-600'
+        }`}
+      >
+        <div className="max-w-6xl w-full mx-auto px-6 sm:px-10 py-6 space-y-1.5 leading-relaxed">
+          <p>
+            Calibrated with open-science datasets from{' '}
+            <a
+              href="https://psi.nasa.gov/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-[#18181B] dark:hover:text-[#FAFAFA]"
+            >
+              NASA Physical Science Informatics (PSI)
+            </a>{' '}
+            (CC0-1.0) and public-domain NASA microgravity imagery. Independent 2026 NASA Space Apps Challenge project - not affiliated with or endorsed by NASA.
+          </p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-500">
+            SI Disclosure: Google Gemini was used for code scaffolding; all combustion physics calculations and flight datasets are grounded in deterministic equations and NASA PSI flight records. MIT License (2026 FLARE Team).
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
