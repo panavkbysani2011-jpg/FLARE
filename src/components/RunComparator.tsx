@@ -395,7 +395,7 @@ export const RunComparator: React.FC<RunComparatorProps> = ({
                         isDimmed ? 'opacity-30' : 'opacity-100'
                       } ${
                         isDark
-                          ? 'hover:bg-white/[0.02]'
+                          ? 'hover:bg-zinc-800/70'
                           : 'hover:bg-zinc-50/80'
                       }`}
                     >

@@ -61,6 +61,7 @@ import {
 } from './utils/themePreferences';
 import { getCanonicalPsiId } from './utils/investigationArtifacts';
 import { HeaderBar } from './components/HeaderBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LeftSidebar } from './components/LeftSidebar';
 import { LandingView } from './components/LandingView';
 import { SignInModal } from './components/SignInModal';
@@ -1240,6 +1241,10 @@ export default function App() {
         />
 
         <main className="flex-1 px-4 sm:px-6 pb-6 pt-4 max-w-[1720px] w-full">
+          <ErrorBoundary
+            fallbackTitle="FLARE Workspace Recovery"
+            onResetChat={() => handleClearChatHistoryOnly()}
+          >
           {activeView === 'overview' && (
             <OverviewView
               theme={theme}
@@ -1341,6 +1346,10 @@ export default function App() {
           )}
 
           {activeView === 'model-console' && (
+            <ErrorBoundary
+              fallbackTitle="Model Console Recovery"
+              onResetChat={() => handleClearChatHistoryOnly()}
+            >
             <ModelConsoleView
               theme={theme}
               measurementUnits={appSettings.units}
@@ -1381,6 +1390,7 @@ export default function App() {
                 setActiveView('visual-studio');
               }}
             />
+            </ErrorBoundary>
           )}
 
           {activeView === 'comparator' && (
@@ -1493,6 +1503,7 @@ export default function App() {
               onSelectRun={(runId) => handleOpenInspector(runId)}
             />
           )}
+          </ErrorBoundary>
         </main>
       </div>
 

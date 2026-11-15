@@ -37,6 +37,12 @@ import {
   evaluateCombustionState,
   getLiveBackendUrl,
   askLiveModel,
+  hasCustomBackendUrlOverride,
+  getCachedBackendConnectionStatus,
+  runLocalCombustionModelPipeline,
+  MODEL_LABEL_ACTIVE,
+  MODEL_LABEL_LOCAL,
+  MODEL_LABEL_CUSTOM,
 } from '../lib/flareApi';
 
 export const LOCAL_MODEL_ID = 'local-combustion-model';
@@ -101,10 +107,10 @@ function writeStorage(key: string, value: string): void {
 }
 
 export function getApiEndpointProfiles(): NamedApiEndpointProfile[] {
-  const rawV2 = readStorage(API_PROFILES_STORAGE_KEY);
-  if (rawV2) {
+  const rawStored = readStorage(API_PROFILES_STORAGE_KEY);
+  if (rawStored) {
     try {
-      const parsed = JSON.parse(rawV2) as unknown;
+      const parsed = JSON.parse(rawStored) as unknown;
       if (Array.isArray(parsed)) {
         return parsed
           .filter(
@@ -199,7 +205,7 @@ export function getActiveEndpointProfile(): NamedApiEndpointProfile | null {
   if (envUrl) {
     return {
       id: ENV_DEFAULT_PROFILE_ID,
-      name: 'Environment API Endpoint',
+      name: hasCustomBackendUrlOverride() ? MODEL_LABEL_CUSTOM : MODEL_LABEL_ACTIVE,
       baseUrl: envUrl,
       apiKeyHeader: 'X-API-Key',
       apiKeyValue: '',
@@ -211,8 +217,14 @@ export function getActiveEndpointProfile(): NamedApiEndpointProfile | null {
 
 export function getEffectiveEndpointLabel(): string {
   const active = getActiveEndpointProfile();
-  if (!active) return 'Local Combustion Model';
-  return `${active.name}${active.modelId ? ` (${active.modelId})` : ''}`;
+  if (!active) return MODEL_LABEL_LOCAL;
+  if (active.id === ENV_DEFAULT_PROFILE_ID) {
+    if (!getCachedBackendConnectionStatus().connected) {
+      return MODEL_LABEL_LOCAL;
+    }
+    return hasCustomBackendUrlOverride() ? MODEL_LABEL_CUSTOM : MODEL_LABEL_ACTIVE;
+  }
+  return active.name?.trim() ? MODEL_LABEL_CUSTOM : MODEL_LABEL_LOCAL;
 }
 
 export function upsertApiEndpointProfile(
@@ -763,8 +775,24 @@ function sanitizeRemoteSimulationPatch(
   const isFiniteNum = (v: unknown): v is number =>
     typeof v === 'number' && Number.isFinite(v);
 
+  const remoteAttribution =
+    getActiveEndpointProfileId() !== ENV_DEFAULT_PROFILE_ID ||
+    hasCustomBackendUrlOverride()
+      ? MODEL_LABEL_CUSTOM
+      : MODEL_LABEL_ACTIVE;
+
   return {
     ...localFallback,
+    assistantReply: localFallback.assistantReply
+      ? {
+          ...localFallback.assistantReply,
+          endpointLabel: remoteAttribution,
+        }
+      : {
+          steps: [],
+          citations: [],
+          endpointLabel: remoteAttribution,
+        },
     ...(isFiniteNum(r.flameSpread_mms) ? { flameSpread_mms: r.flameSpread_mms } : {}),
     ...(isFiniteNum(r.confidenceInterval_mms)
       ? { confidenceInterval_mms: r.confidenceInterval_mms }
@@ -854,7 +882,7 @@ export async function analyzeCombustionState(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
     try {
-      // First attempt /evaluate on the V2 production API
+      // First attempt /evaluate on the active inference endpoint
       const evaluateRes = await fetch(`${apiBaseUrl}/evaluate`, {
         method: 'POST',
         headers: buildAuthHeaders(config),
@@ -920,7 +948,10 @@ export async function analyzeCombustionState(
     await new Promise((resolve) => setTimeout(resolve, 110));
   }
 
-  const localBase = runLocalPhysicsSimulation(request, catalog, archiveContext);
+  const localBase = {
+    ...runLocalPhysicsSimulation(request, catalog, archiveContext),
+    endpointLabel: MODEL_LABEL_LOCAL,
+  };
   return applyCorrectionsAndProfileToSimulation(
     localBase,
     request,
@@ -961,7 +992,8 @@ export async function runModelConsoleInference(params: {
       ? params.catalog.filter((r) => params.request.selectedRunIds!.includes(r.id))
       : []);
 
-  // If remote live backend is configured, attempt POST /ask with 25-second timeout
+  // If remote live backend is configured, attempt POST /ask
+  const activeProfile = getActiveEndpointProfile();
   const config = getApiEndpointConfig();
   const apiBaseUrl = config.baseUrl.trim().replace(/\/$/, '');
 
@@ -972,9 +1004,11 @@ export async function runModelConsoleInference(params: {
     suggestedVizMode?: string;
     guardrailWarning?: string;
     groundedModel?: string;
+    flameSpread_mms?: number;
+    hazardStatus?: SimulationResponse['hazardStatus'];
   } | null = null;
 
-  if (apiBaseUrl) {
+  if (apiBaseUrl && activeProfile) {
     const liveSliders: VirtualTestConfig = {
       O2_pct: params.request.O2_pct,
       P_psi: params.request.P_psi,
@@ -991,12 +1025,14 @@ export async function runModelConsoleInference(params: {
         sliders: liveSliders,
         catalog: params.catalog,
         archiveContext: params.archiveContext,
+        customUrl:
+          activeProfile.id !== ENV_DEFAULT_PROFILE_ID ? apiBaseUrl : undefined,
       });
       if (askRes && askRes.steps.length > 0) {
         liveAskResult = askRes;
       }
     } catch {
-      // Offline fallback to local combustion intelligence
+      // Offline or rate-limited fallback to Local Combustion Model pipeline below
     }
   }
 
@@ -1026,6 +1062,22 @@ export async function runModelConsoleInference(params: {
       ignitionFlux_Wm2: params.request.ignitionFlux_Wm2 ?? 25000,
     };
 
+    const analyzeEndpointLabel = response.assistantReply.endpointLabel;
+    const remoteAnalyzeSucceeded =
+      analyzeEndpointLabel === MODEL_LABEL_CUSTOM ||
+      analyzeEndpointLabel === MODEL_LABEL_ACTIVE;
+
+    if (!liveAskResult && !remoteAnalyzeSucceeded) {
+      liveAskResult = await runLocalCombustionModelPipeline({
+        question: params.question,
+        mode: params.mode,
+        sliders,
+        localSim: response,
+        explanationDepth: userProfile.explanationDepth,
+        chartContextSummary: params.chartContext?.summaryHeadline,
+      });
+    }
+
     const inlineChart = resolveChatVisualization({
       question: params.question,
       mode: params.mode,
@@ -1040,13 +1092,21 @@ export async function runModelConsoleInference(params: {
       preferredCharts: userProfile.preferredCharts,
     });
 
-    const endpointLabel = liveAskResult?.groundedModel
-      ? `${liveAskResult.groundedModel}`
-      : getEffectiveEndpointLabel();
+    const verifiedNotes = response.assistantReply.steps.filter((s) =>
+      s.includes('Verified Correction Applied')
+    );
 
-    let combinedSteps = liveAskResult && liveAskResult.steps.length > 0
-      ? liveAskResult.steps
-      : response.assistantReply.steps;
+    const endpointLabel = liveAskResult?.groundedModel || MODEL_LABEL_LOCAL;
+
+    let combinedSteps =
+      liveAskResult && liveAskResult.steps.length > 0
+        ? [
+            ...verifiedNotes.filter(
+              (note) => !liveAskResult!.steps.some((st) => st.includes(note))
+            ),
+            ...liveAskResult.steps,
+          ]
+        : response.assistantReply.steps;
 
     if (liveAskResult?.guardrailWarning) {
       combinedSteps = [

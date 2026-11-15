@@ -690,8 +690,8 @@ export const PsiInvestigationDetailView: React.FC<
                             ? 'bg-zinc-800/50'
                             : 'bg-zinc-100'
                           : isDark
-                          ? 'hover:bg-white/[0.03]'
-                          : 'hover:bg-zinc-50'
+                          ? 'hover:bg-zinc-800/70'
+                          : 'hover:bg-zinc-100'
                       }`}
                     >
                       <td className="py-2 px-3 font-mono font-semibold whitespace-nowrap">

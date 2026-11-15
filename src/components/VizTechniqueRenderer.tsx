@@ -306,10 +306,10 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
 
     return (
       <div
-        className={`px-3 py-2 rounded-[6px] border backdrop-blur-md shadow-xl text-xs ${
+        className={`px-3 py-2 rounded-lg border backdrop-blur-xl shadow-xl text-xs ${
           isDark
-            ? 'bg-[#18181B]/85 border-[#27272A] text-[#FAFAFA]'
-            : 'bg-white/88 border-[#E4E4E7] text-[#18181B]'
+            ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+            : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
         }`}
       >
         <div className="font-sans font-semibold text-xs">{title}</div>
@@ -722,10 +722,10 @@ export const VizTechniqueRenderer: React.FC<VizTechniqueRendererProps> = ({
   const FloatingGlassOverlay = () =>
     glassTooltip ? (
       <div
-        className={`pointer-events-none absolute top-2 right-3 z-30 px-3 py-2 rounded-[6px] border backdrop-blur-md shadow-xl text-xs transition-all duration-150 ${
+        className={`pointer-events-none absolute top-2 right-3 z-30 px-3 py-2 rounded-lg border backdrop-blur-xl shadow-xl text-xs transition-all duration-150 ${
           isDark
-            ? 'bg-[#18181B]/85 border-[#27272A] text-[#FAFAFA]'
-            : 'bg-white/88 border-[#E4E4E7] text-[#18181B]'
+            ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+            : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
         }`}
       >
         <div className="font-sans font-semibold flex items-center justify-between gap-4">

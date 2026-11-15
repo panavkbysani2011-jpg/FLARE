@@ -274,8 +274,14 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
         </div>
       </div>
 
-      {/* Section 1: Collapsible Test Chamber Configuration Panel */}
-      <CollapsibleCard
+      {/* Two-Column Workbench: Sticky Chamber Parameters (Left) + Results & Equations (Right) */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        <aside
+          className="xl:col-span-5 xl:sticky xl:top-[68px] xl:self-start xl:max-h-[calc(100vh-5.5rem)] xl:overflow-y-auto"
+          aria-label="Test Chamber Configuration"
+        >
+          {/* Section 1: Collapsible Test Chamber Configuration Panel */}
+          <CollapsibleCard
         theme={theme}
         title="Test Chamber Configuration"
         subtitle={`${config.g_eff.toFixed(3)}g · ${config.material}`}
@@ -597,9 +603,11 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           </div>
         </div>
       </CollapsibleCard>
+        </aside>
 
-      {/* Section 2: Collapsible Virtual Test Results & Model Accuracy Report */}
-      <CollapsibleCard
+        <div className="xl:col-span-7 space-y-5 min-w-0">
+          {/* Section 2: Collapsible Virtual Test Results & Model Accuracy Report */}
+          <CollapsibleCard
         theme={theme}
         title="Virtual Test Results & Model Accuracy Report"
         subtitle={`${confidence.confidencePct.toFixed(1)}% Model Confidence`}
@@ -1259,7 +1267,7 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
                       key={mat.code}
                       onMouseEnter={() => onHoverMaterial(mat.code)}
                       onMouseLeave={() => onHoverMaterial(null)}
-                      className="hover:bg-zinc-50/80 dark:hover:bg-white/[0.02]"
+                      className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/70"
                     >
                       <td className="py-2.5 px-3 font-sans font-medium whitespace-nowrap">
                         {mat.name}{' '}
@@ -1299,6 +1307,8 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
           </div>
         </div>
       </CollapsibleCard>
+        </div>
+      </div>
     </div>
   );
 };

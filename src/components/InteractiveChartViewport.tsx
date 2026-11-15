@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, Minus, Plus } from 'lucide-react';
+import { Lock, Minus, Plus, RotateCcw, Unlock } from 'lucide-react';
 import { HazardOutcome, PsiRun, ThemeMode } from '../types/psi';
 import {
   AxisDomain,
@@ -112,6 +112,7 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
   const [xDomain, setXDomain] = useState<AxisDomain>(normBaseX);
   const [yDomain, setYDomain] = useState<AxisDomain>(normBaseY);
   const [lockMode, setLockMode] = useState<AxisLockMode>(defaultLockMode);
+  const [isZoomLocked, setIsZoomLocked] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -204,12 +205,14 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
     zoomAtNormalizedPoint(0.5, 0.5, 1.38);
   }, [zoomAtNormalizedPoint, customZoomOutHandler]);
 
-  // Native non-passive wheel listener so outer page never scrolls when zooming inside chart
+  // Native non-passive wheel listener: allows normal page scrolling when Zoom Locked,
+  // and applies controlled-sensitivity Desmos zoom when unlocked.
   useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
 
     const handleNativeWheel = (e: WheelEvent) => {
+      if (isZoomLocked) return;
       if (toolbarRef.current && toolbarRef.current.contains(e.target as Node)) {
         return;
       }
@@ -231,7 +234,8 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
       const u = Math.max(0, Math.min(1, (e.clientX - plotLeft) / plotWidth));
       const v = Math.max(0, Math.min(1, (e.clientY - plotTop) / plotHeight));
 
-      const deltaNorm = Math.max(-0.45, Math.min(0.45, e.deltaY * 0.0018));
+      // Controlled wheel/trackpad sensitivity so zoom scales smoothly without 0-100% jumps
+      const deltaNorm = Math.max(-0.16, Math.min(0.16, e.deltaY * 0.0007));
       const factor = Math.exp(deltaNorm);
       zoomAtNormalizedPoint(u, v, factor);
     };
@@ -240,9 +244,10 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
     return () => {
       el.removeEventListener('wheel', handleNativeWheel);
     };
-  }, [plotInsets, zoomAtNormalizedPoint, customWheelHandler]);
+  }, [isZoomLocked, plotInsets, zoomAtNormalizedPoint, customWheelHandler]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isZoomLocked) return;
     if (e.button !== 0) return;
     if (toolbarRef.current && toolbarRef.current.contains(e.target as Node)) {
       return;
@@ -258,6 +263,7 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isZoomLocked) return;
     const st = dragStateRef.current;
     if (!st.active) return;
 
@@ -297,6 +303,7 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
   };
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isZoomLocked) return;
     if (toolbarRef.current && toolbarRef.current.contains(e.target as Node)) {
       return;
     }
@@ -346,135 +353,175 @@ export const InteractiveChartViewport: React.FC<InteractiveChartViewportProps> =
     lockMode === 'xy' ? 'XY' : lockMode === 'x' ? 'X-Only' : 'Y-Only';
 
   return (
-    <div
-      ref={stageRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={finishDrag}
-      onPointerCancel={finishDrag}
-      onPointerLeave={finishDrag}
-      onDoubleClick={handleDoubleClick}
-      className={`relative select-none pb-11 ${minHeightClass} ${
-        isDragging ? 'cursor-grabbing' : 'cursor-grab'
-      }`}
-    >
-      {children({
-        xDomain,
-        yDomain,
-        xTicks,
-        yTicks,
-        zoomRatio: readout.zoomRatio,
-        xZoomRatio,
-        yZoomRatio,
-        isZoomed: readout.isZoomed,
-        isModified: effectiveIsModified,
-        lockMode,
-        isDragging,
-        wasRecentlyDragged,
-        zoomIn,
-        zoomOut,
-        resetView,
-        setXDomain,
-        setYDomain,
-      })}
+    <div className="flex flex-col gap-2">
+      <div
+        ref={stageRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={finishDrag}
+        onPointerCancel={finishDrag}
+        onPointerLeave={finishDrag}
+        onDoubleClick={handleDoubleClick}
+        className={`relative select-none ${minHeightClass} ${
+          isZoomLocked
+            ? 'cursor-default'
+            : isDragging
+            ? 'cursor-grabbing'
+            : 'cursor-grab'
+        }`}
+      >
+        {children({
+          xDomain,
+          yDomain,
+          xTicks,
+          yTicks,
+          zoomRatio: readout.zoomRatio,
+          xZoomRatio,
+          yZoomRatio,
+          isZoomed: readout.isZoomed,
+          isModified: effectiveIsModified,
+          lockMode,
+          isDragging,
+          wasRecentlyDragged,
+          zoomIn,
+          zoomOut,
+          resetView,
+          setXDomain,
+          setYDomain,
+        })}
+      </div>
 
-      {/* Compact Bottom-Right Floating Desmos Zoom Toolbar */}
+      {/* Bottom Chart Zoom Lock & Desmos Axis Control Strip (directly below graph) */}
       <div
         ref={toolbarRef}
         onPointerDown={(e) => e.stopPropagation()}
-        className={`absolute bottom-1 right-1 z-20 focus-within:z-40 hover:z-40 inline-flex flex-wrap items-center gap-1 px-1.5 py-1 rounded-lg border backdrop-blur-md shadow-md cursor-default ${
+        className={`flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border backdrop-blur-xl text-xs transition-colors ${
           isDark
-            ? 'bg-[#18181B]/92 border-[#27272A] text-[#FAFAFA]'
-            : 'bg-white/94 border-[#E4E4E7] text-[#18181B]'
+            ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+            : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
         }`}
       >
-        {extraToolbarControls && (
-          <div className="flex items-center pr-1 mr-0.5 border-r border-[#E4E4E7] dark:border-[#27272A]">
-            {extraToolbarControls}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={zoomOut}
-          aria-label="Zoom out"
-          title="Zoom Out (or scroll down)"
-          className={`h-7 w-7 inline-flex items-center justify-center rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
-            isDark
-              ? 'border-[#27272A] hover:bg-zinc-800 text-zinc-200'
-              : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-700'
-          }`}
-        >
-          <Minus className="w-3 h-3" />
-        </button>
-
-        <div
-          className="px-2 py-0.5 text-[11px] font-sans font-medium flex items-center gap-1.5 whitespace-nowrap"
-          title={`Active Domain: ${activeRangeText} (Double-click plot to reset)`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-[1px] shrink-0 ${
-              effectiveIsModified ? 'bg-[#10B981]' : 'bg-zinc-400'
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsZoomLocked((prev) => !prev)}
+            aria-pressed={!isZoomLocked}
+            title={
+              isZoomLocked
+                ? 'Unlock scroll & drag zoom on this chart'
+                : 'Lock zoom so page scrolling stays uninterrupted'
+            }
+            className={`h-7 px-2.5 inline-flex items-center gap-1.5 rounded-md border text-[11px] font-sans font-medium transition-all duration-150 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+              !isZoomLocked
+                ? 'border-[#10B981]/60 bg-[#10B981]/12 text-[#10B981] hover:bg-[#10B981]/20'
+                : isDark
+                ? 'border-[#27272A] bg-[#18181B] text-zinc-200 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-500'
+                : 'border-[#E4E4E7] bg-zinc-50 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
             }`}
-          />
-          <span className="font-mono tabular-nums font-semibold">
-            {effectiveZoomLabel}
-          </span>
-          {effectiveIsModified && (
-            <span className="hidden sm:inline font-mono tabular-nums text-[10px] text-zinc-500 dark:text-zinc-400">
-              ({activeRangeText})
-            </span>
+          >
+            {isZoomLocked ? (
+              <>
+                <Lock className="w-3 h-3 shrink-0" />
+                <span>Zoom Locked</span>
+              </>
+            ) : (
+              <>
+                <Unlock className="w-3 h-3 shrink-0" />
+                <span>Zoom Unlocked - Scroll/Drag to Zoom</span>
+              </>
+            )}
+          </button>
+
+          {extraToolbarControls && (
+            <div className="flex items-center pl-2 border-l border-[#E4E4E7] dark:border-[#27272A]">
+              {extraToolbarControls}
+            </div>
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={zoomIn}
-          aria-label="Zoom in"
-          title="Zoom In (or scroll up)"
-          className={`h-7 w-7 inline-flex items-center justify-center rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
-            isDark
-              ? 'border-[#27272A] hover:bg-zinc-800 text-zinc-200'
-              : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-700'
-          }`}
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-
-        {showAxisLock && (
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
-            onClick={cycleAxisLock}
-            aria-label="Axis lock mode"
-            title="Cycle axis lock: XY, X-Only, or Y-Only"
-            className={`h-7 px-2 inline-flex items-center justify-center text-[10.5px] font-sans font-semibold rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
-              lockMode !== 'xy'
-                ? 'border-[#F59E0B]/60 bg-[#F59E0B]/12 text-[#F59E0B]'
-                : isDark
-                ? 'border-[#27272A] hover:bg-zinc-800 text-zinc-300'
+            onClick={zoomOut}
+            aria-label="Zoom out"
+            title="Zoom Out"
+            className={`h-7 w-7 inline-flex items-center justify-center rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+              isDark
+                ? 'border-[#27272A] hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-200'
                 : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-700'
             }`}
           >
-            {lockLabel}
+            <Minus className="w-3 h-3" />
           </button>
-        )}
 
-        <button
-          type="button"
-          onClick={resetView}
-          aria-label="Reset zoom view"
-          title="Reset to 100% default bounds (or double-click canvas)"
-          className={`h-7 px-2 inline-flex items-center gap-1 text-[10.5px] font-sans font-semibold rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
-            effectiveIsModified
-              ? 'border-[#10B981] bg-[#10B981]/15 text-[#10B981] hover:bg-[#10B981]/25'
-              : isDark
-              ? 'border-[#27272A] hover:bg-zinc-800 text-zinc-400'
-              : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-500'
-          }`}
-        >
-          <Crosshair className="w-3 h-3" />
-          <span>Reset</span>
-        </button>
+          <div
+            className="px-2 py-0.5 text-[11px] font-sans font-medium flex items-center gap-1.5 whitespace-nowrap"
+            title={`Active Domain: ${activeRangeText}`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-[1px] shrink-0 ${
+                effectiveIsModified ? 'bg-[#10B981]' : 'bg-zinc-400'
+              }`}
+            />
+            <span className="font-mono tabular-nums font-semibold">
+              {effectiveZoomLabel}
+            </span>
+            {effectiveIsModified && (
+              <span className="hidden sm:inline font-mono tabular-nums text-[10px] text-zinc-500 dark:text-zinc-400">
+                ({activeRangeText})
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={zoomIn}
+            aria-label="Zoom in"
+            title="Zoom In"
+            className={`h-7 w-7 inline-flex items-center justify-center rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+              isDark
+                ? 'border-[#27272A] hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-200'
+                : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-700'
+            }`}
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+
+          {showAxisLock && (
+            <button
+              type="button"
+              onClick={cycleAxisLock}
+              aria-label="Axis lock mode"
+              title="Cycle axis lock: XY, X-Only, or Y-Only"
+              className={`h-7 px-2 inline-flex items-center justify-center text-[10.5px] font-sans font-semibold rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                lockMode !== 'xy'
+                  ? 'border-[#F59E0B]/60 bg-[#F59E0B]/12 text-[#F59E0B]'
+                  : isDark
+                  ? 'border-[#27272A] hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-300'
+                  : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-700'
+              }`}
+            >
+              {lockLabel}
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={resetView}
+            aria-label="Reset zoom view"
+            title="Reset to 100% default bounds"
+            className={`h-7 px-2.5 inline-flex items-center gap-1 text-[10.5px] font-sans font-semibold rounded-md border transition-all duration-150 active:scale-[0.95] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+              effectiveIsModified
+                ? 'border-[#10B981] bg-[#10B981]/15 text-[#10B981] hover:bg-[#10B981]/25'
+                : isDark
+                ? 'border-[#27272A] hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-300'
+                : 'border-[#E4E4E7] hover:bg-zinc-100 text-zinc-600'
+            }`}
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset View</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -500,10 +547,10 @@ export const RunTelemetryGlassTooltip: React.FC<RunTelemetryTooltipProps> = ({
   const isDark = theme === 'dark';
   return (
     <div
-      className={`pointer-events-none absolute top-2 right-2 z-30 max-w-[360px] px-3 py-2.5 rounded-lg border backdrop-blur-md shadow-xl text-xs transition-all duration-150 ${
+      className={`pointer-events-none absolute top-2 right-2 z-30 max-w-[360px] px-3 py-2.5 rounded-lg border backdrop-blur-xl shadow-xl text-xs transition-all duration-150 ${
         isDark
-          ? 'bg-[#18181B]/90 border-[#27272A] text-[#FAFAFA]'
-          : 'bg-white/92 border-[#E4E4E7] text-[#18181B]'
+          ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+          : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
       }`}
     >
       <div className="flex items-center justify-between gap-3">

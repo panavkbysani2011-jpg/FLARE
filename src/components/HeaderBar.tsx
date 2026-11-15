@@ -5,7 +5,6 @@ import {
   Download,
   PanelLeftClose,
   PanelLeftOpen,
-  ShieldCheck,
 } from 'lucide-react';
 import {
   DefaultExportFormat,
@@ -21,7 +20,12 @@ import {
   HeaderExportFormat,
   HeaderExportSectionId,
 } from '../utils/exportHelpers';
-import { fetchAuditStatus } from '../lib/flareApi';
+import {
+  BackendConnectionSnapshot,
+  fetchAuditStatus,
+  FLARE_BACKEND_STATUS_EVENT,
+  getCachedBackendConnectionStatus,
+} from '../lib/flareApi';
 
 interface HeaderBarProps {
   theme: ThemeMode;
@@ -90,17 +94,33 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   );
   const exportPopoverRef = useRef<HTMLDivElement | null>(null);
 
-  const [auditBadgeText, setAuditBadgeText] = useState('32/32 Certified · 6.79 ms');
+  const [connectionStatus, setConnectionStatus] = useState<BackendConnectionSnapshot>(
+    () => getCachedBackendConnectionStatus()
+  );
 
   useEffect(() => {
     let cancelled = false;
     void fetchAuditStatus().then((res) => {
-      if (!cancelled && res.badgeLabel) {
-        setAuditBadgeText(res.badgeLabel);
+      if (!cancelled) {
+        setConnectionStatus({
+          connected: Boolean(res.connected),
+          statusText: res.statusText || 'Local Mode',
+          badgeLabel: res.badgeLabel || 'Local Mode',
+          latencyMs: res.latencyMs ?? 0,
+          checkedAtMs: Date.now(),
+        });
       }
     });
+    const handleStatusEvent = (ev: Event) => {
+      const custom = ev as CustomEvent<BackendConnectionSnapshot>;
+      if (!cancelled && custom?.detail) {
+        setConnectionStatus(custom.detail);
+      }
+    };
+    window.addEventListener(FLARE_BACKEND_STATUS_EVENT, handleStatusEvent);
     return () => {
       cancelled = true;
+      window.removeEventListener(FLARE_BACKEND_STATUS_EVENT, handleStatusEvent);
     };
   }, []);
 
@@ -169,7 +189,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <header
-      className={`sticky top-0 z-20 h-[52px] px-4 sm:px-5 border-b backdrop-blur-md flex items-center justify-between gap-4 transition-colors duration-150 ${topBarSurface}`}
+      className={`sticky top-0 ${exportMenuOpen ? 'z-50' : 'z-30'} h-[52px] px-4 sm:px-5 border-b backdrop-blur-md flex items-center justify-between gap-4 transition-colors duration-150 ${topBarSurface}`}
     >
       {/* Left: Subtle Sidebar Expand/Collapse Trigger + Dynamic Breadcrumb */}
       <div className="flex items-center gap-2.5 text-xs font-sans font-medium min-w-0">
@@ -230,19 +250,33 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </nav>
       </div>
 
-      {/* Right: Audit Status Badge + Tier 1 Multi-Select Export Dropdown + 3-Mode Theme Toggle */}
+      {/* Right: Connection Status Indicator + Tier 1 Multi-Select Export Dropdown + 3-Mode Theme Toggle */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Corpus / Audit Badge */}
+        {/* Live Connection Indicator */}
         <div
-          className={`hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border text-[11px] font-sans font-medium transition-colors ${
+          className={`hidden sm:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-[11px] font-sans font-medium transition-colors ${
             isDark
-              ? 'bg-[#18181B] border-[#27272A] text-zinc-300'
+              ? 'bg-[#121216]/95 border-[#27272A] text-zinc-200'
               : 'bg-white border-[#E4E4E7] text-zinc-700'
           }`}
-          title="Physical Science Informatics Verification & Audit Status"
+          title={
+            connectionStatus.connected
+              ? 'Live inference backend connected'
+              : 'Operating locally via Local Combustion Model'
+          }
         >
-          <ShieldCheck className="w-3.5 h-3.5 text-[#10B981] shrink-0" />
-          <span className="font-mono text-[10px] tracking-tight">{auditBadgeText}</span>
+          <span
+            className={`w-2 h-2 rounded-[2px] shrink-0 ${
+              connectionStatus.connected
+                ? 'bg-[#10B981]'
+                : isDark
+                ? 'bg-zinc-500'
+                : 'bg-zinc-400'
+            }`}
+          />
+          <span className="font-mono text-[10px] tracking-tight tabular-nums">
+            {connectionStatus.badgeLabel}
+          </span>
         </div>
 
         <div className="relative" ref={exportPopoverRef}>
@@ -257,7 +291,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                   ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'
                   : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B]'
                 : isDark
-                ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800'
+                ? 'bg-[#18181B] border-[#27272A] text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800/90 hover:text-zinc-50'
                 : 'bg-white border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
             }`}
             title="Select sections and format to bundle into a custom report"
@@ -275,10 +309,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <div
               role="dialog"
               aria-label="Custom Multi-Section Export"
-              className={`absolute right-0 mt-2 w-[320px] sm:w-[356px] rounded-lg border shadow-lg p-3.5 z-50 space-y-3 psi-animate-popover ${
+              className={`absolute right-0 mt-2 w-[320px] sm:w-[356px] rounded-xl border shadow-xl p-3.5 z-50 backdrop-blur-xl space-y-3 psi-animate-popover ${
                 isDark
-                  ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
-                  : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+                  ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                  : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
               }`}
             >
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#E4E4E7] dark:border-[#27272A]">

@@ -16,6 +16,13 @@ import {
   validateAndNormalizeDataset,
 } from './dataImporter';
 import { sanitizeVisiblePsiText } from '../services/dataLoader';
+import {
+  GEMINI_MODEL_CHAIN,
+  MODEL_LABEL_ACTIVE,
+  MODEL_LABEL_LOCAL,
+  normalizeLiveAskResponse,
+} from '../lib/flareApi';
+import { sanitizeStoredMessage } from './chatStorage';
 import { MISSION_AND_SPINOFF_CASES } from '../data/missionAndSpinoffCases';
 import { PsiRun } from '../types/psi';
 import { getPsiSourceLink } from './investigationArtifacts';
@@ -1598,4 +1605,149 @@ test('Desmos domain zoom, pan, dynamic nice ticks, adaptive markers, 16px magnet
     'utf8'
   );
   assert.ok(chatCardSrc.includes('overflow-visible'));
+});
+
+test('live /ask normalizer, chat storage crash-proofing, zoom lock, 3-item model menu, Gemini key setting, and clean UI copy hold', () => {
+  // 1. /ask strict payload adapter
+  const blockedRes = normalizeLiveAskResponse(
+    { blocked: true, reason: 'Off-topic query blocked by domain guardrail.' },
+    MODEL_LABEL_ACTIVE,
+    1.2
+  );
+  assert.equal(blockedRes.blocked, true);
+  assert.ok(blockedRes.guardrailWarning?.includes('Off-topic'));
+  assert.ok(blockedRes.steps.length >= 1);
+
+  const liveRes = normalizeLiveAskResponse(
+    {
+      blocked: false,
+      answer: 'Paragraph one summary.\n\nParagraph two details.',
+      telemetry: {
+        flameSpread_mms: 2.45,
+        hazardStatus: 'Rapid Flame Spread',
+      },
+      citations: [
+        {
+          psi_id: 'PSI-112',
+          source_file: 'Saffire.pdf',
+          page_number: 12,
+          excerpt: 'Upward flame spread.',
+        },
+      ],
+    },
+    MODEL_LABEL_ACTIVE,
+    0.5
+  );
+  assert.equal(liveRes.blocked, false);
+  assert.equal(liveRes.steps.length, 2);
+  assert.equal(liveRes.flameSpread_mms, 2.45);
+  assert.equal(liveRes.hazardStatus, 'Rapid Flame Spread');
+  assert.ok(liveRes.citations[0]?.includes('PSI-112'));
+
+  // Nullish / primitive / corrupted payload safety
+  const badRes = normalizeLiveAskResponse(null, MODEL_LABEL_LOCAL, 0.8);
+  assert.equal(badRes.blocked, false);
+  assert.ok(badRes.steps.length >= 1);
+  assert.equal(GEMINI_MODEL_CHAIN[0], 'gemini-3.8-flash');
+
+  // 2. Crash-proof chat storage sanitizer
+  assert.equal(sanitizeStoredMessage(null, 'fallback-1'), null);
+  const repaired = sanitizeStoredMessage(
+    {
+      role: 'assistant',
+      text: 'Legacy message',
+      citations: [{ psi_id: 'PSI-101', source_file: 'guide.pdf' }],
+      whatIfRows: [
+        {
+          label: 'Sweep 1',
+          O2_pct: 'bad',
+          flameSpread_mms: undefined,
+          hazardStatus: 'Cool Flame Caution',
+        },
+      ],
+    },
+    'repaired-msg-1'
+  );
+  assert.ok(repaired);
+  assert.equal(repaired.id, 'repaired-msg-1');
+  assert.equal(repaired.text, 'Legacy message');
+  assert.ok(Array.isArray(repaired.citations));
+  assert.ok(repaired.citations[0]?.includes('PSI-101'));
+  assert.ok(Array.isArray(repaired.whatIfRows));
+  assert.equal(Number.isFinite(repaired.whatIfRows[0].O2_pct), true);
+  assert.equal(Number.isFinite(repaired.whatIfRows[0].flameSpread_mms), true);
+  assert.equal(repaired.whatIfRows[0].outcome, 'Cool Flame Caution');
+
+  // 3. Chart zoom lock default & bottom control bar
+  const viewportSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/InteractiveChartViewport.tsx'),
+    'utf8'
+  );
+  assert.ok(viewportSrc.includes('const [isZoomLocked, setIsZoomLocked] = useState(true)'));
+  assert.ok(viewportSrc.includes('Zoom Locked'));
+  assert.ok(viewportSrc.includes('Zoom Unlocked'));
+  assert.ok(viewportSrc.includes('Reset View'));
+
+  // 4. Strict 3-item Model Console model selector ordering
+  const consoleSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/ModelConsoleView.tsx'),
+    'utf8'
+  );
+  assert.ok(consoleSrc.includes('Offline - connect endpoint in Settings'));
+  const idxActive = consoleSrc.indexOf('MODEL_LABEL_ACTIVE');
+  const idxLocal = consoleSrc.indexOf('MODEL_LABEL_LOCAL');
+  const idxGlobal = consoleSrc.indexOf('>Global<');
+  assert.ok(idxActive !== -1 && idxLocal !== -1 && idxGlobal !== -1);
+
+  // 5. Settings Gemini API Key field & ErrorBoundary recovery actions
+  const settingsSrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/SettingsModal.tsx'),
+    'utf8'
+  );
+  assert.ok(settingsSrc.includes('Gemini API Key'));
+  assert.ok(settingsSrc.includes('Save Key'));
+
+  const errorBoundarySrc = fs.readFileSync(
+    path.resolve(process.cwd(), 'src/components/ErrorBoundary.tsx'),
+    'utf8'
+  );
+  assert.ok(
+    errorBoundarySrc.includes('Reset Chat &amp; Reload') ||
+      errorBoundarySrc.includes('Reset Chat & Reload')
+  );
+  assert.ok(errorBoundarySrc.includes('Retry View'));
+
+  // 6. Clean branding/badge/hover/em-dash sweep across updated UI & service files
+  const auditedFiles = [
+    'src/App.tsx',
+    'src/lib/flareApi.ts',
+    'src/services/psiApi.ts',
+    'src/components/HeaderBar.tsx',
+    'src/components/LeftSidebar.tsx',
+    'src/components/SettingsModal.tsx',
+    'src/components/ApiSettingsModal.tsx',
+    'src/components/ModelConsoleView.tsx',
+    'src/components/InteractiveChartViewport.tsx',
+    'src/components/VisualAnalyticsStudio.tsx',
+    'src/components/VirtualTestLab.tsx',
+    'src/components/ExperimentRunsView.tsx',
+    'src/components/CatalogView.tsx',
+    'src/components/RunComparator.tsx',
+    'src/components/ImportSyncView.tsx',
+    'src/components/StudioSelect.tsx',
+    'src/components/ExportDropdown.tsx',
+    'src/components/ErrorBoundary.tsx',
+    'src/components/ChatInlineChartCard.tsx',
+    'src/components/VizTechniqueRenderer.tsx',
+  ];
+
+  for (const relPath of auditedFiles) {
+    const content = fs.readFileSync(path.resolve(process.cwd(), relPath), 'utf8');
+    assert.ok(!content.includes('32/32'), `Stale 32/32 string in ${relPath}`);
+    assert.ok(!content.includes('Live V2 Server'), `Stale Live V2 Server in ${relPath}`);
+    assert.ok(!content.includes('Environment API Endpoint'), `Stale Environment API Endpoint in ${relPath}`);
+    assert.ok(!content.includes('hover:bg-white'), `Raw hover:bg-white in ${relPath}`);
+    assert.ok(!content.includes('rounded-full'), `Disallowed rounded-full in ${relPath}`);
+    assert.ok(!content.includes('\u2014'), `Disallowed em-dash in ${relPath}`);
+  }
 });

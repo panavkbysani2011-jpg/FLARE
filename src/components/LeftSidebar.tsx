@@ -403,10 +403,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           {hasSearchQuery && (
             <div
-              className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-lg border shadow-xl p-1.5 max-h-[340px] overflow-y-auto space-y-2 psi-animate-popover ${
+              className={`absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border shadow-2xl backdrop-blur-xl p-1.5 max-h-[340px] overflow-y-auto space-y-2 psi-animate-popover ${
                 isDark
-                  ? 'bg-[#18181B] border-[#27272A] text-zinc-100'
-                  : 'bg-white border-[#E4E4E7] text-zinc-900'
+                  ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                  : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
               }`}
             >
               {searchResults.all.length === 0 ? (

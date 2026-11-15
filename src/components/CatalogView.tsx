@@ -385,7 +385,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           {/* Left Facet Filter Panel */}
           {showFilters && (
             <aside
-              className={`w-full lg:w-[240px] shrink-0 border rounded-[6px] p-4 space-y-5 ${cardSurface}`}
+              className={`w-full lg:w-[240px] shrink-0 lg:sticky lg:top-[68px] lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto border rounded-[6px] p-4 space-y-5 ${cardSurface}`}
               aria-label="Investigation Filters"
             >
             <div className="flex items-center justify-between">
@@ -805,31 +805,80 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
       {/* TAB 2: ISS RESEARCHER'S GUIDE (PARSED CHUNKS + LOCAL 50-PAGE PDF) */}
       {activeTab === 'researchers-guide' && (
-        <div className="space-y-4">
-          {/* Header Banner & PDF Actions */}
-          <CollapsibleCard
-            theme={theme}
-            title="A Researcher's Guide to Combustion Science in Reduced Gravity (50-Page Reference)"
-            subtitle={`${literatureChunks.length.toLocaleString()} indexed chunks`}
-            summaryLine={`50-Page Reference PDF · ${filteredGuideTopics.length} sections · Search filter "${guideSearch || 'All'}"`}
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          {/* Sticky Left Guide Search & Category Sidebar */}
+          <aside
+            className="w-full lg:w-[270px] shrink-0 lg:sticky lg:top-[68px] lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto"
+            aria-label="ISS Researcher's Guide Filters"
           >
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-                  Search directly through the ISS Fire Safety Handbook (190 Researcher&apos;s Guide sections +{' '}
-                  {literatureChunks.length.toLocaleString()} report excerpts). Search fire-safety concepts or open any page in the 50-page PDF guide.
+            <CollapsibleCard
+              theme={theme}
+              title="Researcher's Guide Filters"
+              subtitle={`${literatureChunks.length.toLocaleString()} indexed chunks`}
+              summaryLine={`50-Page Reference PDF · ${filteredGuideTopics.length} sections · Search filter "${guideSearch || 'All'}"`}
+            >
+              <div className="space-y-3">
+                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Search through the ISS Fire Safety Handbook (190 sections +{' '}
+                  {literatureChunks.length.toLocaleString()} excerpts).
                 </p>
 
-                <div className="flex flex-wrap items-center gap-2">
+                {/* Search Input */}
+                <div className="relative w-full">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={guideSearch}
+                    onChange={(e) => setGuideSearch(e.target.value)}
+                    placeholder="cool flame, soot, BASS, PMMA..."
+                    aria-label="Search ISS Researcher's Guide"
+                    className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
+                      isDark
+                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
+                    }`}
+                  />
+                </div>
+
+                {/* Chapter Category Pills */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'ALL',
+                    'Environment & Physics',
+                    'Droplet & Cool Flames',
+                    'Solid Flammability',
+                    'Gaseous & Soot',
+                    'ISS Facilities',
+                  ].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setGuideCategory(cat)}
+                      className={`h-8 px-2.5 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
+                        guideCategory === cat
+                          ? activeMonochrome +
+                            (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
+                          : isDark
+                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 hover:border-zinc-600'
+                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 hover:border-zinc-300'
+                      }`}
+                    >
+                      {cat === 'ALL' ? 'All Sections' : cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* PDF Actions */}
+                <div className="flex flex-col gap-2 pt-1 border-t border-[#E4E4E7] dark:border-[#27272A]">
                   <button
                     type="button"
                     onClick={() => setShowInlinePdf((prev) => !prev)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
+                    className={`w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all cursor-pointer ${
                       showInlinePdf
                         ? activeMonochrome +
                           (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
                         : isDark
-                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-600'
+                        ? 'border-[#27272A] text-zinc-200 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-600'
                         : 'border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
                     }`}
                   >
@@ -843,7 +892,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={RESEARCHERS_GUIDE_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                    className={`w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-sans font-semibold rounded-lg shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       isDark
                         ? 'bg-[#FAFAFA] text-[#09090B] hover:bg-zinc-200'
                         : 'bg-[#18181B] text-[#FFFFFF] hover:bg-zinc-800'
@@ -857,9 +906,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                     href={SAME_EIRD_PDF_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`inline-flex items-center gap-1.5 h-9 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                    className={`w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 text-xs font-sans font-medium rounded-lg border shadow-xs active:scale-[0.98] transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
                       isDark
-                        ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
+                        ? 'border-[#27272A] text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-600'
                         : 'border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300'
                     }`}
                   >
@@ -868,55 +917,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   </a>
                 </div>
               </div>
+            </CollapsibleCard>
+          </aside>
 
-              {/* Search & Chapter Category Filter */}
-              <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                <div className="relative flex-1 min-w-[240px]">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={guideSearch}
-                    onChange={(e) => setGuideSearch(e.target.value)}
-                    placeholder="Search Researcher's Guide & PSI literature (e.g. cool flame, soot, radiometer, BASS, PMMA)..."
-                    aria-label="Search ISS Researcher's Guide"
-                    className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
-                      isDark
-                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
-                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
-                    }`}
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    'ALL',
-                    'Environment & Physics',
-                    'Droplet & Cool Flames',
-                    'Solid Flammability',
-                    'Gaseous & Soot',
-                    'ISS Facilities',
-                  ].map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setGuideCategory(cat)}
-                      className={`h-9 px-3 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                        guideCategory === cat
-                          ? activeMonochrome +
-                            (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
-                          : isDark
-                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
-                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:border-zinc-300'
-                      }`}
-                    >
-                      {cat === 'ALL' ? 'All Sections' : cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CollapsibleCard>
-
+          {/* Right Scrollable Guide Topics & Optional PDF */}
+          <div className="flex-1 min-w-0 w-full space-y-4">
           {/* Optional Embedded Local PDF Viewer */}
           {showInlinePdf && (
             <section className={`border rounded-[6px] overflow-hidden ${cardSurface}`}>
@@ -1102,72 +1107,79 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               );
             })}
           </div>
+          </div>
         </div>
       )}
 
       {/* TAB 3: MISSION & SPIN-OFF CASES (8 HISTORICAL FIRES & TERRESTRIAL SPINOFFS) */}
       {activeTab === 'mission-spinoffs' && (
-        <div className="space-y-4">
-          <CollapsibleCard
-            theme={theme}
-            title="Historical Spacecraft Fire Incidents & Earth Fire-Safety Spin-Offs"
-            subtitle={`${filteredCases.length} of ${missionCases.length} Official Case Records`}
-            summaryLine={`${filteredCases.length} of ${missionCases.length} Historical & Spin-Off Cases · Category: ${caseCategory === 'ALL' ? 'All' : caseCategory}`}
+        <div className="flex flex-col lg:flex-row gap-5 items-start">
+          <aside
+            className="w-full lg:w-[270px] shrink-0 lg:sticky lg:top-[68px] lg:self-start lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto"
+            aria-label="Mission and Spin-Off Filters"
           >
-            <div className="space-y-3">
-              <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400">
-                Eight engineering reference cases linking Apollo 1, Apollo 13, and Mir fire lessons to ISS microgravity combustion research and firefighter safety hardware.
-              </p>
+            <CollapsibleCard
+              theme={theme}
+              title="Mission & Spin-Off Filters"
+              subtitle={`${filteredCases.length} of ${missionCases.length} Official Records`}
+              summaryLine={`${filteredCases.length} of ${missionCases.length} Historical & Spin-Off Cases · Category: ${caseCategory === 'ALL' ? 'All' : caseCategory}`}
+            >
+              <div className="space-y-3">
+                <p className="text-xs font-sans text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  Eight engineering cases linking Apollo 1, Apollo 13, and Mir fire lessons to ISS microgravity combustion research and firefighter safety hardware.
+                </p>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="relative flex-1 min-w-[220px]">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={caseSearch}
-                    onChange={(e) => setCaseSearch(e.target.value)}
-                    placeholder="Filter by Apollo 1, Mir, SCBA, smoke detector, Nomex..."
-                    aria-label="Search Mission & Spin-Off Cases"
-                    className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
-                      isDark
-                        ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
-                        : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
-                    }`}
-                  />
-                </div>
-
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {[
-                    { id: 'ALL', label: 'All Cases (8)' },
-                    {
-                      id: 'Historical Spacecraft Fire',
-                      label: 'Historical Spacecraft Fires',
-                    },
-                    { id: 'ISS Program & Science', label: 'ISS Program & Science' },
-                    { id: 'Terrestrial Spin-Off', label: 'Terrestrial Spin-Offs' },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setCaseCategory(cat.id)}
-                      className={`h-9 px-3 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
-                        caseCategory === cat.id
-                          ? activeMonochrome +
-                            (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
-                          : isDark
-                          ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:border-zinc-600'
-                          : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:border-zinc-300'
+                <div className="flex flex-col gap-2.5">
+                  <div className="relative w-full">
+                    <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={caseSearch}
+                      onChange={(e) => setCaseSearch(e.target.value)}
+                      placeholder="Apollo 1, Mir, SCBA, Nomex..."
+                      aria-label="Search Mission & Spin-Off Cases"
+                      className={`w-full h-9 pl-8 pr-3 text-xs font-sans rounded-lg border shadow-2xs transition-colors duration-150 focus:outline-none ${
+                        isDark
+                          ? 'bg-[#09090B] border-[#27272A] text-zinc-100 placeholder:text-zinc-500 hover:border-zinc-600 focus:border-zinc-400'
+                          : 'bg-zinc-50 border-[#E4E4E7] text-zinc-900 placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-500'
                       }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'ALL', label: 'All Cases (8)' },
+                      {
+                        id: 'Historical Spacecraft Fire',
+                        label: 'Historical Spacecraft Fires',
+                      },
+                      { id: 'ISS Program & Science', label: 'ISS Program & Science' },
+                      { id: 'Terrestrial Spin-Off', label: 'Terrestrial Spin-Offs' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCaseCategory(cat.id)}
+                        className={`h-8 px-2.5 text-[11px] font-sans font-medium rounded-lg border shadow-2xs active:scale-[0.98] transition-all duration-150 focus-visible:outline-none cursor-pointer ${
+                          caseCategory === cat.id
+                            ? activeMonochrome +
+                              (isDark ? ' border-[#FAFAFA]' : ' border-[#18181B]')
+                            : isDark
+                            ? 'border-[#27272A] text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 hover:border-zinc-600'
+                            : 'border-[#E4E4E7] text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100 hover:border-zinc-300'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CollapsibleCard>
+            </CollapsibleCard>
+          </aside>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="flex-1 min-w-0 w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {filteredCases.map((item) => {
               const catDot =
                 item.category === 'Historical Spacecraft Fire'
@@ -1310,6 +1322,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                 </article>
               );
             })}
+            </div>
           </div>
         </div>
       )}

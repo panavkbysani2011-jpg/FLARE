@@ -45,8 +45,12 @@ import {
 import { triggerFileDownload } from '../utils/exportHelpers';
 import { StudioSelect } from './StudioSelect';
 import {
+  getGeminiApiKey,
   getLiveBackendUrl,
+  hasCustomGeminiApiKey,
+  resetGeminiApiKey,
   resetLiveBackendUrl,
+  setGeminiApiKey,
   setLiveBackendUrl,
   testFlareApiConnection,
 } from '../lib/flareApi';
@@ -121,7 +125,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [fgHexDraft, setFgHexDraft] = useState(effectiveFg);
   const [accentHexDraft, setAccentHexDraft] = useState(effectiveAccent);
 
-  // Live Backend Endpoint URL state (general tab)
+  // Live Backend Endpoint URL & Gemini API Key state (general tab)
   const [backendUrlDraft, setBackendUrlDraft] = useState(getLiveBackendUrl());
   const [isTestingBackend, setIsTestingBackend] = useState(false);
   const [backendStatusInfo, setBackendStatusInfo] = useState<{
@@ -130,10 +134,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     badgeLabel: string;
     latencyMs?: number;
   }>({
-    ok: true,
-    statusText: 'Live V2 Server · 32/32 Certified',
-    badgeLabel: 'Live V2 Server · 32/32 Certified',
+    ok: false,
+    statusText: 'Local Mode',
+    badgeLabel: 'Local Mode',
   });
+  const [geminiKeyDraft, setGeminiKeyDraft] = useState(() =>
+    hasCustomGeminiApiKey() ? getGeminiApiKey() : ''
+  );
+  const [geminiKeyNotice, setGeminiKeyNotice] = useState<string | null>(null);
+  const hasAnyGeminiKey = Boolean(getGeminiApiKey());
 
   // Account & Memory Tab Feedback / Confirmations
   const [accountNotice, setAccountNotice] = useState<string | null>(null);
@@ -156,6 +165,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setConfirmDeleteOpen(false);
     const activeUrl = getLiveBackendUrl();
     setBackendUrlDraft(activeUrl);
+    setGeminiKeyDraft(hasCustomGeminiApiKey() ? getGeminiApiKey() : '');
+    setGeminiKeyNotice(null);
     void testFlareApiConnection(activeUrl).then(setBackendStatusInfo);
   }, [isOpen, session, initialEmail, initialBio]);
 
@@ -489,7 +500,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span>Live Backend Endpoint URL</span>
                       </div>
                       <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
-                        Configure the live Python FastAPI V2 inference endpoint or Cloudflare tunnel URL
+                        Configure the live combustion inference endpoint or Cloudflare tunnel URL
                       </p>
                     </div>
 
@@ -497,14 +508,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-sans font-medium">
                       <span
                         className={`w-2 h-2 rounded-[2px] shrink-0 ${
-                          backendStatusInfo.ok ? 'bg-[#10B981]' : 'bg-[#F59E0B]'
+                          backendStatusInfo.ok
+                            ? 'bg-[#10B981]'
+                            : 'bg-zinc-400 dark:bg-zinc-500'
                         }`}
                       />
                       <span
                         className={
                           backendStatusInfo.ok
                             ? 'text-[#10B981]'
-                            : 'text-[#F59E0B]'
+                            : 'text-zinc-500 dark:text-zinc-400'
                         }
                       >
                         {backendStatusInfo.statusText}
@@ -559,6 +572,86 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <p className="text-[10px] font-sans text-zinc-500 dark:text-zinc-400">
                       Saved in localStorage. Defaults to import.meta.env.VITE_IGNIS_API_URL so fresh tunnel URLs can be pasted anytime without redeploying.
                     </p>
+                  </div>
+
+                  {/* Optional Gemini API Key Override for Local Combustion Model */}
+                  <div className="pt-3 border-t border-[#E4E4E7] dark:border-[#27272A] space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-sans font-semibold">
+                          Gemini API Key (Optional Override)
+                        </div>
+                        <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+                          Powers Local Combustion Model synthesis with automatic multi-model failover.
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${
+                          hasCustomGeminiApiKey()
+                            ? 'border-[#10B981]/40 text-[#10B981]'
+                            : hasAnyGeminiKey
+                            ? 'border-[#27272A]/40 dark:border-[#27272A] text-zinc-500 dark:text-zinc-400'
+                            : 'border-[#F59E0B]/40 text-[#F59E0B]'
+                        }`}
+                      >
+                        {hasCustomGeminiApiKey()
+                          ? 'Browser Override Active'
+                          : hasAnyGeminiKey
+                          ? 'Default .env Key Active'
+                          : 'No Key Configured'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="password"
+                        value={geminiKeyDraft}
+                        onChange={(e) => {
+                          setGeminiKeyDraft(e.target.value);
+                          setGeminiKeyNotice(null);
+                        }}
+                        placeholder={
+                          hasAnyGeminiKey
+                            ? 'Using default .env key (paste to override)'
+                            : 'Paste Gemini API key (saved locally in browser)'
+                        }
+                        aria-label="Gemini API Key"
+                        className={`flex-1 h-9 px-3 rounded-lg border text-xs font-mono transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGeminiApiKey(geminiKeyDraft);
+                            setGeminiKeyNotice(
+                              geminiKeyDraft.trim()
+                                ? 'Saved Gemini API key in localStorage.'
+                                : 'Using default import.meta.env.VITE_GEMINI_API_KEY.'
+                            );
+                          }}
+                          className={`h-9 px-3 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] ${inactiveOptionBtn}`}
+                        >
+                          Save Key
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetGeminiApiKey();
+                            setGeminiKeyDraft('');
+                            setGeminiKeyNotice('Reset to default project .env key.');
+                          }}
+                          className={`h-9 px-2.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] ${inactiveOptionBtn}`}
+                          title="Reset Gemini API key to .env default"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    {geminiKeyNotice && (
+                      <p className="text-[11px] font-sans text-[#10B981]">
+                        {geminiKeyNotice}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

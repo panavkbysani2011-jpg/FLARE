@@ -49,7 +49,7 @@ export function ExportDropdown<F extends ExportFileFormat>({
   }, [open]);
 
   return (
-    <div className="relative inline-block" ref={rootRef}>
+    <div className={`relative inline-block ${open ? 'z-40' : 'z-20'}`} ref={rootRef}>
       <button
         type="button"
         disabled={disabled}
@@ -63,7 +63,7 @@ export function ExportDropdown<F extends ExportFileFormat>({
               ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA]'
               : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B]'
             : isDark
-            ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:bg-zinc-800 hover:border-zinc-500'
+            ? 'bg-[#09090B] border-[#27272A] text-zinc-200 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-500'
             : 'bg-zinc-50 border-[#E4E4E7] text-zinc-800 hover:bg-zinc-100 hover:border-zinc-300'
         }`}
       >
@@ -80,10 +80,10 @@ export function ExportDropdown<F extends ExportFileFormat>({
         <div
           role="menu"
           aria-label={`${label} formats`}
-          className={`absolute right-0 mt-1.5 w-[212px] rounded-lg border shadow-lg p-1.5 z-50 space-y-0.5 psi-animate-popover ${
+          className={`absolute right-0 mt-1.5 w-[212px] rounded-xl border shadow-2xl p-1.5 z-50 backdrop-blur-xl space-y-0.5 psi-animate-popover ${
             isDark
-              ? 'bg-[#121215] border-[#27272A] text-[#FAFAFA]'
-              : 'bg-[#FFFFFF] border-[#E4E4E7] text-[#18181B]'
+              ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+              : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
           }`}
         >
           <div className="px-2 py-1 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
@@ -102,7 +102,7 @@ export function ExportDropdown<F extends ExportFileFormat>({
                 }}
                 className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-xs font-sans text-left transition-colors cursor-pointer ${
                   isDark
-                    ? 'hover:bg-[#18181B] text-zinc-200'
+                    ? 'hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-200'
                     : 'hover:bg-zinc-100 text-zinc-800'
                 }`}
               >

@@ -46,13 +46,24 @@ import {
   VizMode,
 } from '../types/psi';
 import {
+  ENV_DEFAULT_PROFILE_ID,
+  LOCAL_MODEL_ID,
   getActiveEndpointProfileId,
   getApiEndpointProfiles,
-  LOCAL_MODEL_ID,
   setActiveEndpointProfileId,
   submitModelFeedback,
   syncCorpusWithEndpoint,
 } from '../services/psiApi';
+import {
+  BackendConnectionSnapshot,
+  FLARE_BACKEND_STATUS_EVENT,
+  MODEL_LABEL_ACTIVE,
+  MODEL_LABEL_LOCAL,
+  fetchAuditStatus,
+  getCachedBackendConnectionStatus,
+  getLiveBackendUrl,
+  safeFiniteNumber,
+} from '../lib/flareApi';
 import {
   getOrCreateUserProfile,
   getVerifiedCorrections,
@@ -228,6 +239,9 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
   const [activeProfileId, setActiveProfileIdState] = useState<string>(() =>
     getActiveEndpointProfileId()
   );
+  const [backendStatus, setBackendStatus] = useState<BackendConnectionSnapshot>(() =>
+    getCachedBackendConnectionStatus()
+  );
   const [isApiModalOpen, setIsApiModalOpen] = useState(false);
   const [endpointSyncNotice, setEndpointSyncNotice] =
     useState<EndpointSyncState | null>(null);
@@ -310,6 +324,49 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
     () => apiProfiles.find((p) => p.id === activeProfileId) ?? null,
     [apiProfiles, activeProfileId]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (backendStatus.checkedAtMs === 0) {
+      void fetchAuditStatus().then((res) => {
+        if (!cancelled) {
+          setBackendStatus({
+            connected: Boolean(res.connected),
+            statusText: res.statusText || 'Local Mode',
+            badgeLabel: res.badgeLabel || 'Local Mode',
+            latencyMs: res.latencyMs ?? 0,
+            checkedAtMs: Date.now(),
+          });
+        }
+      });
+    }
+    const onStatus = (ev: Event) => {
+      const custom = ev as CustomEvent<BackendConnectionSnapshot>;
+      if (!cancelled && custom?.detail) {
+        setBackendStatus(custom.detail);
+      }
+    };
+    window.addEventListener(FLARE_BACKEND_STATUS_EVENT, onStatus);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(FLARE_BACKEND_STATUS_EVENT, onStatus);
+    };
+  }, [backendStatus.checkedAtMs]);
+
+  const effectiveModelSelection: 'active' | 'local' | 'global' = useMemo(() => {
+    if (activeProfile) return 'global';
+    if (activeProfileId === ENV_DEFAULT_PROFILE_ID && backendStatus.connected) {
+      return 'active';
+    }
+    return 'local';
+  }, [activeProfile, activeProfileId, backendStatus.connected]);
+
+  const activeModelDisplayName =
+    effectiveModelSelection === 'active'
+      ? MODEL_LABEL_ACTIVE
+      : effectiveModelSelection === 'global'
+      ? 'Global'
+      : MODEL_LABEL_LOCAL;
 
   // Sync chart context decoded from Visual Analytics Studio into an attachment chip
   useEffect(() => {
@@ -394,8 +451,8 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
     ? 'bg-[#FAFAFA] text-[#09090B] border-[#FAFAFA] hover:bg-zinc-200'
     : 'bg-[#18181B] text-[#FFFFFF] border-[#18181B] hover:bg-zinc-800';
   const secondaryBtn = isDark
-    ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:bg-zinc-800 hover:border-zinc-600'
-    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300';
+    ? 'bg-[#18181B] border-[#27272A] text-zinc-300 hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-600'
+    : 'bg-white border-[#E4E4E7] text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 hover:border-zinc-300';
 
   const studioTechniqueLabel =
     VIZ_TECHNIQUE_REGISTRY.find((t) => t.id === studioVizMode)?.shortName ??
@@ -444,7 +501,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
         psiId: r.psiId,
         runId: r.id,
         title: `${r.psiId} · ${r.runCode}`,
-        sub: `${r.material} · ${r.O2_pct.toFixed(1)}% O2 · ${r.flameSpread_mms.toFixed(2)} mm/s`,
+        sub: `${r.material} · ${safeFiniteNumber(r.O2_pct, 21).toFixed(1)}% O2 · ${safeFiniteNumber(r.flameSpread_mms, 0).toFixed(2)} mm/s`,
       }));
   }, [investigations, runs, psiSearchQuery]);
 
@@ -654,20 +711,53 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
   };
 
   const handleSelectModelProfileWithSync = async (profileId: string) => {
+    if (profileId === ENV_DEFAULT_PROFILE_ID && !backendStatus.connected) {
+      return;
+    }
     setActiveEndpointProfileId(profileId);
     setActiveProfileIdState(profileId);
     setOpenMenu(null);
 
-    const chosen =
-      profileId === LOCAL_MODEL_ID
-        ? null
-        : apiProfiles.find((p) => p.id === profileId) ?? null;
+    if (profileId === LOCAL_MODEL_ID) {
+      setEndpointSyncNotice({
+        status: 'local-only',
+        endpointName: MODEL_LABEL_LOCAL,
+        message: `${MODEL_LABEL_LOCAL} active`,
+      });
+      onEndpointSyncedOrProfileChanged?.();
+      return;
+    }
 
+    if (profileId === ENV_DEFAULT_PROFILE_ID) {
+      const liveUrl = getLiveBackendUrl();
+      setEndpointSyncNotice({
+        status: 'syncing',
+        endpointName: MODEL_LABEL_ACTIVE,
+        message: `Syncing archive with ${MODEL_LABEL_ACTIVE}...`,
+      });
+      const syncRes = await syncCorpusWithEndpoint({
+        catalogRuns: runs,
+        investigations,
+        literatureChunksCount,
+        config: {
+          baseUrl: liveUrl,
+          apiKeyHeader: 'X-API-Key',
+          apiKeyValue: '',
+          modelId: '',
+        },
+        endpointName: MODEL_LABEL_ACTIVE,
+      });
+      setEndpointSyncNotice(syncRes);
+      onEndpointSyncedOrProfileChanged?.();
+      return;
+    }
+
+    const chosen = apiProfiles.find((p) => p.id === profileId) ?? null;
     if (!chosen) {
       setEndpointSyncNotice({
         status: 'local-only',
-        endpointName: 'Local Combustion Model',
-        message: 'Local Combustion Model active',
+        endpointName: MODEL_LABEL_LOCAL,
+        message: `${MODEL_LABEL_LOCAL} active`,
       });
       onEndpointSyncedOrProfileChanged?.();
       return;
@@ -800,7 +890,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         ? isDark
                           ? 'bg-[#18181B] border-zinc-600 text-[#FAFAFA]'
                           : 'bg-white border-zinc-400 text-[#18181B] shadow-2xs'
-                        : 'border-transparent hover:bg-zinc-200/60 dark:hover:bg-zinc-900/70'
+                        : 'border-transparent hover:bg-zinc-200/60 dark:hover:bg-zinc-800/80'
                     }`}
                   >
                     {isEditing ? (
@@ -938,15 +1028,15 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 truncate">
                 Active chamber: {virtualConfig.material} ·{' '}
                 <span className="font-mono tabular-nums">
-                  {virtualConfig.O2_pct.toFixed(1)}% O2
+                  {safeFiniteNumber(virtualConfig.O2_pct, 21).toFixed(1)}% O2
                 </span>{' '}
                 ·{' '}
                 <span className="font-mono tabular-nums">
-                  {virtualConfig.Flow_ms.toFixed(2)} m/s
+                  {safeFiniteNumber(virtualConfig.Flow_ms, 0.15).toFixed(2)} m/s
                 </span>{' '}
                 ·{' '}
                 <span className="font-mono tabular-nums">
-                  {simulation.flameSpread_mms.toFixed(2)} mm/s
+                  {safeFiniteNumber(simulation.flameSpread_mms, 0).toFixed(2)} mm/s
                 </span>
               </p>
             </div>
@@ -955,16 +1045,10 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
           <div className="flex items-center gap-2.5 text-xs font-sans text-zinc-600 dark:text-zinc-300 shrink-0">
             <span className="inline-flex items-center gap-1.5">
               <span
-                className={`w-2 h-2 rounded-[2px] ${
-                  activeProfile
-                    ? isDark
-                      ? 'bg-[#FAFAFA]'
-                      : 'bg-[#18181B]'
-                    : 'bg-[#10B981]'
-                }`}
+                className="w-2 h-2 rounded-[2px] bg-[#10B981]"
               />
-              <span className="font-medium">
-                {activeProfile ? activeProfile.name : 'Local Combustion Model'}
+              <span className="font-medium text-[#10B981]">
+                {activeModelDisplayName}
               </span>
               {endpointSyncNotice && (
                 <span className="text-[11px] font-sans text-zinc-500">
@@ -1118,7 +1202,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                       </div>
 
                       {/* Structured Plain-English Engineering Steps */}
-                      {msg.steps && msg.steps.length > 0 && (
+                      {Array.isArray(msg.steps) && msg.steps.length > 0 && (
                         <ol className="space-y-2 text-xs sm:text-[13px] font-sans leading-relaxed">
                           {msg.steps.map((step, i) => (
                             <li key={i} className="flex items-start gap-2.5">
@@ -1126,7 +1210,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                                 [{i + 1}]
                               </span>
                               <span className="text-zinc-800 dark:text-zinc-200">
-                                {step}
+                                {typeof step === 'string' ? step : String(step ?? '')}
                               </span>
                             </li>
                           ))}
@@ -1134,7 +1218,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                       )}
 
                       {/* Comparative What-If Sensitivity Table */}
-                      {msg.whatIfRows && msg.whatIfRows.length > 0 && (
+                      {Array.isArray(msg.whatIfRows) && msg.whatIfRows.length > 0 && (
                         <div className="overflow-x-auto border rounded-md border-[#E4E4E7] dark:border-[#27272A]">
                           <table className="w-full text-left border-collapse text-xs">
                             <thead>
@@ -1168,7 +1252,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                                 return (
                                   <tr
                                     key={row.id}
-                                    className="hover:bg-zinc-50/70 dark:hover:bg-white/[0.02]"
+                                    className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/70 transition-colors"
                                   >
                                     <td className="py-2 px-3 font-sans font-medium whitespace-nowrap">
                                       {row.label}
@@ -1177,19 +1261,19 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                                       {row.material}
                                     </td>
                                     <td className="py-2 px-3 font-mono text-right tabular-nums whitespace-nowrap">
-                                      {row.O2_pct.toFixed(1)}%
+                                      {safeFiniteNumber(row.O2_pct, 21).toFixed(1)}%
                                     </td>
                                     <td className="py-2 px-3 font-mono text-right tabular-nums whitespace-nowrap">
-                                      {row.Flow_ms.toFixed(2)} m/s
+                                      {safeFiniteNumber(row.Flow_ms, 0.15).toFixed(2)} m/s
                                     </td>
                                     <td className="py-2 px-3 font-mono text-right tabular-nums whitespace-nowrap">
-                                      {row.Thickness_mm.toFixed(1)} mm
+                                      {safeFiniteNumber(row.Thickness_mm, 2.0).toFixed(1)} mm
                                     </td>
                                     <td className="py-2 px-3 font-mono text-right font-semibold tabular-nums whitespace-nowrap">
-                                      {row.flameSpread_mms.toFixed(2)} mm/s
+                                      {safeFiniteNumber(row.flameSpread_mms, 0).toFixed(2)} mm/s
                                     </td>
                                     <td className="py-2 px-3 font-mono text-right tabular-nums whitespace-nowrap">
-                                      {row.minSafeThickness_mm.toFixed(1)} mm
+                                      {safeFiniteNumber(row.minSafeThickness_mm, 2.0).toFixed(1)} mm
                                     </td>
                                     <td
                                       className={`py-2 px-3 font-sans font-semibold whitespace-nowrap ${rowColor}`}
@@ -1264,18 +1348,27 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                           <span className="text-[11px] font-sans text-zinc-500 mr-1">
                             Citations:
                           </span>
-                          {(msg.citations ?? []).map((citeId) => (
-                            <button
-                              key={citeId}
-                              type="button"
-                              onClick={() => onOpenInvestigation(citeId)}
-                              className={`h-7 inline-flex items-center gap-1 px-2 text-[11px] font-mono font-medium rounded-md border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
-                              title={`Open ${citeId} Investigation Details`}
-                            >
-                              <span>{citeId}</span>
-                              <ArrowUpRight className="w-3 h-3 opacity-70" />
-                            </button>
-                          ))}
+                          {(Array.isArray(msg.citations) ? msg.citations : []).map((citeItem, cIdx) => {
+                            const citeLabel =
+                              typeof citeItem === 'string'
+                                ? citeItem
+                                : String(
+                                    (citeItem as { psi_id?: string })?.psi_id ??
+                                      'PSI-Archive'
+                                  );
+                            return (
+                              <button
+                                key={`${citeLabel}-${cIdx}`}
+                                type="button"
+                                onClick={() => onOpenInvestigation(citeLabel)}
+                                className={`h-7 inline-flex items-center gap-1 px-2 text-[11px] font-mono font-medium rounded-md border cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${secondaryBtn}`}
+                                title={`Open ${citeLabel} Investigation Details`}
+                              >
+                                <span className="truncate max-w-[240px]">{citeLabel}</span>
+                                <ArrowUpRight className="w-3 h-3 opacity-70" />
+                              </button>
+                            );
+                          })}
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
@@ -1382,7 +1475,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                         >
                           <div className="text-xs font-display font-semibold">
                             Teach Model Verified Physics Correction ({virtualConfig.material} ·{' '}
-                            {virtualConfig.O2_pct.toFixed(1)}% O2 · {virtualConfig.P_psi.toFixed(1)} psi)
+                            {safeFiniteNumber(virtualConfig.O2_pct, 21).toFixed(1)}% O2 · {safeFiniteNumber(virtualConfig.P_psi, 14.7).toFixed(1)} psi)
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 items-end">
                             <input
@@ -1480,7 +1573,11 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <div
                 role="dialog"
                 aria-label="Attach Workspace Data or PSI Investigation"
-                className={`absolute left-0 bottom-full mb-2 w-[330px] sm:w-[390px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-3.5 z-40 space-y-3 psi-animate-popover ${surfaceShell}`}
+                className={`absolute left-0 bottom-full mb-2 w-[330px] sm:w-[390px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl backdrop-blur-xl p-3.5 z-50 space-y-3 psi-animate-popover ${
+                  isDark
+                    ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                    : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="font-display text-xs font-semibold">
@@ -1502,7 +1599,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                       id: 'attach-virtual-lab',
                       kind: 'virtual-lab' as const,
                       label: 'Virtual Test Lab Current Run',
-                      sublabel: `${virtualConfig.material} · ${virtualConfig.O2_pct.toFixed(1)}% O2 · ${simulation.flameSpread_mms.toFixed(2)} mm/s`,
+                      sublabel: `${virtualConfig.material} · ${safeFiniteNumber(virtualConfig.O2_pct, 21).toFixed(1)}% O2 · ${safeFiniteNumber(simulation.flameSpread_mms, 0).toFixed(2)} mm/s`,
                       icon: <Sliders className="w-3.5 h-3.5" />,
                     },
                     {
@@ -1625,7 +1722,11 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               <div
                 role="dialog"
                 aria-label="Visualization Output Mode"
-                className={`absolute left-0 sm:left-12 bottom-full mb-2 w-[310px] sm:w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-3 z-40 space-y-2.5 psi-animate-popover ${surfaceShell}`}
+                className={`absolute left-0 sm:left-12 bottom-full mb-2 w-[310px] sm:w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl backdrop-blur-xl p-3 z-50 space-y-2.5 psi-animate-popover ${
+                  isDark
+                    ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                    : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="font-display text-xs font-semibold">
@@ -1716,77 +1817,141 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
               </div>
             )}
 
-            {/* Upward Menu 3: Model / API Endpoint Selector */}
+            {/* Upward Menu 3: Model Selector */}
             {openMenu === 'model' && (
               <div
                 role="dialog"
                 aria-label="Model and API Endpoint Selector"
-                className={`absolute right-0 bottom-full mb-2 w-[290px] sm:w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-xl p-2.5 z-40 space-y-1.5 psi-animate-popover ${surfaceShell}`}
+                className={`absolute right-0 bottom-full mb-2 w-[300px] sm:w-[330px] max-w-[calc(100vw-2rem)] rounded-xl border shadow-2xl backdrop-blur-xl p-2.5 z-50 space-y-1.5 psi-animate-popover ${
+                  isDark
+                    ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                    : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
+                }`}
               >
                 <div className="px-1.5 py-1 text-[10px] font-sans font-semibold uppercase tracking-wider text-zinc-500">
-                  Select Inference Model / Endpoint
+                  Select Combustion Model
                 </div>
 
+                {/* Option 1 (Top): Active Combustion Model */}
+                <button
+                  type="button"
+                  disabled={!backendStatus.connected}
+                  onClick={() => {
+                    if (!backendStatus.connected) return;
+                    void handleSelectModelProfileWithSync(ENV_DEFAULT_PROFILE_ID);
+                  }}
+                  className={`w-full px-2.5 py-2 rounded-md border flex items-center justify-between gap-2 text-left transition-all duration-150 ${
+                    !backendStatus.connected
+                      ? 'opacity-45 cursor-not-allowed pointer-events-none border-[#27272A]/60 text-zinc-400'
+                      : effectiveModelSelection === 'active'
+                      ? `${primaryBtn} cursor-pointer`
+                      : `${secondaryBtn} cursor-pointer`
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-sans font-semibold">
+                      <span
+                        className={`w-2 h-2 rounded-[2px] shrink-0 ${
+                          backendStatus.connected
+                            ? 'bg-[#10B981]'
+                            : 'bg-zinc-400 dark:bg-zinc-600'
+                        }`}
+                      />
+                      <span>Active Combustion Model</span>
+                    </div>
+                    <div
+                      className={`text-[10px] font-sans mt-0.5 ${
+                        effectiveModelSelection === 'active'
+                          ? 'opacity-80'
+                          : 'text-zinc-500'
+                      }`}
+                    >
+                      {backendStatus.connected
+                        ? `Live inference backend (${backendStatus.statusText})`
+                        : 'Offline - connect endpoint in Settings'}
+                    </div>
+                  </div>
+                  {effectiveModelSelection === 'active' && backendStatus.connected && (
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                </button>
+
+                {/* Option 2: Local Combustion Model */}
                 <button
                   type="button"
                   onClick={() => {
                     void handleSelectModelProfileWithSync(LOCAL_MODEL_ID);
                   }}
-                  className={`w-full px-2.5 py-2 rounded-md border flex items-center justify-between gap-2 text-left cursor-pointer ${
-                    activeProfileId === LOCAL_MODEL_ID
+                  className={`w-full px-2.5 py-2 rounded-md border flex items-center justify-between gap-2 text-left cursor-pointer transition-all duration-150 ${
+                    effectiveModelSelection === 'local'
                       ? primaryBtn
                       : secondaryBtn
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="text-xs font-sans font-semibold">
-                      Local Combustion Model
+                    <div className="flex items-center gap-1.5 text-xs font-sans font-semibold">
+                      <span className="w-2 h-2 rounded-[2px] bg-[#10B981] shrink-0" />
+                      <span>Local Combustion Model</span>
                     </div>
                     <div
-                      className={`text-[10px] font-sans ${
-                        activeProfileId === LOCAL_MODEL_ID
+                      className={`text-[10px] font-sans mt-0.5 ${
+                        effectiveModelSelection === 'local'
                           ? 'opacity-80'
                           : 'text-zinc-500'
                       }`}
                     >
-                      Built-in offline engine · Zero API key needed
+                      Physics engine &amp; Gemini Flash synthesis
                     </div>
                   </div>
-                  {activeProfileId === LOCAL_MODEL_ID && (
+                  {effectiveModelSelection === 'local' && (
                     <Check className="w-3.5 h-3.5 shrink-0" />
                   )}
                 </button>
 
-                {apiProfiles.map((profile) => {
-                  const selected = activeProfileId === profile.id;
-                  return (
-                    <button
-                      key={profile.id}
-                      type="button"
-                      onClick={() => {
-                        void handleSelectModelProfileWithSync(profile.id);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-md border flex items-center justify-between gap-2 text-left cursor-pointer ${
-                        selected ? primaryBtn : secondaryBtn
+                {/* Option 3: Global */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const customTarget = apiProfiles.find(
+                      (p) =>
+                        p.id !== LOCAL_MODEL_ID && p.id !== ENV_DEFAULT_PROFILE_ID
+                    );
+                    if (customTarget && effectiveModelSelection !== 'global') {
+                      void handleSelectModelProfileWithSync(customTarget.id);
+                    } else {
+                      setOpenMenu(null);
+                      setIsApiModalOpen(true);
+                    }
+                  }}
+                  className={`w-full px-2.5 py-2 rounded-md border flex items-center justify-between gap-2 text-left cursor-pointer transition-all duration-150 ${
+                    effectiveModelSelection === 'global'
+                      ? primaryBtn
+                      : secondaryBtn
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-xs font-sans font-semibold">
+                      <Server className="w-3 h-3 shrink-0" />
+                      <span>Global</span>
+                    </div>
+                    <div
+                      className={`text-[10px] font-sans truncate mt-0.5 ${
+                        effectiveModelSelection === 'global'
+                          ? 'opacity-80'
+                          : 'text-zinc-500'
                       }`}
                     >
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 text-xs font-sans font-semibold truncate">
-                          <Server className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{profile.name}</span>
-                        </div>
-                        <div
-                          className={`text-[10px] font-mono truncate ${
-                            selected ? 'opacity-80' : 'text-zinc-500'
-                          }`}
-                        >
-                          {profile.baseUrl}
-                        </div>
-                      </div>
-                      {selected && <Check className="w-3.5 h-3.5 shrink-0" />}
-                    </button>
-                  );
-                })}
+                      {activeProfile
+                        ? `${activeProfile.name} (${activeProfile.baseUrl})`
+                        : 'Configure global & custom API settings'}
+                    </div>
+                  </div>
+                  {effectiveModelSelection === 'global' ? (
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                  ) : (
+                    <Settings className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                  )}
+                </button>
 
                 {/* Reply Detail Depth right inside Composer Model Dropdown */}
                 <div className="pt-2 border-t border-[#E4E4E7] dark:border-[#27272A] space-y-1.5">
@@ -1818,7 +1983,7 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                           className={`px-2 py-1 text-[11px] font-sans font-medium rounded-[4px] transition-colors cursor-pointer ${
                             active
                               ? primaryBtn
-                              : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                              : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200/70 dark:hover:bg-zinc-800/90'
                           }`}
                         >
                           {opt.label}
@@ -1826,20 +1991,6 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                       );
                     })}
                   </div>
-                </div>
-
-                <div className="pt-1 border-t border-[#E4E4E7] dark:border-[#27272A]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenMenu(null);
-                      setIsApiModalOpen(true);
-                    }}
-                    className={`w-full px-2.5 py-2 rounded-md border flex items-center gap-2 text-xs font-sans font-medium cursor-pointer ${secondaryBtn}`}
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    <span>API Settings...</span>
-                  </button>
                 </div>
               </div>
             )}
@@ -1947,10 +2098,8 @@ export const ModelConsoleView: React.FC<ModelConsoleViewProps> = ({
                     }`}
                   >
                     <Activity className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate max-w-[155px]">
-                      {activeProfile
-                        ? activeProfile.name
-                        : 'Local Combustion Model'}
+                    <span className="truncate max-w-[165px]">
+                      {activeModelDisplayName}
                     </span>
                     <ChevronDown className="w-3 h-3 opacity-70" />
                   </button>

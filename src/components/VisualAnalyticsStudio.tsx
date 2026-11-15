@@ -283,6 +283,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       {/* Collapsible 3-Part Top Control Strip */}
       <CollapsibleCard
         theme={theme}
+        className={`relative ${isTechOpen ? 'z-40' : 'z-30 focus-within:z-40'}`}
         title="Chart Controls: Dataset, Chart Type & Variables"
         subtitle="Choose a dataset scope, chart method, and dynamic X / Y / Color variables"
         bodyClassName="p-5 space-y-3.5"
@@ -358,7 +359,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                     ? 'bg-[#09090B] border-zinc-400 text-[#FAFAFA] ring-1 ring-zinc-500/30'
                     : 'bg-zinc-100 border-zinc-400 text-[#18181B] ring-1 ring-zinc-400/30'
                   : isDark
-                  ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:border-zinc-500'
+                  ? 'bg-[#09090B] border-[#27272A] text-[#FAFAFA] hover:bg-zinc-800/90 hover:text-zinc-50 hover:border-zinc-500'
                   : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100 hover:border-zinc-300'
               }`}
             >
@@ -391,16 +392,16 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
               <div
                 role="listbox"
                 aria-label="Select analytical visualization method"
-                className={`absolute left-0 sm:left-auto sm:right-0 xl:left-0 top-full mt-1.5 w-[min(92vw,680px)] max-w-[calc(100vw-2rem)] max-h-[430px] overflow-y-auto z-50 rounded-lg border backdrop-blur-md shadow-2xl psi-animate-popover ${
+                className={`absolute left-0 sm:left-auto sm:right-0 xl:left-0 top-full mt-1.5 w-[min(92vw,680px)] max-w-[calc(100vw-2rem)] max-h-[430px] overflow-y-auto z-50 rounded-xl border backdrop-blur-xl shadow-2xl psi-animate-popover ${
                   isDark
-                    ? 'bg-[#18181B]/95 border-[#27272A] text-[#FAFAFA]'
-                    : 'bg-white/98 border-[#E4E4E7] text-[#18181B]'
+                    ? 'bg-[#121216]/95 border-[#27272A] text-[#FAFAFA]'
+                    : 'bg-white/95 border-[#E4E4E7] text-[#18181B]'
                 }`}
               >
                 <div
-                  className={`sticky top-0 z-10 p-3 border-b space-y-2 backdrop-blur-md ${
+                  className={`sticky top-0 z-10 p-3 border-b space-y-2 backdrop-blur-xl ${
                     isDark
-                      ? 'bg-[#18181B]/95 border-[#27272A]'
+                      ? 'bg-[#121216]/95 border-[#27272A]'
                       : 'bg-white/95 border-[#E4E4E7]'
                   }`}
                 >
@@ -524,7 +525,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
                               : selected
                               ? activeMonoBtn + ' cursor-pointer'
                               : isDark
-                              ? 'hover:bg-zinc-800/80 text-zinc-100 cursor-pointer'
+                              ? 'hover:bg-zinc-800/90 hover:text-zinc-50 text-zinc-100 cursor-pointer'
                               : 'hover:bg-zinc-100 text-zinc-900 cursor-pointer'
                           }`}
                         >
@@ -695,7 +696,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
 
       {/* Main Dedicated Spacious Chart Stage */}
       <div
-        className={`rounded-lg border p-5 sm:p-6 space-y-4 transition-colors duration-150 ${
+        className={`relative z-10 rounded-lg border p-5 sm:p-6 space-y-4 transition-colors duration-150 ${
           isDark
             ? 'bg-[#18181B] border-[#27272A] text-[#FAFAFA]'
             : 'bg-white border-[#E4E4E7] text-[#18181B]'
@@ -815,6 +816,7 @@ export const VisualAnalyticsStudio: React.FC<VisualAnalyticsStudioProps> = ({
       {/* Collapsible Active Linked Runs Strip (Brushing & Linking) */}
       <CollapsibleCard
         theme={theme}
+        className="relative z-10"
         title="Nearby Flight Runs & Quick Links"
         subtitle="Hover any run to highlight it in the charts, or click to inspect full experiment details"
         defaultOpen={false}

@@ -200,7 +200,7 @@ export function StudioSelect<T extends string = string>({
   const iconSizeClass = height === 'h-6' ? 'w-3 h-3' : 'w-3.5 h-3.5';
 
   return (
-    <div ref={containerRef} className={`relative inline-block ${className}`}>
+    <div ref={containerRef} className={`relative inline-block ${isOpen ? 'z-40' : 'z-10'} ${className}`}>
       <button
         ref={buttonRef}
         id={selectId}
@@ -218,7 +218,7 @@ export function StudioSelect<T extends string = string>({
             ? 'opacity-50 cursor-not-allowed pointer-events-none'
             : isOpen
             ? 'bg-zinc-100 border-zinc-400 text-[#18181B] ring-1 ring-zinc-400/30 dark:bg-[#09090B] dark:border-zinc-400 dark:text-[#FAFAFA] dark:ring-zinc-500/30'
-            : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100 hover:border-zinc-300 dark:bg-[#09090B] dark:border-[#27272A] dark:text-[#FAFAFA] dark:hover:border-zinc-500'
+            : 'bg-zinc-50 border-[#E4E4E7] text-[#18181B] hover:bg-zinc-100 hover:border-zinc-300 dark:bg-[#09090B] dark:border-[#27272A] dark:text-[#FAFAFA] dark:hover:bg-zinc-800/90 dark:hover:text-zinc-50 dark:hover:border-zinc-500'
         } ${buttonClassName}`}
       >
         <span className="truncate">
@@ -238,7 +238,7 @@ export function StudioSelect<T extends string = string>({
           role="listbox"
           tabIndex={-1}
           aria-label={ariaLabel}
-          className={`absolute left-0 z-40 w-full min-w-[140px] max-h-60 overflow-y-auto p-1 rounded-lg border shadow-xl backdrop-blur-md bg-white/98 border-[#E4E4E7] text-[#18181B] dark:bg-[#121215]/98 dark:border-[#27272A] dark:text-[#FAFAFA] ${
+          className={`absolute left-0 z-50 w-full min-w-[140px] max-h-60 overflow-y-auto p-1 rounded-xl border shadow-2xl backdrop-blur-xl bg-white/95 border-[#E4E4E7] text-[#18181B] dark:bg-[#121216]/95 dark:border-[#27272A] dark:text-[#FAFAFA] ${
             effectivePlacement === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
           } ${popoverClassName}`}
         >
@@ -275,7 +275,7 @@ export function StudioSelect<T extends string = string>({
                       ? 'bg-[#18181B] text-[#FFFFFF] font-semibold dark:bg-[#FAFAFA] dark:text-[#09090B] dark:font-semibold cursor-pointer'
                       : isHighlighted
                       ? 'bg-zinc-100 text-[#18181B] dark:bg-zinc-800/80 dark:text-[#FAFAFA] cursor-pointer'
-                      : 'text-zinc-800 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800/80 cursor-pointer'
+                      : 'text-zinc-800 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800/90 dark:hover:text-zinc-50 cursor-pointer'
                   }`}
                 >
                   <div className="flex flex-col min-w-0">
