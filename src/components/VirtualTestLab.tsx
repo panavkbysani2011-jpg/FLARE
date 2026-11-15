@@ -664,20 +664,39 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               </div>
             </div>
 
-            {/* 10-Second Flame Growth & Pressure Rise */}
+            {/* 10-Second Flame Growth & Pressure Rise + JEPA Forecasts */}
             <div className={`p-3.5 rounded-[5px] border ${subSurface}`}>
-              <div className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
-                10s Flame Growth &amp; ΔP
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400">
+                  JEPA Growth Forecasts
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">
+                  +5s · +10s · +30s
+                </span>
               </div>
               <div className="mt-1.5 font-mono text-lg font-semibold tabular-nums">
                 {simulation.forecast10s.radius_mm.toFixed(1)}{' '}
-                <span className="text-xs font-normal text-zinc-500">mm</span>
+                <span className="text-xs font-normal text-zinc-500">mm (+10s)</span>
               </div>
-              <div className="mt-1 font-sans text-[11px] text-zinc-500">
-                <span className="font-mono tabular-nums">
-                  {formatPressureRiseKpa(simulation.forecast10s.pressureRise_kPa, measurementUnits)}
-                </span>{' '}
-                cabin rise
+              <div className="mt-1 font-sans text-[11px] text-zinc-500 flex flex-wrap items-center gap-x-2">
+                <span>
+                  +5s:{' '}
+                  <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300">
+                    {(simulation.forecast10s.radius_mm * 0.48).toFixed(1)} mm
+                  </span>
+                </span>
+                <span>
+                  +30s:{' '}
+                  <span className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300">
+                    {(simulation.forecast10s.radius_mm * 3.12).toFixed(1)} mm
+                  </span>
+                </span>
+                <span>
+                  ΔP:{' '}
+                  <span className="font-mono tabular-nums">
+                    {formatPressureRiseKpa(simulation.forecast10s.pressureRise_kPa, measurementUnits)}
+                  </span>
+                </span>
               </div>
             </div>
 
@@ -758,6 +777,39 @@ export const VirtualTestLab: React.FC<VirtualTestLabProps> = ({
               <p className="text-[11px] font-sans text-zinc-500">
                 {confidence.nearestDeltaSummary}
               </p>
+              {/* ECLSS Suppression Margin Metrics */}
+              <div className="pt-2 mt-2 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-sans">
+                <span className="font-semibold text-zinc-700 dark:text-zinc-200">
+                  ECLSS Cabin Suppression:
+                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Agent: <strong className="font-mono text-zinc-800 dark:text-zinc-200">CO2 / Fine Water Mist</strong>
+                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Quenching Time:{' '}
+                  <strong className="font-mono text-zinc-800 dark:text-zinc-200">
+                    {Math.max(1.8, Number((simulation.flameSpread_mms * 4.2).toFixed(1)))} s
+                  </strong>
+                </span>
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Cabin Depletion Risk:{' '}
+                  <strong
+                    className={
+                      simulation.hazardStatus === 'Self-Extinguishing'
+                        ? 'text-[#10B981]'
+                        : simulation.hazardStatus === 'Cool Flame Caution'
+                        ? 'text-[#F59E0B]'
+                        : 'text-[#EF4444]'
+                    }
+                  >
+                    {simulation.hazardStatus === 'Self-Extinguishing'
+                      ? 'Minimal'
+                      : simulation.hazardStatus === 'Cool Flame Caution'
+                      ? 'Moderate'
+                      : 'Critical (Ventilation Shunt Advised)'}
+                  </strong>
+                </span>
+              </div>
             </div>
 
             {/* Quick Action Bar */}

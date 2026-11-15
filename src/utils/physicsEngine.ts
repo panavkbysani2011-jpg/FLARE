@@ -317,6 +317,33 @@ export function generateMaterialRankings(params: {
       coolFlameBase: 24,
       limitingO2_pct: 29.8,
     },
+    {
+      name: 'Polyimide Kapton',
+      code: 'KAPTON-HN',
+      spreadMult: 0.24,
+      smokeBase: 34,
+      toxicBase: 36,
+      coolFlameBase: 26,
+      limitingO2_pct: 35.0,
+    },
+    {
+      name: 'PEEK Polymer',
+      code: 'PEEK-450G',
+      spreadMult: 0.28,
+      smokeBase: 38,
+      toxicBase: 33,
+      coolFlameBase: 29,
+      limitingO2_pct: 34.5,
+    },
+    {
+      name: 'Silicone Elastomer',
+      code: 'SILICONE-ELAST',
+      spreadMult: 0.65,
+      smokeBase: 71,
+      toxicBase: 62,
+      coolFlameBase: 58,
+      limitingO2_pct: 20.4,
+    },
   ];
 
   return candidates.map((c) => {

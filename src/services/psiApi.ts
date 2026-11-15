@@ -33,6 +33,11 @@ import {
   recordHelpfulFeedback,
   saveVerifiedCorrection,
 } from './userAdaptation';
+import {
+  evaluateCombustionState,
+  getLiveBackendUrl,
+  askLiveModel,
+} from '../lib/flareApi';
 
 export const LOCAL_MODEL_ID = 'local-combustion-model';
 export const ENV_DEFAULT_PROFILE_ID = 'env-default-endpoint';
@@ -46,12 +51,20 @@ function readEnvBaseUrl(): string {
       const metaEnv = (
         import.meta as unknown as { env?: Record<string, string | undefined> }
       ).env;
+      if (metaEnv?.VITE_IGNIS_API_URL) {
+        return metaEnv.VITE_IGNIS_API_URL.trim().replace(/\/$/, '');
+      }
       if (metaEnv?.VITE_API_BASE_URL) {
         return metaEnv.VITE_API_BASE_URL.trim().replace(/\/$/, '');
       }
     }
-    if (typeof process !== 'undefined' && process.env?.VITE_API_BASE_URL) {
-      return process.env.VITE_API_BASE_URL.trim().replace(/\/$/, '');
+    if (typeof process !== 'undefined') {
+      if (process.env?.VITE_IGNIS_API_URL) {
+        return process.env.VITE_IGNIS_API_URL.trim().replace(/\/$/, '');
+      }
+      if (process.env?.VITE_API_BASE_URL) {
+        return process.env.VITE_API_BASE_URL.trim().replace(/\/$/, '');
+      }
     }
   } catch {
     // Ignore environment access edge cases
@@ -839,8 +852,37 @@ export async function analyzeCombustionState(
 
   if (apiBaseUrl) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
+    const timer = setTimeout(() => controller.abort(), 4000);
     try {
+      // First attempt /evaluate on the V2 production API
+      const evaluateRes = await fetch(`${apiBaseUrl}/evaluate`, {
+        method: 'POST',
+        headers: buildAuthHeaders(config),
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      if (evaluateRes.ok) {
+        const remoteData = (await evaluateRes.json()) as unknown;
+        const localBase = runLocalPhysicsSimulation(
+          request,
+          catalog,
+          archiveContext
+        );
+        const patched = sanitizeRemoteSimulationPatch(remoteData, localBase);
+        const unsynced = allCorrections.filter((c) => !c.syncedRemote);
+        if (unsynced.length > 0) {
+          return applyCorrectionsAndProfileToSimulation(
+            patched,
+            request,
+            userProfile,
+            unsynced
+          );
+        }
+        return patched;
+      }
+
+      // Fallback to /api/analyze if endpoint uses legacy route
       const response = await fetch(`${apiBaseUrl}/api/analyze`, {
         method: 'POST',
         headers: buildAuthHeaders(config),
@@ -919,6 +961,45 @@ export async function runModelConsoleInference(params: {
       ? params.catalog.filter((r) => params.request.selectedRunIds!.includes(r.id))
       : []);
 
+  // If remote live backend is configured, attempt POST /ask with 25-second timeout
+  const config = getApiEndpointConfig();
+  const apiBaseUrl = config.baseUrl.trim().replace(/\/$/, '');
+
+  let liveAskResult: {
+    answer: string;
+    steps: string[];
+    citations: string[];
+    suggestedVizMode?: string;
+    guardrailWarning?: string;
+    groundedModel?: string;
+  } | null = null;
+
+  if (apiBaseUrl) {
+    const liveSliders: VirtualTestConfig = {
+      O2_pct: params.request.O2_pct,
+      P_psi: params.request.P_psi,
+      Flow_ms: params.request.Flow_ms,
+      g_eff: params.request.g_eff,
+      Thickness_mm: params.request.Thickness_mm,
+      material: (params.request.material as VirtualTestConfig['material']) ?? 'PMMA',
+      ignitionFlux_Wm2: params.request.ignitionFlux_Wm2 ?? 25000,
+    };
+    try {
+      const askRes = await askLiveModel({
+        question: groundedQuestion,
+        mode: params.mode,
+        sliders: liveSliders,
+        catalog: params.catalog,
+        archiveContext: params.archiveContext,
+      });
+      if (askRes && askRes.steps.length > 0) {
+        liveAskResult = askRes;
+      }
+    } catch {
+      // Offline fallback to local combustion intelligence
+    }
+  }
+
   const response = await analyzeCombustionState(
     {
       ...params.request,
@@ -959,20 +1040,35 @@ export async function runModelConsoleInference(params: {
       preferredCharts: userProfile.preferredCharts,
     });
 
-    const endpointLabel = getEffectiveEndpointLabel();
+    const endpointLabel = liveAskResult?.groundedModel
+      ? `${liveAskResult.groundedModel}`
+      : getEffectiveEndpointLabel();
+
+    let combinedSteps = liveAskResult && liveAskResult.steps.length > 0
+      ? liveAskResult.steps
+      : response.assistantReply.steps;
+
+    if (liveAskResult?.guardrailWarning) {
+      combinedSteps = [
+        `[GUARDRAIL WARNING] ${liveAskResult.guardrailWarning}`,
+        ...combinedSteps,
+      ];
+    }
+
     const steps =
       inlineChart?.status === 'incompatible' && inlineChart.incompatibilityReason
         ? [
             `Selected Chart Incompatible: ${inlineChart.incompatibilityReason}`,
-            ...response.assistantReply.steps,
+            ...combinedSteps,
           ]
-        : response.assistantReply.steps;
+        : combinedSteps;
 
     const citations = Array.from(
       new Set([
         ...attachments
           .filter((a) => a.psiId)
           .map((a) => a.psiId!.toUpperCase()),
+        ...(liveAskResult?.citations ?? []),
         ...response.assistantReply.citations,
       ])
     ).slice(0, 6);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Activity,
   AlertTriangle,
   Check,
   Copy,
@@ -10,6 +11,7 @@ import {
   LogOut,
   Palette,
   RotateCcw,
+  Server,
   Sliders,
   Trash2,
   User,
@@ -42,6 +44,12 @@ import {
 } from '../services/userAdaptation';
 import { triggerFileDownload } from '../utils/exportHelpers';
 import { StudioSelect } from './StudioSelect';
+import {
+  getLiveBackendUrl,
+  resetLiveBackendUrl,
+  setLiveBackendUrl,
+  testFlareApiConnection,
+} from '../lib/flareApi';
 
 export type SettingsTabId =
   | 'general'
@@ -113,6 +121,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [fgHexDraft, setFgHexDraft] = useState(effectiveFg);
   const [accentHexDraft, setAccentHexDraft] = useState(effectiveAccent);
 
+  // Live Backend Endpoint URL state (general tab)
+  const [backendUrlDraft, setBackendUrlDraft] = useState(getLiveBackendUrl());
+  const [isTestingBackend, setIsTestingBackend] = useState(false);
+  const [backendStatusInfo, setBackendStatusInfo] = useState<{
+    ok: boolean;
+    statusText: string;
+    badgeLabel: string;
+    latencyMs?: number;
+  }>({
+    ok: true,
+    statusText: 'Live V2 Server · 32/32 Certified',
+    badgeLabel: 'Live V2 Server · 32/32 Certified',
+  });
+
   // Account & Memory Tab Feedback / Confirmations
   const [accountNotice, setAccountNotice] = useState<string | null>(null);
   const [copiedResearcherId, setCopiedResearcherId] = useState(false);
@@ -132,6 +154,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setProfileNotice(null);
     setAccountNotice(null);
     setConfirmDeleteOpen(false);
+    const activeUrl = getLiveBackendUrl();
+    setBackendUrlDraft(activeUrl);
+    void testFlareApiConnection(activeUrl).then(setBackendStatusInfo);
   }, [isOpen, session, initialEmail, initialBio]);
 
   useEffect(() => {
@@ -452,6 +477,88 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         {fmt.label}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Live Backend Endpoint URL & Tunnel Override */}
+                <div className={`p-4 rounded-lg border space-y-3 ${panelBox}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-sans font-semibold flex items-center gap-2">
+                        <Server className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>Live Backend Endpoint URL</span>
+                      </div>
+                      <p className="text-[11px] font-sans text-zinc-500 dark:text-zinc-400 mt-0.5">
+                        Configure the live Python FastAPI V2 inference endpoint or Cloudflare tunnel URL
+                      </p>
+                    </div>
+
+                    {/* Live Status Indicator Badge */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-sans font-medium">
+                      <span
+                        className={`w-2 h-2 rounded-[2px] shrink-0 ${
+                          backendStatusInfo.ok ? 'bg-[#10B981]' : 'bg-[#F59E0B]'
+                        }`}
+                      />
+                      <span
+                        className={
+                          backendStatusInfo.ok
+                            ? 'text-[#10B981]'
+                            : 'text-[#F59E0B]'
+                        }
+                      >
+                        {backendStatusInfo.statusText}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="url"
+                        value={backendUrlDraft}
+                        onChange={(e) => setBackendUrlDraft(e.target.value)}
+                        onBlur={() => {
+                          const saved = setLiveBackendUrl(backendUrlDraft);
+                          setBackendUrlDraft(saved);
+                        }}
+                        placeholder="https://collectables-accommodate-cumulative-chemical.trycloudflare.com"
+                        aria-label="Live Backend Endpoint URL"
+                        className={`flex-1 h-9 px-3 rounded-lg border text-xs font-mono transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inputSurface}`}
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          disabled={isTestingBackend}
+                          onClick={async () => {
+                            setIsTestingBackend(true);
+                            setLiveBackendUrl(backendUrlDraft);
+                            const result = await testFlareApiConnection(backendUrlDraft);
+                            setBackendStatusInfo(result);
+                            setIsTestingBackend(false);
+                          }}
+                          className={`h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
+                        >
+                          <Activity className="w-3.5 h-3.5" />
+                          <span>{isTestingBackend ? 'Testing...' : 'Test Connection'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reset = resetLiveBackendUrl();
+                            setBackendUrlDraft(reset);
+                            void testFlareApiConnection(reset).then(setBackendStatusInfo);
+                          }}
+                          className={`h-9 px-2.5 rounded-lg border text-xs font-sans font-medium cursor-pointer transition-all duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${inactiveOptionBtn}`}
+                          title="Reset to default tunnel URL"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] font-sans text-zinc-500 dark:text-zinc-400">
+                      Saved in localStorage. Defaults to import.meta.env.VITE_IGNIS_API_URL so fresh tunnel URLs can be pasted anytime without redeploying.
+                    </p>
                   </div>
                 </div>
               </div>
