@@ -1,5 +1,10 @@
 # FLARE - Flight & Lunar Atmosphere Risk Engine
 
+[![Live Application](https://img.shields.io/badge/Live%20App-flare--up--tau.vercel.app-10B981?style=flat&logo=vercel)](https://flare-up-tau.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
+**Live Workbench URL:** [https://flare-up-tau.vercel.app/](https://flare-up-tau.vercel.app/)
+
 FLARE is a browser-based fire safety workbench for testing how spacecraft cabin materials behave in reduced gravity, varying oxygen levels, cabin pressures, and forced airflow - calibrated against 1,616 experimental microgravity combustion runs from NASA's Physical Science Informatics (PSI) archive.
 
 ## What FLARE Does
